@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "build": "rd /s /q dist && npx tsc"
+    "build": "rd /s /q dist && npx tsc",
+    "test": "npm run build && node dist/test.js"
   },
   "devDependencies": {
     "@types/amqplib": "^0.8.2",

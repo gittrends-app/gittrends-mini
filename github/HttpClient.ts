@@ -11,6 +11,7 @@ export type HttpClientOpts = {
   timeout?: number;
   retries?: number;
   userAgent?: string;
+  authToken?: string;
 };
 
 export type HttpClientResponse = {
@@ -36,6 +37,7 @@ export default class HttpClient {
       baseURL: this.baseUrl,
       headers: {
         "user-agent": opts.userAgent || "[GitTrends.app] My awesome app",
+        Authorization: "bearer " + opts.authToken || "",
       },
       timeout: this.timeout,
       validateStatus: (status) => Math.floor(status / 100) === 2,
