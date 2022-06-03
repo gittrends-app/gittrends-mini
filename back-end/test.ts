@@ -6,7 +6,7 @@ const fs = require('fs');
 const client = new HttpClient({
   host: "api.github.com",
   protocol: "https",
-  authToken: "seu token aqui"
+  authToken: "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" 
 });
 
 var component = new ReposityComponent(
