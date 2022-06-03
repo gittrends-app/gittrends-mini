@@ -1,7 +1,7 @@
 {
   "scripts": {
     "build": "rd /s /q dist && npx tsc",
-    "test": "npm run build && node dist/test.js"
+    "start": "npm run build && node dist/index.js"
   },
   "devDependencies": {
     "@types/amqplib": "^0.8.2",
@@ -24,6 +24,8 @@
     "amqplib": "^0.8.0",
     "axios": "^0.27.2",
     "axios-retry": "^3.2.5",
+    "body-parser": "^1.20.0",
+    "express": "^4.18.1",
     "ioredis": "^5.0.4",
     "lodash": "^4.17.21",
     "nock": "^13.2.4",
