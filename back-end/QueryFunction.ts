@@ -7,15 +7,17 @@ export class QueryFunction {
   client: HttpClient;
   component: ReposityComponent;
 
-  constructor(authToken: string, repositoryId: string, after?: string) {
+  constructor(tokenAuth: string, repositoryId: string, after?: string) {
     this.client = new HttpClient({
       host: "api.github.com",
       protocol: "https",
-      authToken: authToken
+      authToken: tokenAuth
     });
-    this.component = new ReposityComponent(
+    this.component = (after)? new ReposityComponent(
       repositoryId
-    ).includeStargazers(true, { first: 100, after: (after)? after : "" }).includeDetails(true);
+    ).includeStargazers(true, { first: 100, after: after }).includeDetails(true) : new ReposityComponent(
+      repositoryId
+    ).includeStargazers(true, { first: 100 }).includeDetails(true);
   }
 
   runQuery() {
