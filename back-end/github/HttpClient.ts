@@ -37,7 +37,7 @@ export default class HttpClient {
       baseURL: this.baseUrl,
       headers: {
         "user-agent": opts.userAgent || "[GitTrends.app] My awesome app",
-        Authorization: "bearer " + opts.authToken || "",
+        Authorization: "bearer " + opts.authToken || ""
       },
       timeout: this.timeout,
       validateStatus: (status) => Math.floor(status / 100) === 2,
@@ -56,15 +56,7 @@ export default class HttpClient {
     data: string | Record<string, unknown>
   ): Promise<HttpClientResponse> {
     return this.client
-      .post("/graphql", data, {
-        headers: {
-          accept: [
-            "application/vnd.github.starfox-preview+json",
-            "application/vnd.github.hawkgirl-preview+json",
-            "application/vnd.github.merge-info-preview+json",
-          ].join(", "),
-        },
-      })
+      .post("/graphql", data)
       .then(({ status, statusText, data, headers }) => ({
         status,
         statusText,

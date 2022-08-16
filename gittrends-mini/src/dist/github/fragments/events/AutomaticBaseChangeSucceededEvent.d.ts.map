@@ -1,0 +1,1 @@
+{"version":3,"file":"AutomaticBaseChangeSucceededEvent.d.ts","sourceRoot":"","sources":["../../../../github/fragments/events/AutomaticBaseChangeSucceededEvent.ts"],"names":[],"mappings":"AAGA,OAAO,QAAQ,MAAM,gBAAgB,CAAC;AAGtC,qBAAa,iCAAkC,SAAQ,QAAQ;IAC7D,IAAI,SAAuC;IAE3C,IAAI,YAAY,IAAI,QAAQ,EAAE,CAE7B;IAED,QAAQ,IAAI,MAAM;CAUnB;;AAED,wBAAuD"}

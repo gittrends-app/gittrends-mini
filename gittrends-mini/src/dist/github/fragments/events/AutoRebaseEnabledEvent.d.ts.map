@@ -1,0 +1,1 @@
+{"version":3,"file":"AutoRebaseEnabledEvent.d.ts","sourceRoot":"","sources":["../../../../github/fragments/events/AutoRebaseEnabledEvent.ts"],"names":[],"mappings":"AAGA,OAAO,QAAQ,MAAM,gBAAgB,CAAC;AAGtC,qBAAa,sBAAuB,SAAQ,QAAQ;IAClD,IAAI,SAA4B;IAEhC,IAAI,YAAY,IAAI,QAAQ,EAAE,CAE7B;IAED,QAAQ,IAAI,MAAM;CASnB;;AAED,wBAA4C"}

@@ -1,0 +1,1 @@
+{"version":3,"file":"PullRequestComponent.d.ts","sourceRoot":"","sources":["../../../github/components/PullRequestComponent.ts"],"names":[],"mappings":"AAGA,OAAO,QAAQ,MAAM,aAAa,CAAC;AA4BnC,OAAO,cAAc,MAAM,kBAAkB,CAAC;AAE9C,MAAM,CAAC,OAAO,OAAO,oBAAqB,SAAQ,cAAc;gBAClD,EAAE,EAAE,MAAM,EAAE,KAAK,SAAS;IAgCtC,IAAI,SAAS,IAAI,QAAQ,EAAE,CAyC1B;IAED,cAAc,CAAC,OAAO,EAAE,OAAO,GAAG,IAAI;CAMvC"}
