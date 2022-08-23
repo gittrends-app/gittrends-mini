@@ -1,1 +1,0 @@
-{"version":3,"file":"PullRequestCommitFragment.d.ts","sourceRoot":"","sources":["../../../github/fragments/PullRequestCommitFragment.ts"],"names":[],"mappings":"AAGA,OAAO,QAAQ,MAAM,aAAa,CAAC;AAGnC,qBAAa,yBAA0B,SAAQ,QAAQ;IACrD,IAAI,SAAuB;IAE3B,IAAI,YAAY,IAAI,QAAQ,EAAE,CAE7B;IAED,QAAQ,IAAI,MAAM;CAOnB;;AAED,wBAA+C"}

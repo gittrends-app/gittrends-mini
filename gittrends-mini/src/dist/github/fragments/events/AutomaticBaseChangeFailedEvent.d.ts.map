@@ -1,1 +1,0 @@
-{"version":3,"file":"AutomaticBaseChangeFailedEvent.d.ts","sourceRoot":"","sources":["../../../../github/fragments/events/AutomaticBaseChangeFailedEvent.ts"],"names":[],"mappings":"AAGA,OAAO,QAAQ,MAAM,gBAAgB,CAAC;AAGtC,qBAAa,8BAA+B,SAAQ,QAAQ;IAC1D,IAAI,SAAoC;IAExC,IAAI,YAAY,IAAI,QAAQ,EAAE,CAE7B;IAED,QAAQ,IAAI,MAAM;CAUnB;;AAED,wBAAoD"}

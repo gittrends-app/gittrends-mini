@@ -1,1 +1,0 @@
-{"version":3,"file":"PullRequestReviewFragment.d.ts","sourceRoot":"","sources":["../../../github/fragments/PullRequestReviewFragment.ts"],"names":[],"mappings":"AAGA,OAAO,QAAQ,MAAM,aAAa,CAAC;AAMnC,qBAAa,yBAA0B,SAAQ,QAAQ;IACrD,IAAI,SAAuB;IAE3B,IAAI,YAAY,IAAI,QAAQ,EAAE,CAO7B;IAED,QAAQ,IAAI,MAAM;CAuBnB;;AAED,wBAA+C"}

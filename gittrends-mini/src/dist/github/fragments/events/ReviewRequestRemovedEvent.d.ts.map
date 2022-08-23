@@ -1,1 +1,0 @@
-{"version":3,"file":"ReviewRequestRemovedEvent.d.ts","sourceRoot":"","sources":["../../../../github/fragments/events/ReviewRequestRemovedEvent.ts"],"names":[],"mappings":"AAGA,OAAO,QAAQ,MAAM,gBAAgB,CAAC;AAGtC,qBAAa,yBAA0B,SAAQ,QAAQ;IACrD,IAAI,SAA+B;IAEnC,IAAI,YAAY,IAAI,QAAQ,EAAE,CAE7B;IAED,QAAQ,IAAI,MAAM;CASnB;;AAED,wBAA+C"}
