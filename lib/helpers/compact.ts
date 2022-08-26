@@ -9,11 +9,11 @@ import {
   isNil,
   size,
   negate,
-} from "lodash";
+} from 'lodash';
 
 export function canBeRemoved(value: any): boolean {
   if (isNil(value)) return true;
-  else if (value === false || value === 0 || value === "") return true;
+  else if (value === false || value === 0 || value === '') return true;
   else if ((isArray(value) || isPlainObject(value)) && size(value) === 0)
     return true;
   return false;

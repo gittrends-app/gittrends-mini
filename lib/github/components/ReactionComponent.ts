@@ -1,12 +1,12 @@
 /*
  *  Author: Hudson S. Borges
  */
-import Component from "../Component";
-import Fragment from "../Fragment";
-import { SimplifiedActorFragment } from "../fragments/ActorFragment";
+import Component from '../Component';
+import Fragment from '../Fragment';
+import { SimplifiedActorFragment } from '../fragments/ActorFragment';
 
 export default class ReactionComponent extends Component {
-  constructor(id: string, alias = "reactable") {
+  constructor(id: string, alias = 'reactable') {
     super(id, alias);
   }
 
@@ -43,6 +43,6 @@ export default class ReactionComponent extends Component {
             ${this.includes.reactions.textFragment}
           }
         `
-      : "";
+      : '';
   }
 }

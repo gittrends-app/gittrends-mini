@@ -1,40 +1,40 @@
 /*
  *  Author: Hudson S. Borges
  */
-import Component from "../Component";
-import Fragment from "../Fragment";
-import { SimplifiedActorFragment } from "../fragments/ActorFragment";
-import AddedToProjectEvent from "../fragments/events/AddedToProjectEvent";
-import AssignedEvent from "../fragments/events/AssignedEvent";
-import ClosedEvent from "../fragments/events/ClosedEvent";
-import CommentDeletedEvent from "../fragments/events/CommentDeletedEvent";
-import ConnectedEvent from "../fragments/events/ConnectedEvent";
-import ConvertedNoteToIssueEvent from "../fragments/events/ConvertedNoteToIssueEvent";
-import CrossReferencedEvent from "../fragments/events/CrossReferencedEvent";
-import DemilestonedEvent from "../fragments/events/DemilestonedEvent";
-import DisconnectedEvent from "../fragments/events/DisconnectedEvent";
-import LabeledEvent from "../fragments/events/LabeledEvent";
-import LockedEvent from "../fragments/events/LockedEvent";
-import MarkedAsDuplicateEvent from "../fragments/events/MarkedAsDuplicateEvent";
-import MentionedEvent from "../fragments/events/MentionedEvent";
-import MilestonedEvent from "../fragments/events/MilestonedEvent";
-import MovedColumnsInProjectEvent from "../fragments/events/MovedColumnsInProjectEvent";
-import PinnedEvent from "../fragments/events/PinnedEvent";
-import ReferencedEvent from "../fragments/events/ReferencedEvent";
-import RemovedFromProjectEvent from "../fragments/events/RemovedFromProjectEvent";
-import RenamedTitleEvent from "../fragments/events/RenamedTitleEvent";
-import ReopenedEvent from "../fragments/events/ReopenedEvent";
-import SubscribedEvent from "../fragments/events/SubscribedEvent";
-import TransferredEvent from "../fragments/events/TransferredEvent";
-import UnassignedEvent from "../fragments/events/UnassignedEvent";
-import UnlabeledEvent from "../fragments/events/UnlabeledEvent";
-import UnlockedEvent from "../fragments/events/UnlockedEvent";
-import UnmarkedAsDuplicateEvent from "../fragments/events/UnmarkedAsDuplicateEvent";
-import UnpinnedEvent from "../fragments/events/UnpinnedEvent";
-import UnsubscribedEvent from "../fragments/events/UnsubscribedEvent";
-import UserBlockedEvent from "../fragments/events/UserBlockedEvent";
-import IssueCommentFragment from "../fragments/IssueCommentFragment";
-import IssueFragment from "../fragments/IssueFragment";
+import Component from '../Component';
+import Fragment from '../Fragment';
+import { SimplifiedActorFragment } from '../fragments/ActorFragment';
+import AddedToProjectEvent from '../fragments/events/AddedToProjectEvent';
+import AssignedEvent from '../fragments/events/AssignedEvent';
+import ClosedEvent from '../fragments/events/ClosedEvent';
+import CommentDeletedEvent from '../fragments/events/CommentDeletedEvent';
+import ConnectedEvent from '../fragments/events/ConnectedEvent';
+import ConvertedNoteToIssueEvent from '../fragments/events/ConvertedNoteToIssueEvent';
+import CrossReferencedEvent from '../fragments/events/CrossReferencedEvent';
+import DemilestonedEvent from '../fragments/events/DemilestonedEvent';
+import DisconnectedEvent from '../fragments/events/DisconnectedEvent';
+import LabeledEvent from '../fragments/events/LabeledEvent';
+import LockedEvent from '../fragments/events/LockedEvent';
+import MarkedAsDuplicateEvent from '../fragments/events/MarkedAsDuplicateEvent';
+import MentionedEvent from '../fragments/events/MentionedEvent';
+import MilestonedEvent from '../fragments/events/MilestonedEvent';
+import MovedColumnsInProjectEvent from '../fragments/events/MovedColumnsInProjectEvent';
+import PinnedEvent from '../fragments/events/PinnedEvent';
+import ReferencedEvent from '../fragments/events/ReferencedEvent';
+import RemovedFromProjectEvent from '../fragments/events/RemovedFromProjectEvent';
+import RenamedTitleEvent from '../fragments/events/RenamedTitleEvent';
+import ReopenedEvent from '../fragments/events/ReopenedEvent';
+import SubscribedEvent from '../fragments/events/SubscribedEvent';
+import TransferredEvent from '../fragments/events/TransferredEvent';
+import UnassignedEvent from '../fragments/events/UnassignedEvent';
+import UnlabeledEvent from '../fragments/events/UnlabeledEvent';
+import UnlockedEvent from '../fragments/events/UnlockedEvent';
+import UnmarkedAsDuplicateEvent from '../fragments/events/UnmarkedAsDuplicateEvent';
+import UnpinnedEvent from '../fragments/events/UnpinnedEvent';
+import UnsubscribedEvent from '../fragments/events/UnsubscribedEvent';
+import UserBlockedEvent from '../fragments/events/UserBlockedEvent';
+import IssueCommentFragment from '../fragments/IssueCommentFragment';
+import IssueFragment from '../fragments/IssueFragment';
 
 type TOptions = { first: number; after?: string; alias?: string };
 
@@ -42,10 +42,10 @@ export default class IssueComponent extends Component {
   protected componentName: string;
   protected extraTimelineEvents: string;
 
-  constructor(id: string, alias = "issue") {
+  constructor(id: string, alias = 'issue') {
     super(id, alias);
-    this.componentName = "Issue";
-    this.extraTimelineEvents = "";
+    this.componentName = 'Issue';
+    this.extraTimelineEvents = '';
   }
 
   get fragments(): Fragment[] {
@@ -101,7 +101,7 @@ export default class IssueComponent extends Component {
 
   includeAssignees(
     include = true,
-    { first = 100, after, alias = "assignees" }: TOptions
+    { first = 100, after, alias = 'assignees' }: TOptions
   ): this {
     this.includes.assignees = include && {
       textFragment: `
@@ -118,7 +118,7 @@ export default class IssueComponent extends Component {
 
   includeLabels(
     include = true,
-    { first = 100, after, alias = "labels" }: TOptions
+    { first = 100, after, alias = 'labels' }: TOptions
   ): this {
     this.includes.labels = include && {
       textFragment: `
@@ -135,7 +135,7 @@ export default class IssueComponent extends Component {
 
   includeParticipants(
     include = true,
-    { first = 100, after, alias = "participants" }: TOptions
+    { first = 100, after, alias = 'participants' }: TOptions
   ): this {
     this.includes.participants = include && {
       textFragment: `
@@ -151,7 +151,7 @@ export default class IssueComponent extends Component {
 
   includeTimeline(
     include = true,
-    { first = 100, after, alias = "timeline" }: TOptions
+    { first = 100, after, alias = 'timeline' }: TOptions
   ): this {
     this.includes.timeline = include && {
       textFragment: `
@@ -212,7 +212,7 @@ export default class IssueComponent extends Component {
     const includeText = Object.values(this.includes)
       .filter((i) => i)
       .map((i) => i && i.textFragment)
-      .join("\n");
+      .join('\n');
 
     return `
       ${this.alias}:node(id: "${this.id}") {

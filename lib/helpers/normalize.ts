@@ -9,9 +9,9 @@ import {
   negate,
   isNil,
   reduce,
-} from "lodash";
+} from 'lodash';
 
-import { cannotBeRemoved } from "./compact";
+import { cannotBeRemoved } from './compact';
 
 const notNil = negate(isNil);
 
@@ -50,7 +50,7 @@ export default function normalize(object: any, compact: boolean = false): any {
     }
 
     return mapValues(_object, (value, key) => {
-      if (key === "reaction_groups" && value) {
+      if (key === 'reaction_groups' && value) {
         return value.reduce(
           (memo: TObject, v: { content: string; users: number }) =>
             v.users === 0
@@ -62,7 +62,7 @@ export default function normalize(object: any, compact: boolean = false): any {
 
       if (
         /((_|^)date|_(at|on))$/gi.test(key) &&
-        typeof value === "string" &&
+        typeof value === 'string' &&
         DATE_REGEX.test(value)
       ) {
         return new Date(value);

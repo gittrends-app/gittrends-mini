@@ -1,11 +1,11 @@
 /*
  *  Author: Hudson S. Borges
  */
-import Fragment from "../../Fragment";
-import { SimplifiedActorFragment } from "../ActorFragment";
+import Fragment from '../../Fragment';
+import { SimplifiedActorFragment } from '../ActorFragment';
 
 export class PinnedEvent extends Fragment {
-  code = "pinnedEvent";
+  code = 'pinnedEvent';
 
   get dependencies(): Fragment[] {
     return [SimplifiedActorFragment];

@@ -1,11 +1,11 @@
 /*
  *  Author: Hudson S. Borges
  */
-import Fragment from "../../Fragment";
-import { SimplifiedActorFragment } from "../ActorFragment";
+import Fragment from '../../Fragment';
+import { SimplifiedActorFragment } from '../ActorFragment';
 
 export class CommentDeletedEvent extends Fragment {
-  code = "commentDeletedEvent";
+  code = 'commentDeletedEvent';
 
   get dependencies(): Fragment[] {
     return [SimplifiedActorFragment];

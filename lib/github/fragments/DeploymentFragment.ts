@@ -1,12 +1,12 @@
 /*
  *  Author: Hudson S. Borges
  */
-import Fragment from "../Fragment";
-import { SimplifiedActorFragment } from "./ActorFragment";
-import CommitFragment from "./CommitFragment";
+import Fragment from '../Fragment';
+import { SimplifiedActorFragment } from './ActorFragment';
+import CommitFragment from './CommitFragment';
 
 export class DeploymentFragment extends Fragment {
-  code = "deployment";
+  code = 'deployment';
 
   get dependencies(): Fragment[] {
     return [CommitFragment, SimplifiedActorFragment];

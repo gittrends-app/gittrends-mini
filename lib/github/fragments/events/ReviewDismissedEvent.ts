@@ -1,12 +1,12 @@
 /*
  *  Author: Hudson S. Borges
  */
-import Fragment from "../../Fragment";
-import { SimplifiedActorFragment } from "../ActorFragment";
-import PullRequestCommitFragment from "../PullRequestCommitFragment";
+import Fragment from '../../Fragment';
+import { SimplifiedActorFragment } from '../ActorFragment';
+import PullRequestCommitFragment from '../PullRequestCommitFragment';
 
 export class ReviewDismissedEvent extends Fragment {
-  code = "reviewDismissedEvent";
+  code = 'reviewDismissedEvent';
 
   get dependencies(): Fragment[] {
     return [SimplifiedActorFragment, PullRequestCommitFragment];

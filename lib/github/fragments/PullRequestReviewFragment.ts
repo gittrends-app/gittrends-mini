@@ -1,14 +1,14 @@
 /*
  *  Author: Hudson S. Borges
  */
-import Fragment from "../Fragment";
-import { SimplifiedActorFragment } from "./ActorFragment";
-import CommitFragment from "./CommitFragment";
-import PullRequestReviewCommentFragment from "./PullRequestReviewCommentFragment";
-import ReactableFragment from "./ReactableFragment";
+import Fragment from '../Fragment';
+import { SimplifiedActorFragment } from './ActorFragment';
+import CommitFragment from './CommitFragment';
+import PullRequestReviewCommentFragment from './PullRequestReviewCommentFragment';
+import ReactableFragment from './ReactableFragment';
 
 export class PullRequestReviewFragment extends Fragment {
-  code = "pullRequestReview";
+  code = 'pullRequestReview';
 
   get dependencies(): Fragment[] {
     return [

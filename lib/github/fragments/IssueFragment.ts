@@ -1,18 +1,18 @@
 /*
  *  Author: Hudson S. Borges
  */
-import Fragment from "../Fragment";
-import { SimplifiedActorFragment } from "./ActorFragment";
-import MilestoneFragment from "./MilestoneFragment";
-import ReactableFragment from "./ReactableFragment";
+import Fragment from '../Fragment';
+import { SimplifiedActorFragment } from './ActorFragment';
+import MilestoneFragment from './MilestoneFragment';
+import ReactableFragment from './ReactableFragment';
 
 export class IssueFragment extends Fragment {
-  code = "issue";
+  code = 'issue';
   full = true;
 
   constructor(simplified = false) {
     super();
-    this.code = "sIssue";
+    this.code = 'sIssue';
     this.full = !simplified;
   }
 
@@ -24,29 +24,29 @@ export class IssueFragment extends Fragment {
   }
 
   get objectName(): string {
-    return "Issue";
+    return 'Issue';
   }
 
   get additionalProperties(): string {
-    return "";
+    return '';
   }
 
   toString(): string {
     return `
       fragment ${this.code} on ${this.objectName} {
         type:__typename
-        ${Fragment.include(this.full, "activeLockReason")}
+        ${Fragment.include(this.full, 'activeLockReason')}
         author { ...${SimplifiedActorFragment.code} }
         authorAssociation
-        ${Fragment.include(this.full, "body")}
-        ${Fragment.include(this.full, "closed")}
+        ${Fragment.include(this.full, 'body')}
+        ${Fragment.include(this.full, 'closed')}
         closedAt
         createdAt
         createdViaEmail
         databaseId
         editor { ...${SimplifiedActorFragment.code} }
         id
-        ${Fragment.include(this.full, "includesCreatedEdit")}
+        ${Fragment.include(this.full, 'includesCreatedEdit')}
         lastEditedAt
         locked
         ${Fragment.include(

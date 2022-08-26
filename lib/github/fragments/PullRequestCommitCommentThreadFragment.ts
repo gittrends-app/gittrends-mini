@@ -1,12 +1,12 @@
 /*
  *  Author: Hudson S. Borges
  */
-import Fragment from "../Fragment";
-import CommitCommentFragment from "./CommitCommentFragment";
-import CommitFragment from "./CommitFragment";
+import Fragment from '../Fragment';
+import CommitCommentFragment from './CommitCommentFragment';
+import CommitFragment from './CommitFragment';
 
 export class PullRequestCommitCommentThreadFragment extends Fragment {
-  code = "pullRequestCommitCommentThread";
+  code = 'pullRequestCommitCommentThread';
 
   get dependencies(): Fragment[] {
     return [CommitFragment, CommitCommentFragment];

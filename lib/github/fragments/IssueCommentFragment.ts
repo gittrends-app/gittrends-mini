@@ -1,12 +1,12 @@
 /*
  *  Author: Hudson S. Borges
  */
-import Fragment from "../Fragment";
-import CommentFragment from "./CommentFragment";
-import ReactableFragment from "./ReactableFragment";
+import Fragment from '../Fragment';
+import CommentFragment from './CommentFragment';
+import ReactableFragment from './ReactableFragment';
 
 export class IssueCommentFragment extends Fragment {
-  code = "issueComment";
+  code = 'issueComment';
 
   get dependencies(): Fragment[] {
     return [ReactableFragment, CommentFragment];

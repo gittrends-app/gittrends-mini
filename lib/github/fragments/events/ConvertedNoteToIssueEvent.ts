@@ -1,11 +1,11 @@
 /*
  *  Author: Hudson S. Borges
  */
-import Fragment from "../../Fragment";
-import { SimplifiedActorFragment } from "../ActorFragment";
+import Fragment from '../../Fragment';
+import { SimplifiedActorFragment } from '../ActorFragment';
 
 export class ConvertedNoteToIssueEvent extends Fragment {
-  code = "convertedNoteToIssueEvent";
+  code = 'convertedNoteToIssueEvent';
 
   get dependencies(): Fragment[] {
     return [SimplifiedActorFragment];

@@ -1,13 +1,13 @@
 /*
  *  Author: Hudson S. Borges
  */
-import Fragment from "../Fragment";
-import CommentFragment from "./CommentFragment";
-import CommitFragment from "./CommitFragment";
-import ReactableFragment from "./ReactableFragment";
+import Fragment from '../Fragment';
+import CommentFragment from './CommentFragment';
+import CommitFragment from './CommitFragment';
+import ReactableFragment from './ReactableFragment';
 
 export class CommitCommentFragment extends Fragment {
-  code = "commitComment";
+  code = 'commitComment';
 
   get dependencies(): Fragment[] {
     return [ReactableFragment, CommentFragment, CommitFragment];

@@ -1,12 +1,12 @@
 /*
  *  Author: Hudson S. Borges
  */
-import Fragment from "../../Fragment";
-import { SimplifiedActorFragment } from "../ActorFragment";
-import CommitFragment from "../CommitFragment";
+import Fragment from '../../Fragment';
+import { SimplifiedActorFragment } from '../ActorFragment';
+import CommitFragment from '../CommitFragment';
 
 export class ReferencedEvent extends Fragment {
-  code = "referencedEvent";
+  code = 'referencedEvent';
 
   get dependencies(): Fragment[] {
     return [SimplifiedActorFragment, CommitFragment];

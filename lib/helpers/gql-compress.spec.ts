@@ -1,10 +1,10 @@
 /*
  *  Source: https://github.com/jane/gql-compress
  */
-import compress from "./gql-compress";
+import compress from './gql-compress';
 
-describe("compress", (): void => {
-  it("should compress a regular query", (): void => {
+describe('compress', (): void => {
+  it('should compress a regular query', (): void => {
     const query = compress(`
       query {
         repository(owner:"octocat", name:"Hello-World") {
@@ -33,7 +33,7 @@ describe("compress", (): void => {
     expect(compress(query)).toBe(expected);
   });
 
-  it("should handle empty inputs", (): void => {
-    expect(compress("")).toBe("");
+  it('should handle empty inputs', (): void => {
+    expect(compress('')).toBe('');
   });
 });

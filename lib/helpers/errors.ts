@@ -1,17 +1,17 @@
 /*
  *  Author: Hudson S. Borges
  */
-import { compact, isNil, truncate, uniq } from "lodash";
+import { compact, isNil, truncate, uniq } from 'lodash';
 
-import Component from "../github/Component";
-import { HttpClientResponse } from "../github/HttpClient";
+import Component from '../github/Component';
+import { HttpClientResponse } from '../github/HttpClient';
 
 class BaseError extends Error {
   constructor(message: string) {
     super(message);
     this.name = this.constructor.name;
     this.message = message;
-    if (typeof Error.captureStackTrace === "function") {
+    if (typeof Error.captureStackTrace === 'function') {
       Error.captureStackTrace(this, this.constructor);
     } else {
       this.stack = new Error(message).stack;
@@ -22,7 +22,7 @@ class BaseError extends Error {
 class ExtendedError extends BaseError {
   constructor(error: Error) {
     super(error.message);
-    this.stack += `\nFrom previous: ${error.stack?.replace(/\n/g, "\n    ")}`;
+    this.stack += `\nFrom previous: ${error.stack?.replace(/\n/g, '\n    ')}`;
   }
 }
 
@@ -38,7 +38,7 @@ export class RepositoryCrawlerError extends BaseError {
             length: 100,
           })}`
       )
-      .join(" & ");
+      .join(' & ');
 
     super(
       `Errors occurred when updating (see "errors" field) @ ${messageFragment}`
@@ -92,30 +92,30 @@ export class RequestError extends ExtendedError {
 }
 
 export class ServerRequestError extends RequestError {
-  readonly type: "BAD_GATEWAY" | "INTERNAL_SERVER" | "UNKNOWN";
+  readonly type: 'BAD_GATEWAY' | 'INTERNAL_SERVER' | 'UNKNOWN';
 
   constructor(error: Error, opts?: RequestErrorOptions);
   constructor(error: Error & HttpClientResponse, opts?: RequestErrorOptions) {
     super(error, opts);
 
-    if (this.response?.status === 500) this.type = "INTERNAL_SERVER";
-    else if (this.response?.status === 502) this.type = "BAD_GATEWAY";
-    else this.type = "UNKNOWN";
+    if (this.response?.status === 500) this.type = 'INTERNAL_SERVER';
+    else if (this.response?.status === 502) this.type = 'BAD_GATEWAY';
+    else this.type = 'UNKNOWN';
   }
 }
 
 type GithubRequestErrorType =
-  | "BLOQUED"
-  | "FORBIDDEN"
-  | "INTERNAL"
-  | "MAX_NODE_LIMIT_EXCEEDED"
-  | "NOT_FOUND"
-  | "NOT_MODIFIED"
-  | "SERVICE_UNAVAILABLE"
-  | "TIMEDOUT"
-  | "LOADING"
-  | "SOMETHING_WENT_WRONG"
-  | "UNKNOWN";
+  | 'BLOQUED'
+  | 'FORBIDDEN'
+  | 'INTERNAL'
+  | 'MAX_NODE_LIMIT_EXCEEDED'
+  | 'NOT_FOUND'
+  | 'NOT_MODIFIED'
+  | 'SERVICE_UNAVAILABLE'
+  | 'TIMEDOUT'
+  | 'LOADING'
+  | 'SOMETHING_WENT_WRONG'
+  | 'UNKNOWN';
 
 export class GithubRequestError extends RequestError {
   readonly type: GithubRequestErrorType[] = [];
@@ -131,18 +131,18 @@ export class GithubRequestError extends RequestError {
           message?: string;
         })[]
       ).map((value) => {
-        if (value.type === "FORBIDDEN") return "FORBIDDEN";
-        else if (value.type === "INTERNAL") return "INTERNAL";
-        else if (value.type === "NOT_FOUND") return "NOT_FOUND";
-        else if (value.type === "MAX_NODE_LIMIT_EXCEEDED")
-          return "MAX_NODE_LIMIT_EXCEEDED";
-        else if (value.type === "SERVICE_UNAVAILABLE")
-          return "SERVICE_UNAVAILABLE";
-        else if (value.message === "timedout") return "TIMEDOUT";
-        else if (value.message === "loading") return "LOADING";
+        if (value.type === 'FORBIDDEN') return 'FORBIDDEN';
+        else if (value.type === 'INTERNAL') return 'INTERNAL';
+        else if (value.type === 'NOT_FOUND') return 'NOT_FOUND';
+        else if (value.type === 'MAX_NODE_LIMIT_EXCEEDED')
+          return 'MAX_NODE_LIMIT_EXCEEDED';
+        else if (value.type === 'SERVICE_UNAVAILABLE')
+          return 'SERVICE_UNAVAILABLE';
+        else if (value.message === 'timedout') return 'TIMEDOUT';
+        else if (value.message === 'loading') return 'LOADING';
         else if (/^something.went.wrong.*/i.test(value.message as string))
-          return "SOMETHING_WENT_WRONG";
-        return "UNKNOWN";
+          return 'SOMETHING_WENT_WRONG';
+        return 'UNKNOWN';
       });
     }
   }

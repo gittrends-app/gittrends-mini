@@ -1,12 +1,12 @@
 /*
  *  Author: Hudson S. Borges
  */
-import Fragment from "../../Fragment";
-import { SimplifiedActorFragment } from "../ActorFragment";
-import DeploymentStatusFragment from "../DeploymentStatusFragment";
+import Fragment from '../../Fragment';
+import { SimplifiedActorFragment } from '../ActorFragment';
+import DeploymentStatusFragment from '../DeploymentStatusFragment';
 
 export class DeploymentEnvironmentChangedEvent extends Fragment {
-  code = "deploymentEnvironmentChangedEvent";
+  code = 'deploymentEnvironmentChangedEvent';
 
   get dependencies(): Fragment[] {
     return [SimplifiedActorFragment, DeploymentStatusFragment];

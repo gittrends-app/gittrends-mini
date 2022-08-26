@@ -1,11 +1,11 @@
 /*
  *  Author: Hudson S. Borges
  */
-import Fragment from "../../Fragment";
-import { SimplifiedActorFragment } from "../ActorFragment";
+import Fragment from '../../Fragment';
+import { SimplifiedActorFragment } from '../ActorFragment';
 
 export class CrossReferencedEvent extends Fragment {
-  code = "crossReferencedEvent";
+  code = 'crossReferencedEvent';
 
   get dependencies(): Fragment[] {
     return [SimplifiedActorFragment];

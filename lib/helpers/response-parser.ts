@@ -1,8 +1,8 @@
 /*
  *  Author: Hudson S. Borges
  */
-import { get, mapValues, omit } from "lodash";
-import { isArray, isPlainObject, uniqBy } from "lodash";
+import { get, mapValues, omit } from 'lodash';
+import { isArray, isPlainObject, uniqBy } from 'lodash';
 
 export type Response = {
   data: any;
@@ -23,24 +23,24 @@ export default function (source: any): Response {
       const _object = mapValues(object, recursive);
 
       switch (_object.type) {
-        case "Actor":
-        case "User":
-        case "Organization":
-        case "Mannequin":
-        case "Bot":
-        case "EnterpriseUserAccount":
+        case 'Actor':
+        case 'User':
+        case 'Organization':
+        case 'Mannequin':
+        case 'Bot':
+        case 'EnterpriseUserAccount':
           actors.push(_object);
           return _object.id;
-        case "Commit":
-          commits.push(omit(_object, "type"));
+        case 'Commit':
+          commits.push(omit(_object, 'type'));
           return _object.id;
-        case "Milestone":
-          milestones.push(omit(_object, "type"));
+        case 'Milestone':
+          milestones.push(omit(_object, 'type'));
           return _object.id;
-        case "CommitCommentThread":
-        case "PullRequestReview":
-        case "PullRequestReviewThread":
-          _object.comments = get(_object, "comments.nodes", []);
+        case 'CommitCommentThread':
+        case 'PullRequestReview':
+        case 'PullRequestReviewThread':
+          _object.comments = get(_object, 'comments.nodes', []);
           break;
       }
 
@@ -52,8 +52,8 @@ export default function (source: any): Response {
 
   return {
     data: recursive(source),
-    actors: uniqBy(actors, "id"),
-    commits: uniqBy(commits, "id"),
-    milestones: uniqBy(milestones, "id"),
+    actors: uniqBy(actors, 'id'),
+    commits: uniqBy(commits, 'id'),
+    milestones: uniqBy(milestones, 'id'),
   };
 }

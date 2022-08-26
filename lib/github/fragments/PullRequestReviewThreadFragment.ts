@@ -1,12 +1,12 @@
 /*
  *  Author: Hudson S. Borges
  */
-import Fragment from "../Fragment";
-import { SimplifiedActorFragment } from "./ActorFragment";
-import PullRequestReviewCommentFragment from "./PullRequestReviewCommentFragment";
+import Fragment from '../Fragment';
+import { SimplifiedActorFragment } from './ActorFragment';
+import PullRequestReviewCommentFragment from './PullRequestReviewCommentFragment';
 
 export class PullRequestReviewThreadFragment extends Fragment {
-  code = "pullRequestReviewThread";
+  code = 'pullRequestReviewThread';
 
   get dependencies(): Fragment[] {
     return [SimplifiedActorFragment, PullRequestReviewCommentFragment];

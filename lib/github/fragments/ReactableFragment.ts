@@ -1,10 +1,10 @@
 /*
  *  Author: Hudson S. Borges
  */
-import Fragment from "../Fragment";
+import Fragment from '../Fragment';
 
 export class ReactableFragment extends Fragment {
-  code = "reactable";
+  code = 'reactable';
 
   toString(): string {
     return `

@@ -1,13 +1,13 @@
 /*
  *  Author: Hudson S. Borges
  */
-import Component from "../Component";
-import Fragment from "../Fragment";
+import Component from '../Component';
+import Fragment from '../Fragment';
 
 type TOptions = { first?: number; after?: string };
 
 export default class DependencyGraphManifestComponent extends Component {
-  constructor(id: string, alias = "manifest") {
+  constructor(id: string, alias = 'manifest') {
     super(id, alias);
   }
 
@@ -61,7 +61,7 @@ export default class DependencyGraphManifestComponent extends Component {
         ${Object.values(this.includes)
           .filter((m) => m)
           .map((m) => m && m.textFragment)
-          .join("\n")}
+          .join('\n')}
       }
     `;
   }

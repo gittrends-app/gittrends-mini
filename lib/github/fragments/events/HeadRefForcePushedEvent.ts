@@ -1,12 +1,12 @@
 /*
  *  Author: Hudson S. Borges
  */
-import Fragment from "../../Fragment";
-import { SimplifiedActorFragment } from "../ActorFragment";
-import CommitFragment from "../CommitFragment";
+import Fragment from '../../Fragment';
+import { SimplifiedActorFragment } from '../ActorFragment';
+import CommitFragment from '../CommitFragment';
 
 export class HeadRefForcePushedEvent extends Fragment {
-  code = "headRefForcePushedEvent";
+  code = 'headRefForcePushedEvent';
 
   get dependencies(): Fragment[] {
     return [SimplifiedActorFragment, CommitFragment];

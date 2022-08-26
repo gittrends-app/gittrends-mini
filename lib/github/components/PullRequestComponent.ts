@@ -1,40 +1,40 @@
 /*
  *  Author: Hudson S. Borges
  */
-import Fragment from "../Fragment";
-import AutomaticBaseChangeFailedEvent from "../fragments/events/AutomaticBaseChangeFailedEvent";
-import AutomaticBaseChangeSucceededEvent from "../fragments/events/AutomaticBaseChangeSucceededEvent";
-import AutoMergeDisabledEvent from "../fragments/events/AutoMergeDisabledEvent";
-import AutoMergeEnabledEvent from "../fragments/events/AutoMergeEnabledEvent";
-import AutoRebaseEnabledEvent from "../fragments/events/AutoRebaseEnabledEvent";
-import AutoSquashEnabledEvent from "../fragments/events/AutoSquashEnabledEvent";
-import BaseRefChangedEvent from "../fragments/events/BaseRefChangedEvent";
-import BaseRefDeletedEvent from "../fragments/events/BaseRefDeletedEvent";
-import BaseRefForcePushedEvent from "../fragments/events/BaseRefForcePushedEvent";
-import ConvertToDraftEvent from "../fragments/events/ConvertToDraftEvent";
-import DeployedEvent from "../fragments/events/DeployedEvent";
-import DeploymentEnvironmentChangedEvent from "../fragments/events/DeploymentEnvironmentChangedEvent";
-import HeadRefDeletedEvent from "../fragments/events/HeadRefDeletedEvent";
-import HeadRefForcePushedEvent from "../fragments/events/HeadRefForcePushedEvent";
-import HeadRefRestoredEvent from "../fragments/events/HeadRefRestoredEvent";
-import MergedEvent from "../fragments/events/MergedEvent";
-import ReadyForReviewEvent from "../fragments/events/ReadyForReviewEvent";
-import ReviewDismissedEvent from "../fragments/events/ReviewDismissedEvent";
-import ReviewRequestedEvent from "../fragments/events/ReviewRequestedEvent";
-import ReviewRequestRemovedEvent from "../fragments/events/ReviewRequestRemovedEvent";
-import IssueFragment from "../fragments/IssueFragment";
-import PullRequestCommitCommentThreadFragment from "../fragments/PullRequestCommitCommentThreadFragment";
-import PullRequestCommit from "../fragments/PullRequestCommitFragment";
-import PullRequestFragment from "../fragments/PullRequestFragment";
-import PullRequestReviewFragment from "../fragments/PullRequestReviewFragment";
-import PullRequestReviewThreadFragment from "../fragments/PullRequestReviewThreadFragment";
-import PullRequestRevisionMarkerFragment from "../fragments/PullRequestRevisionMarkerFragment";
-import IssueComponent from "./IssueComponent";
+import Fragment from '../Fragment';
+import AutomaticBaseChangeFailedEvent from '../fragments/events/AutomaticBaseChangeFailedEvent';
+import AutomaticBaseChangeSucceededEvent from '../fragments/events/AutomaticBaseChangeSucceededEvent';
+import AutoMergeDisabledEvent from '../fragments/events/AutoMergeDisabledEvent';
+import AutoMergeEnabledEvent from '../fragments/events/AutoMergeEnabledEvent';
+import AutoRebaseEnabledEvent from '../fragments/events/AutoRebaseEnabledEvent';
+import AutoSquashEnabledEvent from '../fragments/events/AutoSquashEnabledEvent';
+import BaseRefChangedEvent from '../fragments/events/BaseRefChangedEvent';
+import BaseRefDeletedEvent from '../fragments/events/BaseRefDeletedEvent';
+import BaseRefForcePushedEvent from '../fragments/events/BaseRefForcePushedEvent';
+import ConvertToDraftEvent from '../fragments/events/ConvertToDraftEvent';
+import DeployedEvent from '../fragments/events/DeployedEvent';
+import DeploymentEnvironmentChangedEvent from '../fragments/events/DeploymentEnvironmentChangedEvent';
+import HeadRefDeletedEvent from '../fragments/events/HeadRefDeletedEvent';
+import HeadRefForcePushedEvent from '../fragments/events/HeadRefForcePushedEvent';
+import HeadRefRestoredEvent from '../fragments/events/HeadRefRestoredEvent';
+import MergedEvent from '../fragments/events/MergedEvent';
+import ReadyForReviewEvent from '../fragments/events/ReadyForReviewEvent';
+import ReviewDismissedEvent from '../fragments/events/ReviewDismissedEvent';
+import ReviewRequestedEvent from '../fragments/events/ReviewRequestedEvent';
+import ReviewRequestRemovedEvent from '../fragments/events/ReviewRequestRemovedEvent';
+import IssueFragment from '../fragments/IssueFragment';
+import PullRequestCommitCommentThreadFragment from '../fragments/PullRequestCommitCommentThreadFragment';
+import PullRequestCommit from '../fragments/PullRequestCommitFragment';
+import PullRequestFragment from '../fragments/PullRequestFragment';
+import PullRequestReviewFragment from '../fragments/PullRequestReviewFragment';
+import PullRequestReviewThreadFragment from '../fragments/PullRequestReviewThreadFragment';
+import PullRequestRevisionMarkerFragment from '../fragments/PullRequestRevisionMarkerFragment';
+import IssueComponent from './IssueComponent';
 
 export default class PullRequestComponent extends IssueComponent {
-  constructor(id: string, alias = "pull") {
+  constructor(id: string, alias = 'pull') {
     super(id, alias);
-    this.componentName = "PullRequest";
+    this.componentName = 'PullRequest';
     this.extraTimelineEvents = `
       ... on AutomaticBaseChangeFailedEvent { ...${AutomaticBaseChangeFailedEvent.code} }
       ... on AutomaticBaseChangeSucceededEvent { ...${AutomaticBaseChangeSucceededEvent.code} }

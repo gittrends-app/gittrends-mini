@@ -1,21 +1,21 @@
 /*
  *  Author: Hudson S. Borges
  */
-import Component from "../Component";
-import Fragment from "../Fragment";
-import { SimplifiedActorFragment } from "../fragments/ActorFragment";
-import CommitFragment from "../fragments/CommitFragment";
-import { SimplifiedIssueFragment } from "../fragments/IssueFragment";
-import { SimplifiedPullRequest } from "../fragments/PullRequestFragment";
-import ReleaseFragment from "../fragments/ReleaseFragment";
-import RepositoryFragment from "../fragments/RepositoryFragment";
-import TagFragment from "../fragments/TagFragment";
+import Component from '../Component';
+import Fragment from '../Fragment';
+import { SimplifiedActorFragment } from '../fragments/ActorFragment';
+import CommitFragment from '../fragments/CommitFragment';
+import { SimplifiedIssueFragment } from '../fragments/IssueFragment';
+import { SimplifiedPullRequest } from '../fragments/PullRequestFragment';
+import ReleaseFragment from '../fragments/ReleaseFragment';
+import RepositoryFragment from '../fragments/RepositoryFragment';
+import TagFragment from '../fragments/TagFragment';
 
 type TIncludeOpts = { first: number; after?: string; alias?: string };
 
 export default class RepositoryComponent extends Component {
   constructor(id: string) {
-    super(id, "repository");
+    super(id, 'repository');
   }
 
   get fragments(): Fragment[] {
@@ -41,7 +41,7 @@ export default class RepositoryComponent extends Component {
 
   includeLanguages(
     include = true,
-    { first, after, alias = "_languages" }: TIncludeOpts
+    { first, after, alias = '_languages' }: TIncludeOpts
   ): this {
     this.includes.languages = include && {
       textFragment: `
@@ -58,7 +58,7 @@ export default class RepositoryComponent extends Component {
 
   includeTopics(
     include = true,
-    { first, after, alias = "_topics" }: TIncludeOpts
+    { first, after, alias = '_topics' }: TIncludeOpts
   ): this {
     this.includes.topics = include && {
       textFragment: `
@@ -75,7 +75,7 @@ export default class RepositoryComponent extends Component {
 
   includeReleases(
     include = true,
-    { first, after, alias = "_releases" }: TIncludeOpts
+    { first, after, alias = '_releases' }: TIncludeOpts
   ): this {
     const args = super.argsToString({ first, after });
     this.includes.releases = include && {
@@ -93,7 +93,7 @@ export default class RepositoryComponent extends Component {
 
   includeTags(
     include = true,
-    { first, after, alias = "_tags" }: TIncludeOpts
+    { first, after, alias = '_tags' }: TIncludeOpts
   ): this {
     const args = super.argsToString({ first, after });
     this.includes.tags = include && {
@@ -115,7 +115,7 @@ export default class RepositoryComponent extends Component {
 
   includeStargazers(
     include = true,
-    { first, after, alias = "_stargazers" }: TIncludeOpts
+    { first, after, alias = '_stargazers' }: TIncludeOpts
   ): this {
     const args = super.argsToString({ first, after });
     this.includes.stargazers = include && {
@@ -134,7 +134,7 @@ export default class RepositoryComponent extends Component {
 
   includeWatchers(
     include = true,
-    { first, after, alias = "_watchers" }: TIncludeOpts
+    { first, after, alias = '_watchers' }: TIncludeOpts
   ): this {
     this.includes.watchers = include && {
       textFragment: `
@@ -152,7 +152,7 @@ export default class RepositoryComponent extends Component {
 
   includeDependencyManifests(
     include = true,
-    { first, after, alias = "_manifests" }: TIncludeOpts
+    { first, after, alias = '_manifests' }: TIncludeOpts
   ): this {
     this.includes.dependencies = include && {
       textFragment: `
@@ -173,7 +173,7 @@ export default class RepositoryComponent extends Component {
 
   includeIssues(
     include = true,
-    { after, first = 100, alias = "_issues" }: TIncludeOpts
+    { after, first = 100, alias = '_issues' }: TIncludeOpts
   ): this {
     const args = super.argsToString({ after, first });
     this.includes.issues = include && {
@@ -192,7 +192,7 @@ export default class RepositoryComponent extends Component {
 
   includePullRequests(
     include = true,
-    { after, first = 100, alias = "_pullRequests" }: TIncludeOpts
+    { after, first = 100, alias = '_pullRequests' }: TIncludeOpts
   ): this {
     const args = super.argsToString({ after, first });
     this.includes.pull_requests = include && {
@@ -210,12 +210,12 @@ export default class RepositoryComponent extends Component {
   }
 
   toString(): string {
-    let text = "";
+    let text = '';
 
     const textFragments = Object.values(this.includes)
       .filter((i) => i)
       .map((i) => i && i.textFragment)
-      .join("\n");
+      .join('\n');
 
     if (textFragments) {
       text += `

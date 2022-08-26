@@ -1,11 +1,11 @@
 /*
  *  Author: Hudson S. Borges
  */
-import Fragment from "../Fragment";
-import { SimplifiedActorFragment } from "./ActorFragment";
+import Fragment from '../Fragment';
+import { SimplifiedActorFragment } from './ActorFragment';
 
 export class Repository extends Fragment {
-  code = "repo";
+  code = 'repo';
   full = true;
 
   get dependencies(): Fragment[] {
@@ -14,65 +14,65 @@ export class Repository extends Fragment {
 
   constructor(simplified = false) {
     super();
-    if ((this.full = !simplified)) this.code = "sRepo";
+    if ((this.full = !simplified)) this.code = 'sRepo';
   }
 
   toString(): string {
     return `
     fragment ${this.code} on Repository {
-      ${Fragment.include(this.full, "assignableUsers { totalCount }")}
-      ${Fragment.include(this.full, "codeOfConduct { name }")}
+      ${Fragment.include(this.full, 'assignableUsers { totalCount }')}
+      ${Fragment.include(this.full, 'codeOfConduct { name }')}
       createdAt
       databaseId
       defaultBranch:defaultBranchRef { name }
-      ${Fragment.include(this.full, "deleteBranchOnMerge")}
+      ${Fragment.include(this.full, 'deleteBranchOnMerge')}
       description
-      ${Fragment.include(this.full, "diskUsage")}
+      ${Fragment.include(this.full, 'diskUsage')}
       forks:forkCount
-      ${Fragment.include(this.full, "fundingLinks { platform url }")}
-      ${Fragment.include(this.full, "hasIssuesEnabled")}
-      ${Fragment.include(this.full, "hasProjectsEnabled")}
-      ${Fragment.include(this.full, "hasWikiEnabled")}
-      ${Fragment.include(this.full, "homepageUrl")}
+      ${Fragment.include(this.full, 'fundingLinks { platform url }')}
+      ${Fragment.include(this.full, 'hasIssuesEnabled')}
+      ${Fragment.include(this.full, 'hasProjectsEnabled')}
+      ${Fragment.include(this.full, 'hasWikiEnabled')}
+      ${Fragment.include(this.full, 'homepageUrl')}
       id
-      ${Fragment.include(this.full, "isArchived")}
-      ${Fragment.include(this.full, "isBlankIssuesEnabled")}
-      ${Fragment.include(this.full, "isDisabled")}
-      ${Fragment.include(this.full, "isEmpty")}
-      ${Fragment.include(this.full, "isFork")}
-      ${Fragment.include(this.full, "isInOrganization")}
-      ${Fragment.include(this.full, "isLocked")}
-      ${Fragment.include(this.full, "isMirror")}
-      ${Fragment.include(this.full, "isPrivate")}
-      ${Fragment.include(this.full, "isSecurityPolicyEnabled")}
-      ${Fragment.include(this.full, "isTemplate")}
-      ${Fragment.include(this.full, "isUserConfigurationRepository")}
-      ${Fragment.include(this.full, "issues { totalCount }")}
-      ${Fragment.include(this.full, "labels { totalCount }")}
-      ${Fragment.include(this.full, "licenseInfo { name }")}
-      ${Fragment.include(this.full, "lockReason")}
-      ${Fragment.include(this.full, "mentionableUsers { totalCount }")}
-      ${Fragment.include(this.full, "mergeCommitAllowed")}
-      ${Fragment.include(this.full, "milestones { totalCount }")}
-      ${Fragment.include(this.full, "mirrorUrl")}
+      ${Fragment.include(this.full, 'isArchived')}
+      ${Fragment.include(this.full, 'isBlankIssuesEnabled')}
+      ${Fragment.include(this.full, 'isDisabled')}
+      ${Fragment.include(this.full, 'isEmpty')}
+      ${Fragment.include(this.full, 'isFork')}
+      ${Fragment.include(this.full, 'isInOrganization')}
+      ${Fragment.include(this.full, 'isLocked')}
+      ${Fragment.include(this.full, 'isMirror')}
+      ${Fragment.include(this.full, 'isPrivate')}
+      ${Fragment.include(this.full, 'isSecurityPolicyEnabled')}
+      ${Fragment.include(this.full, 'isTemplate')}
+      ${Fragment.include(this.full, 'isUserConfigurationRepository')}
+      ${Fragment.include(this.full, 'issues { totalCount }')}
+      ${Fragment.include(this.full, 'labels { totalCount }')}
+      ${Fragment.include(this.full, 'licenseInfo { name }')}
+      ${Fragment.include(this.full, 'lockReason')}
+      ${Fragment.include(this.full, 'mentionableUsers { totalCount }')}
+      ${Fragment.include(this.full, 'mergeCommitAllowed')}
+      ${Fragment.include(this.full, 'milestones { totalCount }')}
+      ${Fragment.include(this.full, 'mirrorUrl')}
       name
       nameWithOwner
-      ${Fragment.include(this.full, "openGraphImageUrl")}
+      ${Fragment.include(this.full, 'openGraphImageUrl')}
       owner { ...${SimplifiedActorFragment.code} }
-      ${Fragment.include(this.full, "parent { id }")}
+      ${Fragment.include(this.full, 'parent { id }')}
       primaryLanguage { name }
       pushedAt
-      ${Fragment.include(this.full, "pullRequests { totalCount }")}
-      ${Fragment.include(this.full, "rebaseMergeAllowed")}
-      ${Fragment.include(this.full, "releases { totalCount }")}
-      ${Fragment.include(this.full, "squashMergeAllowed")}
+      ${Fragment.include(this.full, 'pullRequests { totalCount }')}
+      ${Fragment.include(this.full, 'rebaseMergeAllowed')}
+      ${Fragment.include(this.full, 'releases { totalCount }')}
+      ${Fragment.include(this.full, 'squashMergeAllowed')}
       stargazers:stargazerCount
-      ${Fragment.include(this.full, "templateRepository { id }")}
+      ${Fragment.include(this.full, 'templateRepository { id }')}
       updatedAt
-      ${Fragment.include(this.full, "url")}
-      ${Fragment.include(this.full, "usesCustomOpenGraphImage")}
-      ${Fragment.include(this.full, "vulnerabilityAlerts { totalCount }")}
-      ${Fragment.include(this.full, "watchers { totalCount }")}
+      ${Fragment.include(this.full, 'url')}
+      ${Fragment.include(this.full, 'usesCustomOpenGraphImage')}
+      ${Fragment.include(this.full, 'vulnerabilityAlerts { totalCount }')}
+      ${Fragment.include(this.full, 'watchers { totalCount }')}
     }
     `;
   }

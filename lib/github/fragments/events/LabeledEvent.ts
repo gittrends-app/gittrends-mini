@@ -1,11 +1,11 @@
 /*
  *  Author: Hudson S. Borges
  */
-import Fragment from "../../Fragment";
-import { SimplifiedActorFragment } from "../ActorFragment";
+import Fragment from '../../Fragment';
+import { SimplifiedActorFragment } from '../ActorFragment';
 
 export class LabeledEvent extends Fragment {
-  code = "labeledEvent";
+  code = 'labeledEvent';
 
   get dependencies(): Fragment[] {
     return [SimplifiedActorFragment];

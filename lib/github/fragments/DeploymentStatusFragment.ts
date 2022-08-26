@@ -1,12 +1,12 @@
 /*
  *  Author: Hudson S. Borges
  */
-import Fragment from "../Fragment";
-import { SimplifiedActorFragment } from "./ActorFragment";
-import DeploymentFragment from "./DeploymentFragment";
+import Fragment from '../Fragment';
+import { SimplifiedActorFragment } from './ActorFragment';
+import DeploymentFragment from './DeploymentFragment';
 
 export class DeploymentStatusFragment extends Fragment {
-  code = "deploymentStatus";
+  code = 'deploymentStatus';
 
   get dependencies(): Fragment[] {
     return [SimplifiedActorFragment, DeploymentFragment];
