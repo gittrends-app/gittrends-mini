@@ -15,7 +15,7 @@ export const Tabela: React.FC<{ estrelas: Estrela[] }> = ({ estrelas }) => {
         </tr>
       </thead>
       <tbody>
-        {estrelas.map((estrela) => {
+        {estrelas?.map((estrela) => {
           return (
             <tr key={estrela.user.id}>
               <td>
@@ -30,7 +30,7 @@ export const Tabela: React.FC<{ estrelas: Estrela[] }> = ({ estrelas }) => {
               </td>
               <td>{estrela.user.name}</td>
               <td>{estrela.user.email}</td>
-              <td>{estrela.starred_at.valueOf()}</td>
+              <td>{new Date(estrela.starred_at).toISOString()}</td>
             </tr>
           );
         })}

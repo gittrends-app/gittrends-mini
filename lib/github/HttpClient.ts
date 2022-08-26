@@ -27,7 +27,15 @@ export default class HttpClient {
   readonly retries: number;
   readonly client: AxiosInstance;
 
-  constructor(opts: HttpClientOpts) {
+  constructor(opts: HttpClientOpts | string) {
+    if (typeof opts === 'string') {
+      opts = {
+        host: 'api.github.com',
+        protocol: 'https',
+        authToken: opts,
+      };
+    }
+
     this.timeout = opts.timeout || 15000;
     this.retries = opts.retries || 0;
     this.baseUrl = new URL(

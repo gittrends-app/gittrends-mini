@@ -34,7 +34,8 @@ export default abstract class Component {
         if (typeof value === 'string') return `${key}: "${value}"`;
         throw new Error(`Unknown key/value type (${key}:${args[key]})!`);
       })
-      .join(', ');
+      .join(', ')
+      .replace(/\s+/g, ' ');
   }
 
   abstract get fragments(): Fragment[];
