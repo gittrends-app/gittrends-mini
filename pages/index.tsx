@@ -15,7 +15,7 @@ const Home: NextPage = () => {
   const onSubmit = async function (token: string, name: string) {
     setRunning((runningRef.current = true));
 
-    const { ProxyService } = await import('../lib/Service');
+    const { ProxyService } = await import('../lib/services/ProxyService');
 
     const service = new ProxyService(token);
     const repo = await service.find(name);
