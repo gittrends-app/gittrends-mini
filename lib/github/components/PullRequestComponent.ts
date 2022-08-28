@@ -67,12 +67,7 @@ export default class PullRequestComponent extends IssueComponent {
   get fragments(): Fragment[] {
     const fragments = super.fragments;
 
-    if (this.includes.details)
-      fragments.splice(
-        fragments.indexOf(IssueFragment),
-        1,
-        PullRequestFragment
-      );
+    if (this.includes.details) fragments.splice(fragments.indexOf(IssueFragment), 1, PullRequestFragment);
 
     if (this.includes.timeline) {
       fragments.push(

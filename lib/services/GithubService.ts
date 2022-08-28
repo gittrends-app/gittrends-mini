@@ -52,17 +52,10 @@ export class GitHubService implements Service {
             )
             .run()
             .then((response) => {
-              const pageInfo = get(
-                response,
-                'repository._stargazers.page_info'
-              );
+              const pageInfo = get(response, 'repository._stargazers.page_info');
               hasNextPage = pageInfo?.has_next_page || false;
               this.endCursor = pageInfo?.end_cursor || this.endCursor;
-              return get<Estrela[]>(
-                response,
-                'repository._stargazers.edges',
-                []
-              );
+              return get<Estrela[]>(response, 'repository._stargazers.edges', []);
             }),
         };
       },

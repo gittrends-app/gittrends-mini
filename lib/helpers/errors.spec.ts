@@ -27,19 +27,13 @@ describe('Test request errors', () => {
 
     let error = await axios
       .get(url)
-      .catch(({ response }) =>
-        RequestError.create(new Error(), { status: response.status })
-      );
+      .catch(({ response }) => RequestError.create(new Error(), { status: response.status }));
     expect(error).toBeInstanceOf(ServerRequestError);
     expect((error as ServerRequestError).type).toBe('INTERNAL_SERVER');
 
     nock(url).get('/').reply(502);
 
-    error = await axios
-      .get(url)
-      .catch(({ response }) =>
-        RequestError.create(new Error(), { status: response.status })
-      );
+    error = await axios.get(url).catch(({ response }) => RequestError.create(new Error(), { status: response.status }));
     expect(error).toBeInstanceOf(ServerRequestError);
     expect((error as ServerRequestError).type).toBe('BAD_GATEWAY');
   });

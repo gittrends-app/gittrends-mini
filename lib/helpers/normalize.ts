@@ -1,22 +1,13 @@
 /*
  *  Author: Hudson S. Borges
  */
-import {
-  isArray,
-  isPlainObject,
-  size,
-  mapValues,
-  negate,
-  isNil,
-  reduce,
-} from 'lodash';
+import { isArray, isPlainObject, size, mapValues, negate, isNil, reduce } from 'lodash';
 
 import { cannotBeRemoved } from './compact';
 
 const notNil = negate(isNil);
 
-const camelToSnakeCase = (str: string) =>
-  str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+const camelToSnakeCase = (str: string) => str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/i;
 
@@ -34,9 +25,7 @@ export default function normalize(object: any, compact: boolean = false): any {
         const normalizedValue = normalize(value, compact);
         return Object.assign(
           memo,
-          cannotBeRemoved(normalizedValue)
-            ? { [camelToSnakeCase(key)]: normalizedValue }
-            : {}
+          cannotBeRemoved(normalizedValue) ? { [camelToSnakeCase(key)]: normalizedValue } : {}
         );
       },
       {}
@@ -53,18 +42,12 @@ export default function normalize(object: any, compact: boolean = false): any {
       if (key === 'reaction_groups' && value) {
         return value.reduce(
           (memo: TObject, v: { content: string; users: number }) =>
-            v.users === 0
-              ? memo
-              : { ...memo, [v.content.toLowerCase()]: v.users },
+            v.users === 0 ? memo : { ...memo, [v.content.toLowerCase()]: v.users },
           {}
         );
       }
 
-      if (
-        /((_|^)date|_(at|on))$/gi.test(key) &&
-        typeof value === 'string' &&
-        DATE_REGEX.test(value)
-      ) {
+      if (/((_|^)date|_(at|on))$/gi.test(key) && typeof value === 'string' && DATE_REGEX.test(value)) {
         return new Date(value);
       }
 

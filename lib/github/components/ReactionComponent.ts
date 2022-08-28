@@ -14,10 +14,7 @@ export default class ReactionComponent extends Component {
     return [SimplifiedActorFragment];
   }
 
-  includeReactions(
-    include = true,
-    { first = 100, after }: { first: number; after?: string }
-  ): this {
+  includeReactions(include = true, { first = 100, after }: { first: number; after?: string }): this {
     const args = super.argsToString({ first, after });
     this.includes.reactions = include && {
       textFragment: `

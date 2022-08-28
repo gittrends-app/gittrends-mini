@@ -37,14 +37,9 @@ export default class SearchComponent extends Component {
 
     let query = `repo:${searchQuery.repo}`;
 
-    query += ` stars:${searchQuery.minStargazers ?? 0}..${
-      searchQuery.maxStargazers ?? '*'
-    }`;
+    query += ` stars:${searchQuery.minStargazers ?? 0}..${searchQuery.maxStargazers ?? '*'}`;
 
-    if (searchQuery.sort)
-      query += ` sort:${searchQuery.sort}${
-        searchQuery.order ? `-${searchQuery.order}` : ''
-      }`;
+    if (searchQuery.sort) query += ` sort:${searchQuery.sort}${searchQuery.order ? `-${searchQuery.order}` : ''}`;
 
     query += ' sort:stars-desc sort:forks-desc';
 

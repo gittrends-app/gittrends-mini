@@ -1,10 +1,5 @@
 import { omit } from 'lodash';
-import {
-  Estrela,
-  Repositorio,
-  RepositorioMetadata,
-  Usuario,
-} from '../../types';
+import { Estrela, Repositorio, RepositorioMetadata, Usuario } from '../../types';
 
 import { Service } from './Service';
 
@@ -109,9 +104,7 @@ export class CacheService implements Service {
   }
 
   async saveUsers(users: Usuario[]) {
-    return CacheService.collections.user.bulkDocs(
-      users.map((user) => omit({ _id: user.id, ...user }, ['id']))
-    );
+    return CacheService.collections.user.bulkDocs(users.map((user) => omit({ _id: user.id, ...user }, ['id'])));
   }
 
   async saveRepository(repos: Repositorio[]) {
@@ -143,16 +136,13 @@ export class CacheService implements Service {
   }
 
   async getMetadata(repositoryId: string, resource: string) {
-    return CacheService.collections.metadata.get(
-      `${resource}.${repositoryId}`,
-      { latest: true }
-    );
+    return CacheService.collections.metadata.get(`${resource}.${repositoryId}`, { latest: true });
   }
 
   async saveMetadata(metadata: RepositorioMetadata) {
-    return CacheService.collections.metadata.upsert(
-      `${metadata.resource}.${metadata.repository}`,
-      (doc): any => ({ ...doc, ...metadata })
-    );
+    return CacheService.collections.metadata.upsert(`${metadata.resource}.${metadata.repository}`, (doc): any => ({
+      ...doc,
+      ...metadata,
+    }));
   }
 }

@@ -37,14 +37,9 @@ export class ProxyService implements Service {
       endCursor: undefined,
       hasNext: iterator.hasNext,
       async next() {
-        if (
-          !skipCache &&
-          (this.cacheHit === undefined || this.cacheHit === true)
-        ) {
+        if (!skipCache && (this.cacheHit === undefined || this.cacheHit === true)) {
           if (this.cacheHit === undefined) {
-            const meta = await self.cacheService
-              .getMetadata(id, 'stargazers')
-              .catch(() => null);
+            const meta = await self.cacheService.getMetadata(id, 'stargazers').catch(() => null);
 
             if (meta) {
               this.cacheHit = true;

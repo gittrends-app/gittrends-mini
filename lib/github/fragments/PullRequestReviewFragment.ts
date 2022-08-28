@@ -11,12 +11,7 @@ export class PullRequestReviewFragment extends Fragment {
   code = 'pullRequestReview';
 
   get dependencies(): Fragment[] {
-    return [
-      SimplifiedActorFragment,
-      CommitFragment,
-      ReactableFragment,
-      PullRequestReviewCommentFragment,
-    ];
+    return [SimplifiedActorFragment, CommitFragment, ReactableFragment, PullRequestReviewCommentFragment];
   }
 
   toString(): string {

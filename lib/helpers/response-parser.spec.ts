@@ -20,14 +20,7 @@ describe('Parse response received from GitHub API', () => {
     };
     expect(parser(data)).toStrictEqual(result);
 
-    const types = [
-      'Actor',
-      'User',
-      'Organization',
-      'Mannequin',
-      'Bot',
-      'EnterpriseUserAccount',
-    ];
+    const types = ['Actor', 'User', 'Organization', 'Mannequin', 'Bot', 'EnterpriseUserAccount'];
     data = types.map((type, index) => ({ type, id: index, value: 1 }));
     result = {
       data: data.map((d: TObject) => d.id),

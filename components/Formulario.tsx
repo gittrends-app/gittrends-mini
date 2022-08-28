@@ -11,12 +11,7 @@ interface Props {
   onCancel?: () => void;
 }
 
-export const Formulario: React.FC<Props> = ({
-  onSubmit,
-  onCancel,
-  enableSubmit = true,
-  enableCancel = false,
-}) => {
+export const Formulario: React.FC<Props> = ({ onSubmit, onCancel, enableSubmit = true, enableCancel = false }) => {
   const [inputs, setInputs] = useState({
     tokenAuth: '',
     repositoryName: '',
@@ -68,12 +63,7 @@ export const Formulario: React.FC<Props> = ({
             <Button variant="primary" type="submit" disabled={!enableSubmit}>
               Submit
             </Button>
-            <Button
-              variant="danger"
-              type="reset"
-              disabled={!enableCancel}
-              className="float-end"
-            >
+            <Button variant="danger" type="reset" disabled={!enableCancel} className="float-end">
               Cancel
             </Button>
           </Form.Group>

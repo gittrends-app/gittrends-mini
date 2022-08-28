@@ -99,10 +99,7 @@ export default class IssueComponent extends Component {
     return this;
   }
 
-  includeAssignees(
-    include = true,
-    { first = 100, after, alias = 'assignees' }: TOptions
-  ): this {
+  includeAssignees(include = true, { first = 100, after, alias = 'assignees' }: TOptions): this {
     this.includes.assignees = include && {
       textFragment: `
         ${alias}:assignees(${super.argsToString({ first, after })}) {
@@ -116,10 +113,7 @@ export default class IssueComponent extends Component {
     return this;
   }
 
-  includeLabels(
-    include = true,
-    { first = 100, after, alias = 'labels' }: TOptions
-  ): this {
+  includeLabels(include = true, { first = 100, after, alias = 'labels' }: TOptions): this {
     this.includes.labels = include && {
       textFragment: `
         ${alias}:labels(${super.argsToString({ first, after })}) {
@@ -133,10 +127,7 @@ export default class IssueComponent extends Component {
     return this;
   }
 
-  includeParticipants(
-    include = true,
-    { first = 100, after, alias = 'participants' }: TOptions
-  ): this {
+  includeParticipants(include = true, { first = 100, after, alias = 'participants' }: TOptions): this {
     this.includes.participants = include && {
       textFragment: `
         ${alias}:participants(${super.argsToString({ first, after })}) {
@@ -149,10 +140,7 @@ export default class IssueComponent extends Component {
     return this;
   }
 
-  includeTimeline(
-    include = true,
-    { first = 100, after, alias = 'timeline' }: TOptions
-  ): this {
+  includeTimeline(include = true, { first = 100, after, alias = 'timeline' }: TOptions): this {
     this.includes.timeline = include && {
       textFragment: `
         ${alias}:timelineItems(${super.argsToString({ first, after })}) {
@@ -165,9 +153,7 @@ export default class IssueComponent extends Component {
             ... on ClosedEvent { ...${ClosedEvent.code} }
             ... on CommentDeletedEvent { ...${CommentDeletedEvent.code} }
             ... on ConnectedEvent { ...${ConnectedEvent.code} }
-            ... on ConvertedNoteToIssueEvent { ...${
-              ConvertedNoteToIssueEvent.code
-            } }
+            ... on ConvertedNoteToIssueEvent { ...${ConvertedNoteToIssueEvent.code} }
             ... on CrossReferencedEvent { ...${CrossReferencedEvent.code} }
             ... on DemilestonedEvent { ...${DemilestonedEvent.code} }
             ... on DisconnectedEvent { ...${DisconnectedEvent.code} }
@@ -177,14 +163,10 @@ export default class IssueComponent extends Component {
             ... on MarkedAsDuplicateEvent { ...${MarkedAsDuplicateEvent.code} }
             ... on MentionedEvent { ...${MentionedEvent.code} }
             ... on MilestonedEvent { ...${MilestonedEvent.code} }
-            ... on MovedColumnsInProjectEvent { ...${
-              MovedColumnsInProjectEvent.code
-            } }
+            ... on MovedColumnsInProjectEvent { ...${MovedColumnsInProjectEvent.code} }
             ... on PinnedEvent { ...${PinnedEvent.code} }
             ... on ReferencedEvent { ...${ReferencedEvent.code} }
-            ... on RemovedFromProjectEvent { ...${
-              RemovedFromProjectEvent.code
-            } }
+            ... on RemovedFromProjectEvent { ...${RemovedFromProjectEvent.code} }
             ... on RenamedTitleEvent { ...${RenamedTitleEvent.code} }
             ... on ReopenedEvent { ...${ReopenedEvent.code} }
             ... on SubscribedEvent { ...${SubscribedEvent.code} }
@@ -192,9 +174,7 @@ export default class IssueComponent extends Component {
             ... on UnassignedEvent { ...${UnassignedEvent.code} }
             ... on UnlabeledEvent { ...${UnlabeledEvent.code} }
             ... on UnlockedEvent { ...${UnlockedEvent.code} }
-            ... on UnmarkedAsDuplicateEvent { ...${
-              UnmarkedAsDuplicateEvent.code
-            } }
+            ... on UnmarkedAsDuplicateEvent { ...${UnmarkedAsDuplicateEvent.code} }
             ... on UnpinnedEvent { ...${UnpinnedEvent.code} }
             ... on UnsubscribedEvent { ...${UnsubscribedEvent.code} }
             ... on UserBlockedEvent { ...${UserBlockedEvent.code} }
