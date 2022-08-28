@@ -1,61 +1,35 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
 import Card from 'react-bootstrap/Card';
 import { useState } from 'react';
-import { Estrela } from '../types';
-import Query from '../lib/github/Query';
-import HttpClient from '../lib/github/HttpClient';
-import { RepositoryComponent, SearchComponent } from '../lib/github/components';
-import { get } from 'lodash';
 
-type Inputs = {
-  tokenAuth: string;
-  repositoryName: string;
-};
 interface Props {
-  setEstrelas: (event: React.SetStateAction<Estrela[]>) => void;
+  enableSubmit?: boolean;
+  enableCancel?: boolean;
+  onSubmit?: (token: string, name: string) => void;
+  onCancel?: () => void;
 }
-export const Formulario: React.FC<Props> = ({ setEstrelas }) => {
-  const [httpClient, setHttpClient] = useState<HttpClient | undefined>();
-  const [inputs, setInputs] = useState<Inputs>({
+
+export const Formulario: React.FC<Props> = ({
+  onSubmit,
+  onCancel,
+  enableSubmit = true,
+  enableCancel = false,
+}) => {
+  const [inputs, setInputs] = useState({
     tokenAuth: '',
     repositoryName: '',
   });
 
-  useEffect(
-    () => setHttpClient(new HttpClient(inputs.tokenAuth)),
-    [inputs.tokenAuth]
-  );
-
   const handleSubmit = async (event: any) => {
     event.preventDefault();
+    if (onSubmit) onSubmit(inputs.tokenAuth, inputs.repositoryName);
+  };
 
-    if (!httpClient) alert('Access token required!');
-
-    if (httpClient) {
-      const repo = await Query.create(httpClient)
-        .compose(
-          new SearchComponent({ repo: inputs.repositoryName }).setAlias(
-            'search'
-          )
-        )
-        .run()
-        .then((response) => get(response, ['search', 'nodes', 0]));
-
-      if (!repo) return alert('Repositório não encontrado.');
-
-      const stargazers = await Query.create(httpClient)
-        .compose(
-          new RepositoryComponent(repo.id)
-            .includeDetails(true)
-            .includeStargazers(true, { first: 100 })
-        )
-        .run()
-        .then((response) => get(response, 'repository._stargazers.edges'));
-
-      setEstrelas(stargazers);
-    }
+  const handleReset = async (event: any) => {
+    event.preventDefault();
+    if (onCancel) onCancel();
   };
 
   const handleChange = (event: any) => {
@@ -68,7 +42,7 @@ export const Formulario: React.FC<Props> = ({ setEstrelas }) => {
     <Card>
       <Card.Body>
         <Card.Title>Preencha os campos a seguir</Card.Title>
-        <Form onSubmit={handleSubmit}>
+        <Form onSubmit={handleSubmit} onReset={handleReset}>
           <Form.Group className="mb-3" controlId="tokenAuth">
             <Form.Label>Token GitHub</Form.Label>
             <Form.Control
@@ -90,9 +64,19 @@ export const Formulario: React.FC<Props> = ({ setEstrelas }) => {
               onChange={handleChange}
             />
           </Form.Group>
-          <Button variant="primary" type="submit">
-            Submit
-          </Button>
+          <Form.Group className="mb-3" controlId="buttons">
+            <Button variant="primary" type="submit" disabled={!enableSubmit}>
+              Submit
+            </Button>
+            <Button
+              variant="danger"
+              type="reset"
+              disabled={!enableCancel}
+              className="float-end"
+            >
+              Cancel
+            </Button>
+          </Form.Group>
         </Form>
       </Card.Body>
     </Card>
