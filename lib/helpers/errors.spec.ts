@@ -1,7 +1,7 @@
 import axios from 'axios';
 import nock from 'nock';
 
-import { GithubRequestError, ServerRequestError, RequestError } from './errors';
+import { GithubRequestError, RequestError, ServerRequestError } from './errors';
 
 const url = 'http://localhost';
 

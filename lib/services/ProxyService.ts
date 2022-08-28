@@ -1,7 +1,7 @@
 import { Repository, Stargazer } from '../../types';
-import { GitHubService } from './GithubService';
 import { CacheService } from './CacheService';
-import { Service, Iterable } from './Service';
+import { GitHubService } from './GithubService';
+import { Iterable, Service } from './Service';
 
 export class ProxyService implements Service {
   private cacheService: CacheService;

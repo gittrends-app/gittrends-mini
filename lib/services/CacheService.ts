@@ -1,9 +1,10 @@
 import { omit } from 'lodash';
-import { Stargazer, Repository, RepositoryMetadata, User } from '../../types';
-import { Iterable, Service } from './Service';
 import PouchDB from 'pouchdb-browser';
 import PouchFind from 'pouchdb-find';
 import PouchUpsert from 'pouchdb-upsert';
+
+import { Repository, RepositoryMetadata, Stargazer, User } from '../../types';
+import { Iterable, Service } from './Service';
 
 PouchDB.plugin(PouchFind).plugin(PouchUpsert);
 

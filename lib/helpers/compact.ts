@@ -1,7 +1,7 @@
 /*
  *  Author: Hudson S. Borges
  */
-import { isArray, isPlainObject, mapValues, pickBy, isNil, size, negate } from 'lodash';
+import { isArray, isNil, isPlainObject, mapValues, negate, pickBy, size } from 'lodash';
 
 export function canBeRemoved(value: any): boolean {
   if (isNil(value)) return true;

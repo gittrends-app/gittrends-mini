@@ -1,9 +1,10 @@
 import { get } from 'lodash';
-import { Stargazer, Repository } from '../../types';
-import { RepositoryComponent, SearchComponent } from '../github/components';
+
+import { Repository, Stargazer } from '../../types';
 import HttpClient from '../github/HttpClient';
 import Query from '../github/Query';
-import { Service, Iterable } from './Service';
+import { RepositoryComponent, SearchComponent } from '../github/components';
+import { Iterable, Service } from './Service';
 
 export class GitHubService implements Service {
   private httpClient: HttpClient;

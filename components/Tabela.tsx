@@ -1,7 +1,8 @@
 import React from 'react';
-import Table from 'react-bootstrap/Table';
-import { Stargazer } from '../types';
 import Image from 'react-bootstrap/Image';
+import Table from 'react-bootstrap/Table';
+
+import { Stargazer } from '../types';
 
 export const Tabela: React.FC<{ estrelas: Stargazer[] }> = ({ estrelas }) => {
   return (

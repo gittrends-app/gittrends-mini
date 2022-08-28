@@ -1,6 +1,7 @@
 import type { NextPage } from 'next';
 import { useRef, useState } from 'react';
 import { Container } from 'react-bootstrap';
+
 import { Formulario } from '../components/Formulario';
 import { Tabela } from '../components/Tabela';
 

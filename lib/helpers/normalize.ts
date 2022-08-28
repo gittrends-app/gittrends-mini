@@ -1,7 +1,7 @@
 /*
  *  Author: Hudson S. Borges
  */
-import { isArray, isPlainObject, size, mapValues, negate, isNil, reduce } from 'lodash';
+import { isArray, isNil, isPlainObject, mapValues, negate, reduce, size } from 'lodash';
 
 import { cannotBeRemoved } from './compact';
 

@@ -4,6 +4,8 @@
 import Component from '../Component';
 import Fragment from '../Fragment';
 import { SimplifiedActorFragment } from '../fragments/ActorFragment';
+import IssueCommentFragment from '../fragments/IssueCommentFragment';
+import IssueFragment from '../fragments/IssueFragment';
 import AddedToProjectEvent from '../fragments/events/AddedToProjectEvent';
 import AssignedEvent from '../fragments/events/AssignedEvent';
 import ClosedEvent from '../fragments/events/ClosedEvent';
@@ -33,8 +35,6 @@ import UnmarkedAsDuplicateEvent from '../fragments/events/UnmarkedAsDuplicateEve
 import UnpinnedEvent from '../fragments/events/UnpinnedEvent';
 import UnsubscribedEvent from '../fragments/events/UnsubscribedEvent';
 import UserBlockedEvent from '../fragments/events/UserBlockedEvent';
-import IssueCommentFragment from '../fragments/IssueCommentFragment';
-import IssueFragment from '../fragments/IssueFragment';
 
 type TOptions = { first: number; after?: string; alias?: string };
 
