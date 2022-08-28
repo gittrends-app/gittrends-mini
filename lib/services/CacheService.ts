@@ -1,25 +1,26 @@
 import { omit } from 'lodash';
-import { Estrela, Repositorio, RepositorioMetadata, Usuario } from '../../types';
-
-import { Service } from './Service';
-
+import { Stargazer, Repository, RepositoryMetadata, User } from '../../types';
+import { Iterable, Service } from './Service';
 import PouchDB from 'pouchdb-browser';
 import PouchFind from 'pouchdb-find';
 import PouchUpsert from 'pouchdb-upsert';
 
 PouchDB.plugin(PouchFind).plugin(PouchUpsert);
 
-type UserCollection = Omit<Usuario, 'id'> & { _id: string };
-type RepoCollection = Omit<Repositorio, 'id' | 'owner'> & {
+type UserCollection = Omit<User, 'id'> & { _id: string };
+
+type RepoCollection = Omit<Repository, 'id' | 'owner'> & {
   _id: string;
   owner: string;
 };
-type StargazerCollection = Omit<Estrela, 'user'> & {
+
+type StargazerCollection = Omit<Stargazer, 'user'> & {
   _id: string;
   repository: string;
   user: string;
 };
-type MetadataCollection = RepositorioMetadata & { _id: string };
+
+type MetadataCollection = RepositoryMetadata & { _id: string };
 
 export class CacheService implements Service {
   private static collections = {
@@ -37,13 +38,15 @@ export class CacheService implements Service {
       CacheService.collections.stargazer.createIndex({
         index: { fields: ['repository', 'starred_at'] },
       }),
-      CacheService.collections.repository.compact(),
     ]);
+
+    setInterval(() => CacheService.collections.repository.compact(), 60 * 1000);
   }
 
-  async find(name: string): Promise<Repositorio | null> {
+  async find(name: string): Promise<Repository | null> {
     const { docs } = await CacheService.collections.repository.find({
       selector: { name_with_owner: { $regex: new RegExp(name, 'i') } },
+      limit: 1,
     });
 
     const repo = docs.at(0);
@@ -61,7 +64,7 @@ export class CacheService implements Service {
     );
   }
 
-  stargazers(repositoryId: string) {
+  stargazers(repositoryId: string): Iterable<Stargazer[]> {
     let hasNext: boolean = true;
 
     const limit = 500;
@@ -71,7 +74,6 @@ export class CacheService implements Service {
       [Symbol.iterator]() {
         return this;
       },
-      endCursor: undefined,
       hasNext: () => hasNext,
       async next() {
         if (!hasNext) return { done: true };
@@ -103,11 +105,11 @@ export class CacheService implements Service {
     };
   }
 
-  async saveUsers(users: Usuario[]) {
+  async saveUsers(users: User[]) {
     return CacheService.collections.user.bulkDocs(users.map((user) => omit({ _id: user.id, ...user }, ['id'])));
   }
 
-  async saveRepository(repos: Repositorio[]) {
+  async saveRepository(repos: Repository[]) {
     return Promise.all([
       this.saveUsers(repos.map((repo) => repo.owner)),
       Promise.all(
@@ -121,7 +123,7 @@ export class CacheService implements Service {
     ]);
   }
 
-  async saveStargazers(repositoryId: string, stargazers: Estrela[]) {
+  async saveStargazers(repositoryId: string, stargazers: Stargazer[]) {
     return Promise.all([
       this.saveUsers(stargazers.map((star) => star.user)),
       CacheService.collections.stargazer.bulkDocs(
@@ -139,7 +141,7 @@ export class CacheService implements Service {
     return CacheService.collections.metadata.get(`${resource}.${repositoryId}`, { latest: true });
   }
 
-  async saveMetadata(metadata: RepositorioMetadata) {
+  async saveMetadata(metadata: RepositoryMetadata) {
     return CacheService.collections.metadata.upsert(`${metadata.resource}.${metadata.repository}`, (doc): any => ({
       ...doc,
       ...metadata,

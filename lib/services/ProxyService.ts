@@ -1,4 +1,4 @@
-import { Repositorio } from '../../types';
+import { Repository, Stargazer } from '../../types';
 import { GitHubService } from './GithubService';
 import { CacheService } from './CacheService';
 import { Service, Iterable } from './Service';
@@ -12,7 +12,7 @@ export class ProxyService implements Service {
     this.githubService = new GitHubService(token);
   }
 
-  async find(name: string): Promise<Repositorio | null> {
+  async find(name: string): Promise<Repository | null> {
     const cachedRepo = await this.cacheService.find(name);
     if (cachedRepo) cachedRepo;
 
@@ -22,7 +22,7 @@ export class ProxyService implements Service {
     return repo;
   }
 
-  stargazers(id: string): Iterable & { cacheHit?: boolean } {
+  stargazers(id: string): Iterable<Stargazer[]> & { cacheHit?: boolean } {
     const self = this;
 
     const iterator = this.githubService.stargazers(id);
@@ -34,7 +34,6 @@ export class ProxyService implements Service {
       [Symbol.iterator]() {
         return this;
       },
-      endCursor: undefined,
       hasNext: iterator.hasNext,
       async next() {
         if (!skipCache && (this.cacheHit === undefined || this.cacheHit === true)) {

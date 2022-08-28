@@ -1,4 +1,4 @@
-export interface Usuario {
+export interface User {
   avatar_url: string;
   created_at: Date;
   database_id: number;
@@ -13,7 +13,7 @@ export interface Usuario {
   website_url: string;
 }
 
-export interface Repositorio {
+export interface Repository {
   created_at: Date;
   database_id: number;
   default_branch: string;
@@ -22,19 +22,19 @@ export interface Repositorio {
   id: string;
   name: string;
   name_with_owner: string;
-  owner: Usuario;
+  owner: User;
   primary_language: string;
   pushed_at: Date;
   stargazers: number;
   updated_at: Date;
 }
 
-export interface Estrela {
+export interface Stargazer {
   starred_at: Date;
-  user: Usuario;
+  user: User;
 }
 
-export interface RepositorioMetadata {
+export interface RepositoryMetadata {
   repository: string;
   resource: 'stargazers';
   end_cursor?: string;

@@ -1,14 +1,14 @@
 import type { NextPage } from 'next';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Container } from 'react-bootstrap';
 import { Formulario } from '../components/Formulario';
 import { Tabela } from '../components/Tabela';
 
-import { Estrela } from '../types';
+import { Stargazer } from '../types';
 
 const Home: NextPage = () => {
   const [running, setRunning] = useState<boolean>(false);
-  const [estrelas, setEstrelas] = useState<Estrela[]>([]);
+  const [estrelas, setEstrelas] = useState<Stargazer[]>([]);
 
   const runningRef = useRef<boolean>(running);
 
@@ -21,12 +21,12 @@ const Home: NextPage = () => {
     const repo = await service.find(name);
     if (!repo) return alert('Repositório não encontrado.');
 
-    let _estrelas: Estrela[] = [];
+    let _estrelas: Stargazer[] = [];
     const iterator = service.stargazers(repo.id);
 
     while (iterator.hasNext()) {
       const { done, value } = await iterator.next();
-      setEstrelas((_estrelas = _estrelas.concat(value).reverse()));
+      if (value) setEstrelas((_estrelas = _estrelas.concat(value).reverse()));
       if (done || !runningRef.current) break;
     }
 

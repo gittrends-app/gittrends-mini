@@ -1,13 +1,13 @@
-import { Repositorio } from '../../types';
+import { Repository, Stargazer } from '../../types';
 
-export interface Iterable {
-  [Symbol.iterator](): Iterable;
+export interface Iterable<T> {
+  [Symbol.iterator](): Iterable<T>;
   hasNext(): boolean;
-  next(): Promise<{ done: boolean; value?: any }>;
-  endCursor: string | undefined;
+  next(): Promise<{ done: boolean; value?: T }>;
+  endCursor?: string;
 }
 
 export interface Service {
-  find(name: string): Promise<Repositorio | null>;
-  stargazers(id: string): Iterable;
+  find(name: string): Promise<Repository | null>;
+  stargazers(id: string): Iterable<Stargazer[]>;
 }
