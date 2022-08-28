@@ -41,7 +41,7 @@ export default function normalize(object: any, compact: boolean = false): any {
     return mapValues(_object, (value, key) => {
       if (key === 'reaction_groups' && value) {
         return value.reduce(
-          (memo: TObject, v: { content: string; users: number }) =>
+          (memo: Record<string, unknown>, v: { content: string; users: number }) =>
             v.users === 0 ? memo : { ...memo, [v.content.toLowerCase()]: v.users },
           {}
         );

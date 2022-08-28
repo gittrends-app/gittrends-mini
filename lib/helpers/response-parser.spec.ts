@@ -23,7 +23,7 @@ describe('Parse response received from GitHub API', () => {
     const types = ['Actor', 'User', 'Organization', 'Mannequin', 'Bot', 'EnterpriseUserAccount'];
     data = types.map((type, index) => ({ type, id: index, value: 1 }));
     result = {
-      data: data.map((d: TObject) => d.id),
+      data: data.map((d: Record<string, unknown>) => d.id),
       actors: data,
       commits: [],
       milestones: [],

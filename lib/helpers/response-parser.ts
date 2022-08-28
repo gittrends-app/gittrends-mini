@@ -6,15 +6,15 @@ import { isArray, isPlainObject, uniqBy } from 'lodash';
 
 export type Response = {
   data: any;
-  actors: Array<TObject>;
-  commits: Array<TObject>;
-  milestones: Array<TObject>;
+  actors: Array<Record<string, unknown>>;
+  commits: Array<Record<string, unknown>>;
+  milestones: Array<Record<string, unknown>>;
 };
 
-export default function (source: any): Response {
-  const actors: Array<TObject> = [];
-  const commits: Array<TObject> = [];
-  const milestones: Array<TObject> = [];
+export default function responseParser(source: any): Response {
+  const actors: Array<Record<string, unknown>> = [];
+  const commits: Array<Record<string, unknown>> = [];
+  const milestones: Array<Record<string, unknown>> = [];
 
   function recursive(object: any): any {
     if (isArray(object)) return object.map(recursive);
