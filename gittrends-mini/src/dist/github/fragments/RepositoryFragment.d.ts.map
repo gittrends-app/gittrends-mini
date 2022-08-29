@@ -1,1 +1,0 @@
-{"version":3,"file":"RepositoryFragment.d.ts","sourceRoot":"","sources":["../../../github/fragments/RepositoryFragment.ts"],"names":[],"mappings":"AAGA,OAAO,QAAQ,MAAM,aAAa,CAAC;AAGnC,qBAAa,UAAW,SAAQ,QAAQ;IACtC,IAAI,SAAU;IACd,IAAI,UAAQ;IAEZ,IAAI,YAAY,IAAI,QAAQ,EAAE,CAE7B;gBAEW,UAAU,UAAQ;IAK9B,QAAQ,IAAI,MAAM;CA2DnB;;AAED,wBAAgC;AAChC,eAAO,MAAM,4BAA4B,YAAuB,CAAC"}

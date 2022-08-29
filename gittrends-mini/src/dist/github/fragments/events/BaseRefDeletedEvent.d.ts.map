@@ -1,1 +1,0 @@
-{"version":3,"file":"BaseRefDeletedEvent.d.ts","sourceRoot":"","sources":["../../../../github/fragments/events/BaseRefDeletedEvent.ts"],"names":[],"mappings":"AAGA,OAAO,QAAQ,MAAM,gBAAgB,CAAC;AAGtC,qBAAa,mBAAoB,SAAQ,QAAQ;IAC/C,IAAI,SAAyB;IAE7B,IAAI,YAAY,IAAI,QAAQ,EAAE,CAE7B;IAED,QAAQ,IAAI,MAAM;CASnB;;AAED,wBAAyC"}

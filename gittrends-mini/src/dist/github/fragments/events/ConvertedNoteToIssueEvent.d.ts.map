@@ -1,1 +1,0 @@
-{"version":3,"file":"ConvertedNoteToIssueEvent.d.ts","sourceRoot":"","sources":["../../../../github/fragments/events/ConvertedNoteToIssueEvent.ts"],"names":[],"mappings":"AAGA,OAAO,QAAQ,MAAM,gBAAgB,CAAC;AAGtC,qBAAa,yBAA0B,SAAQ,QAAQ;IACrD,IAAI,SAA+B;IAEnC,IAAI,YAAY,IAAI,QAAQ,EAAE,CAE7B;IAED,QAAQ,IAAI,MAAM;CAWnB;;AAED,wBAA+C"}

@@ -1,1 +1,0 @@
-{"version":3,"file":"QueryFunction.d.ts","sourceRoot":"","sources":["../QueryFunction.ts"],"names":[],"mappings":"AAAA,OAAO,iBAAiB,MAAM,yCAAyC,CAAC;AACxE,OAAO,UAAU,MAAM,qBAAqB,CAAC;AAI7C,qBAAa,aAAa;IACxB,MAAM,EAAE,UAAU,CAAC;IACnB,SAAS,EAAE,iBAAiB,CAAC;gBAEjB,SAAS,EAAE,MAAM,EAAE,YAAY,EAAE,MAAM,EAAE,KAAK,CAAC,EAAE,MAAM;IAanE,QAAQ;CA0CT"}
