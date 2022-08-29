@@ -14,6 +14,7 @@ type Query = {
   name?: string;
   sort?: 'stars' | 'created' | 'updated' | undefined;
   order?: 'asc' | 'desc' | undefined;
+  repo?: string;
 };
 
 export default class SearchComponent extends Component {
@@ -34,7 +35,9 @@ export default class SearchComponent extends Component {
   toString(): string {
     const searchQuery = get(this.includes, 'search.query', {}) as Query;
 
-    let query = `stars:${searchQuery.minStargazers ?? 0}..${
+    let query = `repo:${searchQuery.repo}`;
+
+    query += ` stars:${searchQuery.minStargazers ?? 0}..${
       searchQuery.maxStargazers ?? '*'
     }`;
 
