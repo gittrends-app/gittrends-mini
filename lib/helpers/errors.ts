@@ -40,9 +40,7 @@ export class RepositoryCrawlerError extends BaseError {
       )
       .join(' & ');
 
-    super(
-      `Errors occurred when updating (see "errors" field) @ ${messageFragment}`
-    );
+    super(`Errors occurred when updating (see "errors" field) @ ${messageFragment}`);
     this.errors = errorsArray;
   }
 }
@@ -58,14 +56,10 @@ export class RequestError extends ExtendedError {
   readonly components?: any[];
 
   static create(error: Error, opts?: RequestErrorOptions): RequestError;
-  static create(
-    error: Error & HttpClientResponse,
-    opts?: RequestErrorOptions
-  ): RequestError {
+  static create(error: Error & HttpClientResponse, opts?: RequestErrorOptions): RequestError {
     const status = error.status || opts?.status;
     if (status) {
-      if (/[24]\d{2}/.test(status.toString()))
-        return new GithubRequestError(error, opts);
+      if (/[24]\d{2}/.test(status.toString())) return new GithubRequestError(error, opts);
       else return new ServerRequestError(error, opts);
     } else {
       return new RequestError(error, opts);
@@ -83,9 +77,7 @@ export class RequestError extends ExtendedError {
     };
 
     if (opts?.components) {
-      const componentArray = Array.isArray(opts?.components)
-        ? opts?.components
-        : [opts?.components];
+      const componentArray = Array.isArray(opts?.components) ? opts?.components : [opts?.components];
       this.components = componentArray.map((component) => component.toJSON());
     }
   }
@@ -134,14 +126,11 @@ export class GithubRequestError extends RequestError {
         if (value.type === 'FORBIDDEN') return 'FORBIDDEN';
         else if (value.type === 'INTERNAL') return 'INTERNAL';
         else if (value.type === 'NOT_FOUND') return 'NOT_FOUND';
-        else if (value.type === 'MAX_NODE_LIMIT_EXCEEDED')
-          return 'MAX_NODE_LIMIT_EXCEEDED';
-        else if (value.type === 'SERVICE_UNAVAILABLE')
-          return 'SERVICE_UNAVAILABLE';
+        else if (value.type === 'MAX_NODE_LIMIT_EXCEEDED') return 'MAX_NODE_LIMIT_EXCEEDED';
+        else if (value.type === 'SERVICE_UNAVAILABLE') return 'SERVICE_UNAVAILABLE';
         else if (value.message === 'timedout') return 'TIMEDOUT';
         else if (value.message === 'loading') return 'LOADING';
-        else if (/^something.went.wrong.*/i.test(value.message as string))
-          return 'SOMETHING_WENT_WRONG';
+        else if (/^something.went.wrong.*/i.test(value.message as string)) return 'SOMETHING_WENT_WRONG';
         return 'UNKNOWN';
       });
     }

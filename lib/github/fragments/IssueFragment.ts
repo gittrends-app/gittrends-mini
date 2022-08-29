@@ -17,10 +17,7 @@ export class IssueFragment extends Fragment {
   }
 
   get dependencies(): Fragment[] {
-    return [
-      SimplifiedActorFragment,
-      ...(this.full ? [ReactableFragment, MilestoneFragment] : []),
-    ];
+    return [SimplifiedActorFragment, ...(this.full ? [ReactableFragment, MilestoneFragment] : [])];
   }
 
   get objectName(): string {
@@ -49,10 +46,7 @@ export class IssueFragment extends Fragment {
         ${Fragment.include(this.full, 'includesCreatedEdit')}
         lastEditedAt
         locked
-        ${Fragment.include(
-          this.full,
-          `milestone { ...${MilestoneFragment.code} }`
-        )}
+        ${Fragment.include(this.full, `milestone { ...${MilestoneFragment.code} }`)}
         number
         publishedAt
         ${Fragment.include(this.full, `...${ReactableFragment.code}`)}

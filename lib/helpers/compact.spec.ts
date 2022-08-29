@@ -7,9 +7,7 @@ describe('Compact objects by removing nullable values', () => {
     expect(compact([{ a: null }])).toHaveLength(0);
     expect(compact([{ a: [null, undefined, '', {}, []] }])).toHaveLength(0);
     expect(compact([null, undefined, '', {}, []])).toHaveLength(0);
-    expect(
-      compact(['valid', { value: true }, { notThisOne: null }])
-    ).toHaveLength(2);
+    expect(compact(['valid', { value: true }, { notThisOne: null }])).toHaveLength(2);
   });
 
   it('should compact plain objects', () => {
@@ -19,9 +17,7 @@ describe('Compact objects by removing nullable values', () => {
     expect(compact({ empty: undefined })).toStrictEqual({});
     expect(compact({ empty: [null, undefined, '', {}, []] })).toStrictEqual({});
     expect(compact(['valid', { value: true }])).toHaveLength(2);
-    expect(
-      compact({ valid: { property: true }, notThisOne: null })
-    ).toStrictEqual({
+    expect(compact({ valid: { property: true }, notThisOne: null })).toStrictEqual({
       valid: { property: true },
     });
   });

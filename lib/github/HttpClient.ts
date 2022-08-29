@@ -38,9 +38,7 @@ export default class HttpClient {
 
     this.timeout = opts.timeout || 15000;
     this.retries = opts.retries || 0;
-    this.baseUrl = new URL(
-      `${opts.protocol}://${opts.host}:${opts.port || ''}`
-    ).toString();
+    this.baseUrl = new URL(`${opts.protocol}://${opts.host}:${opts.port || ''}`).toString();
     this.client = axios.create({
       baseURL: this.baseUrl,
       headers: {
@@ -53,16 +51,13 @@ export default class HttpClient {
 
     retry(this.client, {
       retries: this.retries,
-      retryCondition: ({ response }) =>
-        !/^[3-5]\d{2}$/.test(`${response?.status}` || ''),
+      retryCondition: ({ response }) => !/^[3-5]\d{2}$/.test(`${response?.status}` || ''),
       retryDelay: retry.exponentialDelay,
       shouldResetTimeout: true,
     });
   }
 
-  async request(
-    data: string | Record<string, unknown>
-  ): Promise<HttpClientResponse> {
+  async request(data: string | Record<string, unknown>): Promise<HttpClientResponse> {
     return this.client
       .post('/graphql', data)
       .then(({ status, statusText, data, headers }) => ({
@@ -73,9 +68,7 @@ export default class HttpClient {
       }))
       .catch((error: AxiosError) => {
         const { status, statusText, data, headers } = error.response || {};
-        return Promise.reject(
-          Object.assign(new Error(), { status, statusText, data, headers })
-        );
+        return Promise.reject(Object.assign(new Error(), { status, statusText, data, headers }));
       });
   }
 }

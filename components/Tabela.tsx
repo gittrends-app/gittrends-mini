@@ -1,9 +1,10 @@
 import React from 'react';
-import Table from 'react-bootstrap/Table';
-import { Estrela } from '../types';
 import Image from 'react-bootstrap/Image';
+import Table from 'react-bootstrap/Table';
 
-export const Tabela: React.FC<{ estrelas: Estrela[] }> = ({ estrelas }) => {
+import { Stargazer } from '../types';
+
+export const Tabela: React.FC<{ estrelas: Stargazer[] }> = ({ estrelas }) => {
   return (
     <Table striped bordered hover responsive>
       <thead>

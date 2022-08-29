@@ -1,33 +1,47 @@
 import type { NextPage } from 'next';
-import { useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Container } from 'react-bootstrap';
+
 import { Formulario } from '../components/Formulario';
 import { Tabela } from '../components/Tabela';
-import { Estrela } from '../types';
+
+import { Stargazer } from '../types';
 
 const Home: NextPage = () => {
-  const [estrelas, setEstrelas] = useState<Estrela[]>([]);
-  const LOCAL_STORAGE_KEY_ESTRELAS = 'repository.estrelas';
+  const [running, setRunning] = useState<boolean>(false);
+  const [estrelas, setEstrelas] = useState<Stargazer[]>([]);
 
-  useEffect(() => {
-    const storedEstrelas = JSON.parse(
-      localStorage.getItem(LOCAL_STORAGE_KEY_ESTRELAS) as string
-    ) as Estrela[];
-    if (storedEstrelas) setEstrelas(storedEstrelas);
-  }, []);
+  const runningRef = useRef<boolean>(running);
 
-  useEffect(() => {
-    if (estrelas.length > 0) {
-      localStorage.setItem(
-        LOCAL_STORAGE_KEY_ESTRELAS,
-        JSON.stringify(estrelas)
-      );
+  const onSubmit = async function (token: string, name: string) {
+    setRunning((runningRef.current = true));
+
+    const { ProxyService } = await import('../lib/services/ProxyService');
+
+    const service = new ProxyService(token);
+    const repo = await service.find(name);
+    if (!repo) return alert('Repositório não encontrado.');
+
+    let _estrelas: Stargazer[] = [];
+    const iterator = service.stargazers(repo.id);
+
+    while (iterator.hasNext()) {
+      const { done, value } = await iterator.next();
+      if (value) setEstrelas((_estrelas = _estrelas.concat(value).reverse()));
+      if (done || !runningRef.current) break;
     }
-  }, [estrelas]);
+
+    setRunning((runningRef.current = false));
+  };
 
   return (
     <Container className="App">
-      <Formulario setEstrelas={setEstrelas} />
+      <Formulario
+        enableCancel={running}
+        enableSubmit={!running}
+        onSubmit={onSubmit}
+        onCancel={() => setRunning((runningRef.current = false))}
+      />
       <br />
       <Tabela estrelas={estrelas} />
     </Container>

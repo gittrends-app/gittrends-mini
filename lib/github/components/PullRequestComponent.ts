@@ -2,12 +2,19 @@
  *  Author: Hudson S. Borges
  */
 import Fragment from '../Fragment';
-import AutomaticBaseChangeFailedEvent from '../fragments/events/AutomaticBaseChangeFailedEvent';
-import AutomaticBaseChangeSucceededEvent from '../fragments/events/AutomaticBaseChangeSucceededEvent';
+import IssueFragment from '../fragments/IssueFragment';
+import PullRequestCommitCommentThreadFragment from '../fragments/PullRequestCommitCommentThreadFragment';
+import PullRequestCommit from '../fragments/PullRequestCommitFragment';
+import PullRequestFragment from '../fragments/PullRequestFragment';
+import PullRequestReviewFragment from '../fragments/PullRequestReviewFragment';
+import PullRequestReviewThreadFragment from '../fragments/PullRequestReviewThreadFragment';
+import PullRequestRevisionMarkerFragment from '../fragments/PullRequestRevisionMarkerFragment';
 import AutoMergeDisabledEvent from '../fragments/events/AutoMergeDisabledEvent';
 import AutoMergeEnabledEvent from '../fragments/events/AutoMergeEnabledEvent';
 import AutoRebaseEnabledEvent from '../fragments/events/AutoRebaseEnabledEvent';
 import AutoSquashEnabledEvent from '../fragments/events/AutoSquashEnabledEvent';
+import AutomaticBaseChangeFailedEvent from '../fragments/events/AutomaticBaseChangeFailedEvent';
+import AutomaticBaseChangeSucceededEvent from '../fragments/events/AutomaticBaseChangeSucceededEvent';
 import BaseRefChangedEvent from '../fragments/events/BaseRefChangedEvent';
 import BaseRefDeletedEvent from '../fragments/events/BaseRefDeletedEvent';
 import BaseRefForcePushedEvent from '../fragments/events/BaseRefForcePushedEvent';
@@ -20,15 +27,8 @@ import HeadRefRestoredEvent from '../fragments/events/HeadRefRestoredEvent';
 import MergedEvent from '../fragments/events/MergedEvent';
 import ReadyForReviewEvent from '../fragments/events/ReadyForReviewEvent';
 import ReviewDismissedEvent from '../fragments/events/ReviewDismissedEvent';
-import ReviewRequestedEvent from '../fragments/events/ReviewRequestedEvent';
 import ReviewRequestRemovedEvent from '../fragments/events/ReviewRequestRemovedEvent';
-import IssueFragment from '../fragments/IssueFragment';
-import PullRequestCommitCommentThreadFragment from '../fragments/PullRequestCommitCommentThreadFragment';
-import PullRequestCommit from '../fragments/PullRequestCommitFragment';
-import PullRequestFragment from '../fragments/PullRequestFragment';
-import PullRequestReviewFragment from '../fragments/PullRequestReviewFragment';
-import PullRequestReviewThreadFragment from '../fragments/PullRequestReviewThreadFragment';
-import PullRequestRevisionMarkerFragment from '../fragments/PullRequestRevisionMarkerFragment';
+import ReviewRequestedEvent from '../fragments/events/ReviewRequestedEvent';
 import IssueComponent from './IssueComponent';
 
 export default class PullRequestComponent extends IssueComponent {
@@ -67,12 +67,7 @@ export default class PullRequestComponent extends IssueComponent {
   get fragments(): Fragment[] {
     const fragments = super.fragments;
 
-    if (this.includes.details)
-      fragments.splice(
-        fragments.indexOf(IssueFragment),
-        1,
-        PullRequestFragment
-      );
+    if (this.includes.details) fragments.splice(fragments.indexOf(IssueFragment), 1, PullRequestFragment);
 
     if (this.includes.timeline) {
       fragments.push(

@@ -7,11 +7,7 @@ import Fragment from './Fragment';
 
 type TIncludes = Record<
   string,
-  | ({ textFragment?: string; first?: number; after?: string } & Record<
-      string,
-      any
-    >)
-  | false
+  ({ textFragment?: string; first?: number; after?: string } & Record<string, any>) | false
 >;
 
 export default abstract class Component {

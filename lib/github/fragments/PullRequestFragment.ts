@@ -12,11 +12,7 @@ export class PullRequestFragment extends IssueFragment {
   }
 
   get dependencies(): Fragment[] {
-    if (this.full)
-      return super.dependencies.concat([
-        CommitFragment,
-        SimplifiedActorFragment,
-      ]);
+    if (this.full) return super.dependencies.concat([CommitFragment, SimplifiedActorFragment]);
     return super.dependencies;
   }
 
@@ -31,43 +27,25 @@ export class PullRequestFragment extends IssueFragment {
       merged
       mergedAt
       additions
-      ${Fragment.include(
-        this.full,
-        `baseRef { name target { ...${CommitFragment.code} } }`
-      )}
+      ${Fragment.include(this.full, `baseRef { name target { ...${CommitFragment.code} } }`)}
       ${Fragment.include(this.full, 'baseRefOid')}
       ${Fragment.include(this.full, 'baseRepository { id }')}
       ${Fragment.include(this.full, 'canBeRebased')}
       ${Fragment.include(this.full, 'changedFiles')}
       ${Fragment.include(this.full, 'deletions')}
-      ${Fragment.include(
-        this.full,
-        `headRef { name target { ...${CommitFragment.code} } }`
-      )}
+      ${Fragment.include(this.full, `headRef { name target { ...${CommitFragment.code} } }`)}
       ${Fragment.include(this.full, 'headRefName')}
       ${Fragment.include(this.full, 'headRefOid')}
       ${Fragment.include(this.full, 'headRepository { id }')}
-      ${Fragment.include(
-        this.full,
-        `headRepositoryOwner { ...${SimplifiedActorFragment.code} }`
-      )}
+      ${Fragment.include(this.full, `headRepositoryOwner { ...${SimplifiedActorFragment.code} }`)}
       ${Fragment.include(this.full, 'isDraft')}
       ${Fragment.include(this.full, 'maintainerCanModify')}
-      ${Fragment.include(
-        this.full,
-        `mergeCommit { ...${CommitFragment.code} }`
-      )}
+      ${Fragment.include(this.full, `mergeCommit { ...${CommitFragment.code} }`)}
       ${Fragment.include(this.full, 'mergeStateStatus')}
       ${Fragment.include(this.full, 'mergeable')}
-      ${Fragment.include(
-        this.full,
-        `mergedBy { ...${SimplifiedActorFragment.code} }`
-      )}
+      ${Fragment.include(this.full, `mergedBy { ...${SimplifiedActorFragment.code} }`)}
       ${Fragment.include(this.full, 'permalink')}
-      ${Fragment.include(
-        this.full,
-        `potentialMergeCommit { ...${CommitFragment.code} }`
-      )}
+      ${Fragment.include(this.full, `potentialMergeCommit { ...${CommitFragment.code} }`)}
 
     `;
   }

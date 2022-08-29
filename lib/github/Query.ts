@@ -27,22 +27,16 @@ export default class Query {
   compose(...components: Component[]): Query {
     this.components.push(...components);
 
-    let candidates = uniq(
-      components.reduce((memo: Fragment[], c) => memo.concat(c.fragments), [])
-    );
+    let candidates = uniq(components.reduce((memo: Fragment[], c) => memo.concat(c.fragments), []));
 
     do {
-      candidates = candidates.filter(
-        (fragment) => this.fragments.indexOf(fragment) < 0
-      );
+      candidates = candidates.filter((fragment) => this.fragments.indexOf(fragment) < 0);
       this.fragments.push(...candidates);
 
       candidates = uniq(
         candidates.reduce(
           (memo: Fragment[], c) =>
-            memo
-              .concat(c.dependencies)
-              .filter((fragment) => this.fragments.indexOf(fragment) < 0),
+            memo.concat(c.dependencies).filter((fragment) => this.fragments.indexOf(fragment) < 0),
           []
         )
       );
@@ -63,25 +57,17 @@ export default class Query {
   async run(interceptor?: (args: string) => string): Promise<any> {
     return this.client
       .request({
-        query: compress(
-          interceptor ? interceptor(this.toString()) : this.toString()
-        ),
+        query: compress(interceptor ? interceptor(this.toString()) : this.toString()),
       })
       .catch((err: Error & HttpClientResponse) =>
-        Promise.reject(
-          RequestError.create(err, { components: this.components })
-        )
+        Promise.reject(RequestError.create(err, { components: this.components }))
       )
       .then((response) => {
         const data = normalize(response.data, true);
 
         if (data?.errors?.length) {
           throw RequestError.create(
-            new Error(
-              `Response errors (${data.errors.length}): ${JSON.stringify(
-                data.errors
-              )}`
-            ),
+            new Error(`Response errors (${data.errors.length}): ${JSON.stringify(data.errors)}`),
             { components: this.components, status: response.status, data }
           );
         }

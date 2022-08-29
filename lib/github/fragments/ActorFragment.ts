@@ -40,10 +40,7 @@ export class Actor extends Fragment {
         ${Fragment.include(this.full, 'projects { totalCount }')}
         ${Fragment.include(this.full, 'projectsUrl')}
         ${Fragment.include(this.full, 'repositories { totalCount }')}
-        ${Fragment.include(
-          this.full,
-          'repositoriesContributedTo { totalCount }'
-        )}
+        ${Fragment.include(this.full, 'repositoriesContributedTo { totalCount }')}
         ${Fragment.include(this.full, 'starredRepositories { totalCount }')}
         ${Fragment.include(
           this.full,
@@ -63,10 +60,7 @@ export class Actor extends Fragment {
         location
         ${Fragment.include(this.full, 'membersWithRole { totalCount }')}
         name
-        ${Fragment.include(
-          this.full,
-          'repositories(privacy: PUBLIC) { totalCount }'
-        )}
+        ${Fragment.include(this.full, 'repositories(privacy: PUBLIC) { totalCount }')}
         ${Fragment.include(this.full, 'teams { totalCount }')}
         twitterUsername
         updatedAt
