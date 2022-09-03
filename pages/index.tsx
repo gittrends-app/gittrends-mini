@@ -1,11 +1,13 @@
+import { sortBy } from 'lodash';
 import type { NextPage } from 'next';
 import { useRef, useState } from 'react';
 import { Container } from 'react-bootstrap';
 
+import { ProxyService } from '../lib/services/ProxyService';
+import { Stargazer } from '../lib/types';
+
 import { Formulario } from '../components/Formulario';
 import { Tabela } from '../components/Tabela';
-
-import { Stargazer } from '../types';
 
 const Home: NextPage = () => {
   const [running, setRunning] = useState<boolean>(false);
@@ -14,20 +16,35 @@ const Home: NextPage = () => {
   const runningRef = useRef<boolean>(running);
 
   const onSubmit = async function (token: string, name: string) {
+    const { default: ActorsRepository } = await import('../lib/repos/actors/pouchActorsRepo');
+    const { default: MetadataRepository } = await import('../lib/repos/metadata/pouchMetadataRepo');
+    const { default: RepositoriesRepo } = await import('../lib/repos/repositories/pouchRepositoriesRepo');
+    const { default: StargazersRepository } = await import('../lib/repos/stargazers/pouchStargazersRepo');
+
     setRunning((runningRef.current = true));
+    setEstrelas([]);
 
-    const { ProxyService } = await import('../lib/services/ProxyService');
+    const service = new ProxyService(token, {
+      persistence: {
+        actors: new ActorsRepository(),
+        metadata: new MetadataRepository(),
+        repositories: new RepositoriesRepo(),
+        stargazers: new StargazersRepository(),
+      },
+    });
 
-    const service = new ProxyService(token);
     const repo = await service.find(name);
     if (!repo) return alert('Repositório não encontrado.');
 
-    let _estrelas: Stargazer[] = [];
+    const stargazers: Stargazer[] = [];
     const iterator = service.stargazers(repo.id);
 
-    while (iterator.hasNext()) {
+    while (true) {
       const { done, value } = await iterator.next();
-      if (value) setEstrelas((_estrelas = _estrelas.concat(value).reverse()));
+      if (value) {
+        stargazers.push(...value);
+        setEstrelas(stargazers);
+      }
       if (done || !runningRef.current) break;
     }
 

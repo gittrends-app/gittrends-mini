@@ -1,23 +1,25 @@
-import { Repository, Stargazer } from '../../types';
-import { CacheService } from './CacheService';
+import { Repository, Stargazer } from '../types';
 import { GitHubService } from './GithubService';
-import { Iterable, Service } from './Service';
+import { LocalService } from './LocalService';
+import { Iterable, Service, ServiceOpts } from './Service';
 
 export class ProxyService implements Service {
-  private cacheService: CacheService;
-  private githubService: GitHubService;
+  private readonly cacheService: LocalService;
+  private readonly githubService: GitHubService;
+  private readonly persistence;
 
-  constructor(token: string) {
-    this.cacheService = new CacheService();
+  constructor(token: string, opts: ServiceOpts) {
+    this.cacheService = new LocalService(opts);
     this.githubService = new GitHubService(token);
+    this.persistence = opts.persistence;
   }
 
   async find(name: string): Promise<Repository | null> {
     const cachedRepo = await this.cacheService.find(name);
-    if (cachedRepo) cachedRepo;
+    if (cachedRepo) return cachedRepo;
 
     const repo = await this.githubService.find(name);
-    if (repo) await this.cacheService.saveRepository([repo]);
+    if (repo) await this.persistence.repositories.save(repo);
 
     return repo;
   }
@@ -25,7 +27,7 @@ export class ProxyService implements Service {
   stargazers(id: string): Iterable<Stargazer[]> & { cacheHit?: boolean } {
     const self = this;
 
-    const iterator = this.githubService.stargazers(id);
+    let iterator = this.githubService.stargazers(id);
     const cachedIterator = this.cacheService.stargazers(id);
 
     let skipCache = false;
@@ -34,42 +36,26 @@ export class ProxyService implements Service {
       [Symbol.iterator]() {
         return this;
       },
-      hasNext: iterator.hasNext,
       async next() {
         if (!skipCache && (this.cacheHit === undefined || this.cacheHit === true)) {
           if (this.cacheHit === undefined) {
-            const meta = await self.cacheService.getMetadata(id, 'stargazers').catch(() => null);
+            const meta = (await self.persistence.metadata.findByRepository(id, 'stargazers')).at(0);
 
-            if (meta) {
-              this.cacheHit = true;
-              this.endCursor = iterator.endCursor = meta.end_cursor;
-            } else {
-              this.cacheHit = false;
-            }
+            this.cacheHit = meta ? true : false;
+            iterator = self.githubService.stargazers(id, meta?.end_cursor);
           }
 
           if (this.cacheHit === true) {
-            const { done, value } = await cachedIterator.next();
-            if (!done) return { done: false, value };
+            const { done, value, endCursor } = await cachedIterator.next();
+            if (!done) return { done: false, value, endCursor };
           }
 
           skipCache = true;
         }
 
-        const { done, value } = await iterator.next();
+        const { done, value, endCursor } = await iterator.next();
 
-        this.endCursor = iterator.endCursor;
-
-        if (value)
-          await Promise.all([
-            self.cacheService.saveStargazers(id, value),
-            self.cacheService.saveMetadata({
-              repository: id,
-              resource: 'stargazers',
-              end_cursor: iterator.endCursor,
-              has_next_page: iterator.hasNext(),
-            }),
-          ]);
+        if (value) await self.persistence.stargazers.save(value, { repository: id, endCursor: endCursor as string });
 
         return { done, value };
       },

@@ -1,9 +1,9 @@
 import { get } from 'lodash';
 
-import { Repository, Stargazer } from '../../types';
 import HttpClient from '../github/HttpClient';
 import Query from '../github/Query';
 import { RepositoryComponent, SearchComponent } from '../github/components';
+import { Repository, Stargazer } from '../types';
 import { Iterable, Service } from './Service';
 
 export class GitHubService implements Service {
@@ -20,7 +20,7 @@ export class GitHubService implements Service {
       .then((response) => get(response, ['search', 'nodes', 0]));
   }
 
-  stargazers(repositoryId: string): Iterable<Stargazer[]> {
+  stargazers(repositoryId: string, endCursor?: string): Iterable<Stargazer[]> {
     const createQuery = () => Query.create(this.httpClient);
     let hasNextPage: boolean = true;
 
@@ -28,7 +28,6 @@ export class GitHubService implements Service {
       [Symbol.iterator]() {
         return this;
       },
-      hasNext: () => hasNextPage,
       async next() {
         if (!hasNextPage) return { done: true };
 
@@ -41,7 +40,7 @@ export class GitHubService implements Service {
                 .includeDetails(true)
                 .includeStargazers(true, {
                   first: 100,
-                  after: this.endCursor || undefined,
+                  after: endCursor || undefined,
                   alias: '_stargazers',
                 })
             )
@@ -49,9 +48,10 @@ export class GitHubService implements Service {
             .then((response) => {
               const pageInfo = get(response, 'repository._stargazers.page_info');
               hasNextPage = pageInfo?.has_next_page || false;
-              this.endCursor = pageInfo?.end_cursor || this.endCursor;
+              endCursor = pageInfo?.end_cursor || endCursor;
               return get<Stargazer[]>(response, 'repository._stargazers.edges', []);
             }),
+          endCursor,
         };
       },
     };
