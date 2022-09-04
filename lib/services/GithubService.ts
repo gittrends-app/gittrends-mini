@@ -15,7 +15,7 @@ export class GitHubService implements Service {
 
   async find(name: string): Promise<Repository | null> {
     return Query.create(this.httpClient)
-      .compose(new SearchComponent({ repo: name }).setAlias('search'))
+      .compose(new SearchComponent({ repo: name }, { first: 1, full: true }).setAlias('search'))
       .run()
       .then((response) => get(response, ['search', 'nodes', 0]));
   }
@@ -37,7 +37,7 @@ export class GitHubService implements Service {
             .compose(
               new RepositoryComponent(repositoryId)
                 .setAlias('repository')
-                .includeDetails(true)
+                .includeDetails(false)
                 .includeStargazers(true, {
                   first: 100,
                   after: endCursor || undefined,

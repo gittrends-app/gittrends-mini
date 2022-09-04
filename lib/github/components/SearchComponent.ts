@@ -5,7 +5,7 @@ import { get } from 'lodash';
 
 import Component from '../Component';
 import Fragment from '../Fragment';
-import { SimplifiedRepositoryFragment } from '../fragments/RepositoryFragment';
+import RepositoryFragment, { Repository, SimplifiedRepositoryFragment } from '../fragments/RepositoryFragment';
 
 type Query = {
   minStargazers?: number;
@@ -18,18 +18,21 @@ type Query = {
 };
 
 export default class SearchComponent extends Component {
-  constructor(query?: Query, after?: string, first?: number) {
+  private readonly Fragment: Repository;
+
+  constructor(query?: Query, opts?: { after?: string; first?: number; full?: boolean }) {
     super(null, 'search');
+    this.Fragment = opts?.full ? RepositoryFragment : SimplifiedRepositoryFragment;
     this.includes.search = {
       textFragment: '',
-      first,
-      after,
+      first: opts?.first,
+      after: opts?.after,
       query: query ?? {},
     };
   }
 
   get fragments(): Fragment[] {
-    return [SimplifiedRepositoryFragment];
+    return [this.Fragment];
   }
 
   toString(): string {
@@ -55,7 +58,7 @@ export default class SearchComponent extends Component {
     return `
       ${this.alias}:search(${args}, type: REPOSITORY) {
         pageInfo { hasNextPage endCursor }
-        nodes { ...${SimplifiedRepositoryFragment.code} }
+        nodes { ...${this.Fragment.code} }
       }
     `;
   }
