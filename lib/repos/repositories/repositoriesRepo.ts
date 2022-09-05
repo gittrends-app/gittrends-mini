@@ -1,4 +1,4 @@
-import { Repository } from '../../types';
+import Repository from '../../entities/Repository';
 
 export default interface IRepositoriesRepo {
   findById(id: string): Promise<Repository | undefined>;

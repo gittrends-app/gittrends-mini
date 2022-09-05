@@ -1,9 +1,10 @@
 import { get } from 'lodash';
 
+import Repository from '../entities/Repository';
+import Stargazer from '../entities/Stargazer';
 import HttpClient from '../github/HttpClient';
 import Query from '../github/Query';
 import { RepositoryComponent, SearchComponent } from '../github/components';
-import { Repository, Stargazer } from '../types';
 import { Iterable, Service } from './Service';
 
 export class GitHubService implements Service {
@@ -13,15 +14,20 @@ export class GitHubService implements Service {
     this.httpClient = new HttpClient(token);
   }
 
-  async find(name: string): Promise<Repository | null> {
+  async find(name: string): Promise<Repository | undefined> {
     return Query.create(this.httpClient)
       .compose(new SearchComponent({ repo: name }, { first: 1, full: true }).setAlias('search'))
       .run()
-      .then((response) => get(response, ['search', 'nodes', 0]));
+      .then((response) => {
+        const repo = get(response, ['search', 'nodes', 0]);
+        if (repo) return new Repository(repo);
+      });
   }
 
-  stargazers(repositoryId: string, endCursor?: string): Iterable<Stargazer[]> {
+  stargazers(repositoryId: string, opts?: { endCursor?: string }): Iterable<Stargazer[] | undefined> {
     const createQuery = () => Query.create(this.httpClient);
+
+    let endCursor = opts?.endCursor;
     let hasNextPage: boolean = true;
 
     return {
@@ -40,7 +46,7 @@ export class GitHubService implements Service {
                 .includeDetails(false)
                 .includeStargazers(true, {
                   first: 100,
-                  after: endCursor || undefined,
+                  after: endCursor,
                   alias: '_stargazers',
                 })
             )
@@ -49,7 +55,9 @@ export class GitHubService implements Service {
               const pageInfo = get(response, 'repository._stargazers.page_info');
               hasNextPage = pageInfo?.has_next_page || false;
               endCursor = pageInfo?.end_cursor || endCursor;
-              return get<Stargazer[]>(response, 'repository._stargazers.edges', []);
+              const data = get<[] | undefined>(response, 'repository._stargazers.edges', []);
+              if (!data) return;
+              else return data.map((data) => new Stargazer(data));
             }),
           endCursor,
         };

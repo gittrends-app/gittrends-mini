@@ -1,4 +1,5 @@
-import { Repository, Stargazer } from '../types';
+import Repository from '../entities/Repository';
+import Stargazer from '../entities/Stargazer';
 import { GitHubService } from './GithubService';
 import { LocalService } from './LocalService';
 import { Iterable, Service, ServiceOpts } from './Service';
@@ -14,7 +15,7 @@ export class ProxyService implements Service {
     this.persistence = opts.persistence;
   }
 
-  async find(name: string): Promise<Repository | null> {
+  async find(name: string): Promise<Repository | undefined> {
     const cachedRepo = await this.cacheService.find(name);
     if (cachedRepo) return cachedRepo;
 
@@ -24,10 +25,10 @@ export class ProxyService implements Service {
     return repo;
   }
 
-  stargazers(id: string): Iterable<Stargazer[]> & { cacheHit?: boolean } {
+  stargazers(id: string, opts?: { endCursor?: string }): Iterable<Stargazer[] | undefined> & { cacheHit?: boolean } {
     const self = this;
 
-    let iterator = this.githubService.stargazers(id);
+    let iterator = this.githubService.stargazers(id, opts);
     const cachedIterator = this.cacheService.stargazers(id);
 
     let skipCache = false;
@@ -42,7 +43,7 @@ export class ProxyService implements Service {
             const meta = (await self.persistence.metadata.findByRepository(id, 'stargazers')).at(0);
 
             this.cacheHit = meta ? true : false;
-            iterator = self.githubService.stargazers(id, meta?.end_cursor);
+            iterator = self.githubService.stargazers(id, { endCursor: meta?.end_cursor });
           }
 
           if (this.cacheHit === true) {

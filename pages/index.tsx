@@ -1,10 +1,9 @@
-import { sortBy } from 'lodash';
 import type { NextPage } from 'next';
 import { useRef, useState } from 'react';
 import { Container } from 'react-bootstrap';
 
+import Stargazer from '../lib/entities/Stargazer';
 import { ProxyService } from '../lib/services/ProxyService';
-import { Stargazer } from '../lib/types';
 
 import { Formulario } from '../components/Formulario';
 import { Tabela } from '../components/Tabela';

@@ -1,7 +1,7 @@
-import { User } from '../../types';
+import Actor from '../../entities/Actor';
 
 export default interface IActorsRepo {
-  findById(id: string): Promise<User | undefined>;
-  findByLogin(login: string): Promise<User | undefined>;
-  save(user: User | User[]): Promise<void>;
+  findById(id: string): Promise<Actor | undefined>;
+  findByLogin(login: string): Promise<Actor | undefined>;
+  save(user: Actor | Actor[]): Promise<void>;
 }

@@ -1,7 +1,7 @@
 import React from 'react';
 import Table from 'react-bootstrap/Table';
 
-import { Stargazer } from '../lib/types';
+import Stargazer from '../lib/entities/Stargazer';
 
 export const Tabela: React.FC<{ estrelas: Stargazer[] }> = ({ estrelas }) => {
   return (
@@ -16,7 +16,11 @@ export const Tabela: React.FC<{ estrelas: Stargazer[] }> = ({ estrelas }) => {
       </thead>
       <tbody>
         {estrelas?.map((estrela) => {
-          return (
+          return typeof estrela.user === 'string' ? (
+            <tr key={estrela.user}>
+              <td colSpan={4}>{estrela.user}</td>
+            </tr>
+          ) : (
             <tr key={estrela.user.id}>
               <td>{estrela.user.login}</td>
               <td>{estrela.user.name}</td>

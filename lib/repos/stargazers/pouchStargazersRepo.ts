@@ -1,13 +1,16 @@
 import { map } from 'bluebird';
 import { omit } from 'lodash';
 
-import { Repository, Stargazer, User } from '../../types';
+import Actor from '../../entities/Actor';
+import Metadata from '../../entities/Metadata';
+import Repository from '../../entities/Repository';
+import Stargazer from '../../entities/Stargazer';
 import ActorsRepository from '../actors/pouchActorsRepo';
 import MetadataRepository from '../metadata/pouchMetadataRepo';
 import PouchDB from '../pouch.config';
 import IStargazersRepository from './stargazersRepo';
 
-type StargazerCollection = Omit<Stargazer, 'user'> & {
+type StargazerCollection = Omit<Stargazer, 'user' | 'toJSON'> & {
   _id: string;
   repository: string;
   user: string;
@@ -31,35 +34,40 @@ export default class StargazersRepository implements IStargazersRepository {
       skip: opts?.skip || 0,
     });
 
-    return map(docs, async (doc) => {
-      const user = await this.actorsRepo.findById(doc.user);
-      return omit({ ...doc, starred_at: new Date(doc.starred_at), user: user as User }, ['_id', '_rev', 'repository']);
-    });
+    return map(docs, async (doc) => new Stargazer({ ...doc, user: await this.actorsRepo.findById(doc.user) }));
   }
   async save(
     stargazer: Stargazer | Stargazer[],
     opts: { repository: Repository | string; endCursor: string }
   ): Promise<void> {
-    const repoId = typeof opts.repository === 'string' ? opts.repository : opts.repository.id;
+    const repoId = opts.repository instanceof Repository ? opts.repository.id : opts.repository;
     const stargazers = Array.isArray(stargazer) ? stargazer : [stargazer];
 
     await Promise.all([
-      this.actorsRepo.save(stargazers.map((star) => star.user)),
+      this.actorsRepo.save(
+        stargazers.reduce<Actor[]>((memo, star) => (star.user instanceof Actor ? memo.concat([star.user]) : memo), [])
+      ),
       StargazersRepository.collection.bulkDocs(
-        stargazers.map((star) => ({
-          ...star,
-          _id: `${repoId}.${star.user?.id}`,
-          repository: repoId,
-          user: star.user?.id,
-        }))
+        stargazers.map((star) => {
+          const userId = star.user instanceof Actor ? star.user.id : star.user;
+
+          return {
+            ...(star.toJSON() as any),
+            _id: `${repoId}.${userId}`,
+            repository: repoId,
+            user: userId,
+          };
+        })
       ),
     ]);
 
-    await this.metadataRepository.save({
-      repository: repoId,
-      resource: 'stargazers',
-      end_cursor: opts.endCursor,
-      updated_at: new Date(),
-    });
+    await this.metadataRepository.save(
+      new Metadata({
+        repository: repoId,
+        resource: 'stargazers',
+        end_cursor: opts.endCursor,
+        updated_at: new Date(),
+      })
+    );
   }
 }

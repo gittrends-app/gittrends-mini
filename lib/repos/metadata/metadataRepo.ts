@@ -1,6 +1,6 @@
-import { RepositoryMetadata, RepositoryResources } from '../../types';
+import Metadata from '../../entities/Metadata';
 
 export default interface IMetadataRepo {
-  findByRepository(repository: string, resource?: RepositoryResources): Promise<RepositoryMetadata[]>;
-  save(metadata: RepositoryMetadata | RepositoryMetadata[]): Promise<void>;
+  findByRepository(repository: string, resource?: Metadata['resource']): Promise<Metadata[]>;
+  save(metadata: Metadata | Metadata[]): Promise<void>;
 }

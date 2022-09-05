@@ -1,13 +1,14 @@
 import { each } from 'bluebird';
 import { omit } from 'lodash';
 
-import { Repository } from '../../types';
+import Metadata from '../../entities/Metadata';
+import Repository from '../../entities/Repository';
 import ActorsRepository from '../actors/pouchActorsRepo';
 import MetadataRepository from '../metadata/pouchMetadataRepo';
 import PouchDB from '../pouch.config';
 import IRepositoriesRepo from './repositoriesRepo';
 
-type RepoCollection = Omit<Repository, 'id' | 'owner'> & {
+type RepoCollection = Omit<Repository, 'id' | 'owner' | 'toJSON'> & {
   _id: string;
   owner: string;
 };
@@ -31,17 +32,7 @@ export default class RepositoriesRepo implements IRepositoriesRepo {
     const repo = docs.at(0);
     if (!repo) return undefined;
 
-    return omit(
-      {
-        id: repo._id,
-        ...repo,
-        created_at: new Date(repo.created_at),
-        pushed_at: new Date(repo.pushed_at),
-        updated_at: new Date(repo.updated_at),
-        owner: await this.actorsRepository.findById(repo.owner),
-      },
-      ['_id', '_rev']
-    ) as Repository;
+    return new Repository({ id: repo._id, ...repo, owner: await this.actorsRepository.findById(repo.owner) });
   }
 
   async findById(id: string): Promise<Repository | undefined> {
@@ -56,15 +47,18 @@ export default class RepositoriesRepo implements IRepositoriesRepo {
     const repos = Array.isArray(repo) ? repo : [repo];
 
     await each(repos, async (repo) => {
+      const ownerId = typeof repo.owner === 'string' ? repo.owner : repo.owner.id;
       await Promise.all([
-        this.actorsRepository.save(repos.map((repo) => repo.owner)),
+        typeof repo.owner === 'string' ? null : this.actorsRepository.save(repo.owner),
         RepositoriesRepo.collection.upsert(repo.id, (doc): any => ({
           ...doc,
-          ...omit({ ...repo, owner: repo.owner?.id }, ['id']),
+          ...omit({ ...repo.toJSON(), owner: ownerId }, ['id']),
         })),
       ]);
 
-      await this.metadataRepository.save({ repository: repo.id, resource: 'repository', updated_at: new Date() });
+      await this.metadataRepository.save(
+        new Metadata({ repository: repo.id, resource: 'repository', updated_at: new Date() })
+      );
     });
   }
 }

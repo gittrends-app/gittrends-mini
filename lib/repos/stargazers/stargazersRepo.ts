@@ -1,4 +1,5 @@
-import { Repository, Stargazer } from '../../types';
+import Repository from '../../entities/Repository';
+import Stargazer from '../../entities/Stargazer';
 
 export default interface IStargazersRepo {
   findByRepository(repository: string, opts?: { limit: number; skip: number }): Promise<Stargazer[]>;

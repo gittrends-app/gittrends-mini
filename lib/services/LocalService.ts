@@ -1,4 +1,5 @@
-import { Repository, Stargazer, User } from '../types';
+import Repository from '../entities/Repository';
+import Stargazer from '../entities/Stargazer';
 import { Iterable, Service, ServiceOpts } from './Service';
 
 export class LocalService implements Service {
@@ -8,16 +9,16 @@ export class LocalService implements Service {
     this.persistence = opts.persistence;
   }
 
-  async find(name: string): Promise<Repository | null> {
-    return (await this.persistence.repositories.findByName(name)) || null;
+  async find(name: string): Promise<Repository | undefined> {
+    return this.persistence.repositories.findByName(name);
   }
 
-  stargazers(repositoryId: string): Iterable<Stargazer[]> {
+  stargazers(repositoryId: string, opts?: { endCursor?: string }): Iterable<Stargazer[]> {
     const self = this;
     let hasNext: boolean = true;
 
     const limit = 1000;
-    let skip: number = 0;
+    let skip: number = parseInt(opts?.endCursor || '0');
 
     return {
       [Symbol.iterator]() {
@@ -33,11 +34,7 @@ export class LocalService implements Service {
 
         if (stargazers.length === 0) return { done: true };
 
-        return {
-          done: false,
-          value: stargazers,
-          endCursor: skip,
-        };
+        return { done: false, value: stargazers, endCursor: skip };
       },
     };
   }
