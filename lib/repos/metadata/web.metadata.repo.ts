@@ -3,7 +3,7 @@ import { omit } from 'lodash';
 
 import Metadata from '../../entities/Metadata';
 import PouchDB from '../pouch.config';
-import IMetadataRepo from './metadataRepo';
+import IMetadataRepo from './metadata.repo';
 
 type MetadataCollection = Omit<Metadata, 'toJSON'> & { _id: string };
 

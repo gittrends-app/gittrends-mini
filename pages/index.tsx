@@ -15,10 +15,10 @@ const Home: NextPage = () => {
   const runningRef = useRef<boolean>(running);
 
   const onSubmit = async function (token: string, name: string) {
-    const { default: ActorsRepository } = await import('../lib/repos/actors/pouchActorsRepo');
-    const { default: MetadataRepository } = await import('../lib/repos/metadata/pouchMetadataRepo');
-    const { default: RepositoriesRepo } = await import('../lib/repos/repositories/pouchRepositoriesRepo');
-    const { default: StargazersRepository } = await import('../lib/repos/stargazers/pouchStargazersRepo');
+    const { default: ActorsRepository } = await import('../lib/repos/actors/web.actors.repo');
+    const { default: MetadataRepository } = await import('../lib/repos/metadata/web.metadata.repo');
+    const { default: RepositoriesRepo } = await import('../lib/repos/repositories/web.repositories.repo');
+    const { default: StargazersRepository } = await import('../lib/repos/stargazers/web.stargazers.repo');
 
     setRunning((runningRef.current = true));
     setEstrelas([]);

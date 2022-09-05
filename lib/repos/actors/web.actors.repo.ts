@@ -3,7 +3,7 @@ import { omit } from 'lodash';
 
 import Actor from '../../entities/Actor';
 import PouchDB from '../pouch.config';
-import IActorsRepo from './actorsRepo';
+import IActorsRepo from './actors.repo';
 
 type ActorCollection = Omit<Actor, 'id' | 'toJSON'> & { _id: string };
 

@@ -1,9 +1,9 @@
 import Repository from '../entities/Repository';
 import Stargazer from '../entities/Stargazer';
-import IActorsRepo from '../repos/actors/actorsRepo';
-import IMetadataRepo from '../repos/metadata/metadataRepo';
-import IRepositoriesRepo from '../repos/repositories/repositoriesRepo';
-import IStargazersRepo from '../repos/stargazers/stargazersRepo';
+import IActorsRepo from '../repos/actors/actors.repo';
+import IMetadataRepo from '../repos/metadata/metadata.repo';
+import IRepositoriesRepo from '../repos/repositories/repositories.repo';
+import IStargazersRepo from '../repos/stargazers/stargazers.repo';
 
 export interface Iterable<T> {
   [Symbol.iterator](): Iterable<T>;

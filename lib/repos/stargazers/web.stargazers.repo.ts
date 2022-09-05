@@ -5,10 +5,10 @@ import Actor from '../../entities/Actor';
 import Metadata from '../../entities/Metadata';
 import Repository from '../../entities/Repository';
 import Stargazer from '../../entities/Stargazer';
-import ActorsRepository from '../actors/pouchActorsRepo';
-import MetadataRepository from '../metadata/pouchMetadataRepo';
+import ActorsRepository from '../actors/web.actors.repo';
+import MetadataRepository from '../metadata/web.metadata.repo';
 import PouchDB from '../pouch.config';
-import IStargazersRepository from './stargazersRepo';
+import IStargazersRepository from './stargazers.repo';
 
 type StargazerCollection = Omit<Stargazer, 'user' | 'toJSON'> & {
   _id: string;

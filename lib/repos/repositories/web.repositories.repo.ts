@@ -3,10 +3,10 @@ import { omit } from 'lodash';
 
 import Metadata from '../../entities/Metadata';
 import Repository from '../../entities/Repository';
-import ActorsRepository from '../actors/pouchActorsRepo';
-import MetadataRepository from '../metadata/pouchMetadataRepo';
+import ActorsRepository from '../actors/web.actors.repo';
+import MetadataRepository from '../metadata/web.metadata.repo';
 import PouchDB from '../pouch.config';
-import IRepositoriesRepo from './repositoriesRepo';
+import IRepositoriesRepo from './repositories.repo';
 
 type RepoCollection = Omit<Repository, 'id' | 'owner' | 'toJSON'> & {
   _id: string;
