@@ -1,0 +1,13 @@
+{
+  "name": "@gittrends/cli",
+  "version": "0.1.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "better-sqlite3": "^7.6.2",
+    "knex": "^2.3.0"
+  }
+}
