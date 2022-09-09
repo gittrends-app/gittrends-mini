@@ -5,9 +5,9 @@ import { Metadata } from '@gittrends/lib';
 import { IRepositoriesRepository } from '@gittrends/lib';
 import { Repository } from '@gittrends/lib/dist/entities';
 
+import PouchDB from '../pouch.config';
 import ActorsRepository from './ActorsRepository';
 import MetadataRepository from './MetadataRepository';
-import PouchDB from './pouch.config';
 
 type RepoCollection = Omit<Repository, 'id' | 'owner' | 'toJSON'> & {
   _id: string;
@@ -24,7 +24,7 @@ export default class RepositoriesRepo implements IRepositoriesRepository {
     this.collection.createIndex({ index: { fields: ['name_with_owner'] } });
   }
 
-  private async find(condition: Record<string, unknown>): Promise<Repository | undefined> {
+  private async find(condition: Record<string, unknown>, resolve: boolean = false): Promise<Repository | undefined> {
     const { docs } = await RepositoriesRepo.collection.find({
       selector: condition,
       limit: 1,
@@ -33,15 +33,18 @@ export default class RepositoriesRepo implements IRepositoriesRepository {
     const repo = docs.at(0);
     if (!repo) return undefined;
 
-    return new Repository({ id: repo._id, ...repo, owner: await this.actorsRepository.findById(repo.owner) });
+    const parsedRepo = new Repository({ id: repo._id, ...repo });
+    if (resolve) parsedRepo.owner = (await this.actorsRepository.findById(repo.owner)) || parsedRepo.owner;
+
+    return parsedRepo;
   }
 
-  async findById(id: string): Promise<Repository | undefined> {
-    return this.find({ _id: id });
+  async findById(id: string, opts?: { resolve?: ['owner'] }): Promise<Repository | undefined> {
+    return this.find({ _id: id }, !!opts?.resolve);
   }
 
-  findByName(name: string): Promise<Repository | undefined> {
-    return this.find({ name_with_owner: { $regex: new RegExp(name, 'i') } });
+  findByName(name: string, opts?: { resolve?: ['owner'] }): Promise<Repository | undefined> {
+    return this.find({ name_with_owner: { $regex: new RegExp(name, 'i') } }, !!opts?.resolve);
   }
 
   async save(repo: Repository | Repository[]): Promise<void> {

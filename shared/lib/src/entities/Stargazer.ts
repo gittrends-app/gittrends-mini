@@ -7,7 +7,13 @@ import { User } from './Actor';
 import { Entity } from './Entity';
 import { Repository } from './Repository';
 
-export class Stargazer extends Entity {
+type TStargazer = {
+  repository: string | Repository;
+  user: string | User;
+  starred_at: Date;
+};
+
+export class Stargazer extends Entity<TStargazer> {
   repository!: string | Repository;
   user!: string | User;
   starred_at!: Date;
@@ -18,7 +24,7 @@ export class Stargazer extends Entity {
         .custom((value) => (typeof value === 'string' ? value : new Repository(value)))
         .required(),
       user: Joi.alternatives(Joi.string(), User.__schema)
-        .custom((value) => new User(value))
+        .custom((value) => (typeof value === 'string' ? value : new User(value)))
         .required(),
       starred_at: Joi.date().required(),
     });

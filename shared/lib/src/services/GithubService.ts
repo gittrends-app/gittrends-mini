@@ -9,8 +9,9 @@ import { Iterable, Service } from './Service';
 export class GitHubService implements Service {
   private httpClient: HttpClient;
 
-  constructor(token: string) {
-    this.httpClient = new HttpClient(token);
+  constructor(tokenOrClient: string | HttpClient) {
+    if (tokenOrClient instanceof HttpClient) this.httpClient = tokenOrClient;
+    else this.httpClient = new HttpClient(tokenOrClient);
   }
 
   async find(name: string): Promise<Repository | undefined> {
@@ -54,9 +55,9 @@ export class GitHubService implements Service {
               const pageInfo = get(response, 'repository._stargazers.page_info');
               hasNextPage = pageInfo?.has_next_page || false;
               endCursor = pageInfo?.end_cursor || endCursor;
-              const data = get<[] | undefined>(response, 'repository._stargazers.edges', []);
+              const data = get<{ user: any; starred_at: Date }[]>(response, 'repository._stargazers.edges', []);
               if (!data) return;
-              else return data.map((data) => new Stargazer(data));
+              else return data.map((data) => new Stargazer({ ...data, repository: repositoryId }));
             }),
           endCursor,
         };

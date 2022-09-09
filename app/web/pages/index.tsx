@@ -24,12 +24,10 @@ const Home: NextPage = () => {
     setEstrelas([]);
 
     const service = new ProxyService(token, {
-      persistence: {
-        actors: new ActorsRepository(),
-        metadata: new MetadataRepository(),
-        repositories: new RepositoriesRepo(),
-        stargazers: new StargazersRepository(),
-      },
+      actors: new ActorsRepository(),
+      metadata: new MetadataRepository(),
+      repositories: new RepositoriesRepo(),
+      stargazers: new StargazersRepository(),
     });
 
     const repo = await service.find(name);

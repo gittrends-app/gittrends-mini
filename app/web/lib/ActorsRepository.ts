@@ -4,7 +4,7 @@ import { omit } from 'lodash';
 import { Actor } from '@gittrends/lib';
 import { IActorsRepository } from '@gittrends/lib';
 
-import PouchDB from './pouch.config';
+import PouchDB from '../pouch.config';
 
 type ActorCollection = Omit<Actor, 'id' | 'toJSON'> & { _id: string };
 

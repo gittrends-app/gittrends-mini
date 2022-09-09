@@ -3,9 +3,9 @@ import { map } from 'bluebird';
 import { Actor, Metadata, Repository, Stargazer } from '@gittrends/lib';
 import { IStargazersRepository } from '@gittrends/lib';
 
+import PouchDB from '../pouch.config';
 import ActorsRepository from './ActorsRepository';
 import MetadataRepository from './MetadataRepository';
-import PouchDB from './pouch.config';
 
 type StargazerCollection = Omit<Stargazer, 'user' | 'toJSON'> & {
   _id: string;
@@ -31,13 +31,9 @@ export default class StargazersRepository implements IStargazersRepository {
       skip: opts?.skip || 0,
     });
 
-    return map(docs, async (doc) => new Stargazer({ ...doc, user: await this.actorsRepo.findById(doc.user) }));
+    return map(docs, async (doc) => new Stargazer({ ...doc }));
   }
-  async save(
-    stargazer: Stargazer | Stargazer[],
-    opts: { repository: Repository | string; endCursor: string },
-  ): Promise<void> {
-    const repoId = opts.repository instanceof Repository ? opts.repository.id : opts.repository;
+  async save(stargazer: Stargazer | Stargazer[]): Promise<void> {
     const stargazers = Array.isArray(stargazer) ? stargazer : [stargazer];
 
     await Promise.all([
@@ -46,25 +42,11 @@ export default class StargazersRepository implements IStargazersRepository {
       ),
       StargazersRepository.collection.bulkDocs(
         stargazers.map((star) => {
+          const repoId = star.repository instanceof Repository ? star.repository.id : star.repository;
           const userId = star.user instanceof Actor ? star.user.id : star.user;
-
-          return {
-            ...(star.toJSON() as any),
-            _id: `${repoId}.${userId}`,
-            repository: repoId,
-            user: userId,
-          };
+          return { ...(star.toJSON() as any), _id: `${repoId}.${userId}`, repository: repoId, user: userId };
         }),
       ),
     ]);
-
-    await this.metadataRepository.save(
-      new Metadata({
-        repository: repoId,
-        resource: 'stargazers',
-        end_cursor: opts.endCursor,
-        updated_at: new Date(),
-      }),
-    );
   }
 }

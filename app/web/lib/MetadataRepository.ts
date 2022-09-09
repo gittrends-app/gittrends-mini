@@ -4,7 +4,7 @@ import { omit } from 'lodash';
 import { Metadata } from '@gittrends/lib';
 import { IMetadataRepository } from '@gittrends/lib';
 
-import PouchDB from './pouch.config';
+import PouchDB from '../pouch.config';
 
 type MetadataCollection = Omit<Metadata, 'toJSON'> & { _id: string };
 
@@ -21,7 +21,7 @@ export default class MetadataRepository implements IMetadataRepository {
       limit: 1,
     });
 
-    return docs.map((meta) => new Metadata(omit({ ...meta }, ['_id', '_rev'])));
+    return docs.map((meta) => new Metadata(omit({ ...meta }, ['_id', '_rev']) as any));
   }
 
   async save(metadata: Metadata | Metadata[]): Promise<void> {

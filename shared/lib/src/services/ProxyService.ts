@@ -1,6 +1,7 @@
-import { Repository, Stargazer } from '../entities';
+import { Metadata, Repository, Stargazer } from '../entities';
+import HttpClient from '../github/HttpClient';
 import { GitHubService } from './GithubService';
-import { LocalService } from './LocalService';
+import { LocalService, ServiceOpts } from './LocalService';
 import { Iterable, Service } from './Service';
 
 export class ProxyService implements Service {
@@ -8,10 +9,9 @@ export class ProxyService implements Service {
   private readonly githubService: GitHubService;
   private readonly persistence;
 
-  constructor(token: string, opts: { persistence: LocalService['persistence'] }) {
-    this.cacheService = new LocalService(opts);
-    this.githubService = new GitHubService(token);
-    this.persistence = opts.persistence;
+  constructor(tokenOrClient: string | HttpClient, opts: ServiceOpts) {
+    this.cacheService = new LocalService((this.persistence = opts));
+    this.githubService = new GitHubService(tokenOrClient);
   }
 
   async find(name: string): Promise<Repository | undefined> {
@@ -30,7 +30,7 @@ export class ProxyService implements Service {
     let iterator = this.githubService.stargazers(id, opts);
     const cachedIterator = this.cacheService.stargazers(id);
 
-    let skipCache = false;
+    let skipCache = opts?.endCursor !== undefined;
 
     return {
       [Symbol.iterator]() {
@@ -55,7 +55,17 @@ export class ProxyService implements Service {
 
         const { done, value, endCursor } = await iterator.next();
 
-        if (value) await self.persistence.stargazers.save(value, { repository: id, endCursor: endCursor as string });
+        if (value) {
+          await self.persistence.stargazers.save(value);
+          await self.persistence.metadata.save(
+            new Metadata({
+              repository: id,
+              end_cursor: endCursor as string,
+              resource: 'stargazers',
+              updated_at: new Date(),
+            }),
+          );
+        }
 
         return { done, value };
       },

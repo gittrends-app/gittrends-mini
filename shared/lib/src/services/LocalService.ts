@@ -2,24 +2,22 @@ import { Repository, Stargazer } from '../entities';
 import { IActorsRepository, IMetadataRepository, IRepositoriesRepository, IStargazersRepository } from '../repos';
 import { Iterable, Service } from './Service';
 
-type ServiceOpts = {
-  persistence: {
-    actors: IActorsRepository;
-    repositories: IRepositoriesRepository;
-    stargazers: IStargazersRepository;
-    metadata: IMetadataRepository;
-  };
-};
+export type ServiceOpts = Required<{
+  actors: IActorsRepository;
+  repositories: IRepositoriesRepository;
+  stargazers: IStargazersRepository;
+  metadata: IMetadataRepository;
+}>;
 
 export class LocalService implements Service {
-  private readonly persistence;
+  private readonly persistence: ServiceOpts;
 
   constructor(opts: ServiceOpts) {
-    this.persistence = opts.persistence;
+    this.persistence = opts;
   }
 
   async find(name: string): Promise<Repository | undefined> {
-    return this.persistence.repositories.findByName(name);
+    return this.persistence.repositories.findByName(name, { resolve: ['owner'] });
   }
 
   stargazers(repositoryId: string, opts?: { endCursor?: string }): Iterable<Stargazer[]> {

@@ -4,10 +4,20 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "updater": "node dist/updater.js",
+    "dev:updater": "ts-node -T src/updater.ts"
   },
   "dependencies": {
+    "@gittrends/lib": "link:../../shared/lib",
     "better-sqlite3": "^7.6.2",
-    "knex": "^2.3.0"
+    "cli-progress": "^3.11.2",
+    "commander": "^9.4.0",
+    "consola": "^2.15.3",
+    "knex": "^2.3.0",
+    "lodash": "^4.17.21"
+  },
+  "devDependencies": {
+    "@types/cli-progress": "^3.11.0"
   }
 }

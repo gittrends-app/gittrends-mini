@@ -13,11 +13,11 @@ export class EntityValidationError extends Error {
   }
 }
 
-export abstract class Entity {
+export abstract class Entity<T = any> {
   static readonly __strip_unknown: boolean = true;
   static readonly __convert: boolean = true;
 
-  constructor(object?: Record<any, unknown>) {
+  constructor(object?: T & Record<string, unknown>) {
     if (object) Object.assign(this, (this.constructor as unknown as typeof Entity).transform(object));
   }
 
