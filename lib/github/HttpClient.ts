@@ -3,6 +3,7 @@
  */
 import axios, { AxiosError, AxiosInstance } from 'axios';
 import retry from 'axios-retry';
+import * as AxiosLogger from 'axios-logger';
 
 export type HttpClientOpts = {
   protocol: string;
@@ -48,6 +49,13 @@ export default class HttpClient {
       timeout: this.timeout,
       validateStatus: (status) => Math.floor(status / 100) === 2,
     });
+    this.client.interceptors.request.use(AxiosLogger.requestLogger);
+    this.client.interceptors.response.use((response) => {
+      // write down your request intercept.
+      return AxiosLogger.responseLogger(response, {
+        data: false
+      });
+  });
 
     retry(this.client, {
       retries: this.retries,
