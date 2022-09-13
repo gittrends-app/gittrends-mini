@@ -12,6 +12,10 @@
     "axios-retry": "^3.3.1",
     "joi": "^17.6.0",
     "lodash": "^4.17.21",
-    "nock": "^13.2.9"
+    "nock": "^13.2.9",
+    "pluralize": "^8.0.0"
+  },
+  "devDependencies": {
+    "@types/pluralize": "^0.0.29"
   }
 }

@@ -2,7 +2,8 @@
  *  Author: Hudson S. Borges
  */
 import Joi from 'joi';
-import { cloneDeep, omit } from 'lodash';
+import { cloneDeep, omit, snakeCase } from 'lodash';
+import { plural } from 'pluralize';
 
 export class EntityValidationError extends Error {
   public readonly errors!: string[];
@@ -16,6 +17,10 @@ export class EntityValidationError extends Error {
 export abstract class Entity<T = any> {
   static readonly __strip_unknown: boolean = true;
   static readonly __convert: boolean = true;
+
+  static get __collection_name() {
+    return plural(snakeCase(this.name).toLowerCase());
+  }
 
   constructor(object?: T & Record<string, unknown>) {
     if (object) Object.assign(this, (this.constructor as unknown as typeof Entity).transform(object));
