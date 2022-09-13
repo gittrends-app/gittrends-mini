@@ -1,4 +1,3 @@
-import { Repository } from '../entities/Repository';
 import { Stargazer } from '../entities/Stargazer';
 
 export interface IStargazersRepository {

@@ -2,7 +2,7 @@ import { MultiBar, Presets } from 'cli-progress';
 import { Argument, Option, program } from 'commander';
 import consola from 'consola';
 
-import { Actor, ProxyService } from '@gittrends/lib';
+import { Actor, ProxyService, Stargazer } from '@gittrends/lib';
 
 import { version } from './package.json';
 import { ActorsRepository } from './repos/ActorRepository';
@@ -63,23 +63,31 @@ async function exec(args: string[] = process.argv, from: 'user' | 'node' = 'node
 
         consola.info('Opening repository local database ...');
         return withDatabase(repo.name_with_owner, async (localRepos) => {
-          await Promise.all([localRepos.repositories.save(repo), owner && localRepos.actors.save(owner)]);
-
-          const localService = new ProxyService(opts.token, localRepos);
-
-          const cachedCount = await localRepos.stargazers.countByRepository(repo.id);
-          const [meta] = await localRepos.metadata.findByRepository(repo.id, 'stargazers');
-
-          const iterator = localService.stargazers(repo.id, { endCursor: meta?.end_cursor });
-
-          consola.info('Iterating over repository resources ...');
           await withMultibar(async (multibar) => {
-            const stargazersBar = multibar.create(repo.stargazers || 0, cachedCount, { resource: 'stargazers' });
+            await Promise.all([localRepos.repositories.save(repo), owner && localRepos.actors.save(owner)]);
+
+            const localService = new ProxyService(opts.token, localRepos);
+
+            const resourcesInfo = await Promise.all(
+              [{ resource: Stargazer, repository: localRepos.stargazers, metadata: 'stargazers' }].map(async (info) => {
+                const [meta] = await localRepos.metadata.findByRepository(repo.id, info.metadata as any);
+                const cachedCount = await info.repository.countByRepository(repo.id);
+                const progressBar = multibar.create(repo.stargazers || 0, cachedCount, { resource: info.metadata });
+                return { resource: info.resource, endCursor: meta?.end_cursor, progressBar };
+              }),
+            );
+
+            const iterator = localService.resources(repo.id, resourcesInfo);
+
+            consola.info('Iterating over repository resources ...');
 
             while (true) {
               const { done, value } = await iterator.next();
               if (done) break;
-              stargazersBar.increment(value?.length);
+
+              resourcesInfo.forEach((info, index) => {
+                info.progressBar.increment(value[index].items.length);
+              });
             }
           });
         });

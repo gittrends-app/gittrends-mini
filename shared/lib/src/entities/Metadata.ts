@@ -8,7 +8,7 @@ import { Repository } from './Repository';
 
 type TMetadata = {
   repository: string | Repository;
-  resource: 'repository' | 'stargazers';
+  resource: 'repository' | 'stargazers' | 'tags' | 'releases';
   end_cursor?: string;
   updated_at: Date;
 } & Record<string, unknown>;

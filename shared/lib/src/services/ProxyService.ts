@@ -1,8 +1,9 @@
-import { Metadata, Repository, Stargazer } from '../entities';
+import { Metadata, Release, Repository, Stargazer, Tag } from '../entities';
 import HttpClient from '../github/HttpClient';
+import { IMetadataRepository, IReleasesRepository, IStargazersRepository, ITagsRepository } from '../repos';
 import { GitHubService } from './GithubService';
 import { LocalService, ServiceOpts } from './LocalService';
-import { Iterable, Service } from './Service';
+import { EntityConstructor, Iterable, Service, TIterableResourceResult } from './Service';
 
 export class ProxyService implements Service {
   private readonly cacheService: LocalService;
@@ -14,6 +15,20 @@ export class ProxyService implements Service {
     this.githubService = new GitHubService(tokenOrClient);
   }
 
+  resources(
+    repositoryId: string,
+    resources: { resource: EntityConstructor; endCursor?: string | undefined }[],
+  ): Iterable {
+    return new ProxiedIterator(repositoryId, resources, {
+      github: this.githubService,
+      local: this.cacheService,
+      metadataRepo: this.persistence.metadata,
+      stargazersRepo: this.persistence.stargazers,
+      tagsRepo: this.persistence.tags,
+      releasesRepo: this.persistence.releases,
+    });
+  }
+
   async find(name: string): Promise<Repository | undefined> {
     const cachedRepo = await this.cacheService.find(name);
     if (cachedRepo) return cachedRepo;
@@ -23,52 +38,99 @@ export class ProxyService implements Service {
 
     return repo;
   }
+}
 
-  stargazers(id: string, opts?: { endCursor?: string }): Iterable<Stargazer[] | undefined> & { cacheHit?: boolean } {
-    const self = this;
+class ProxiedIterator implements Iterable {
+  private localIterables?: Iterable;
+  private githubIterables?: Iterable;
+  private done: boolean = false;
 
-    let iterator = this.githubService.stargazers(id, opts);
-    const cachedIterator = this.cacheService.stargazers(id);
+  constructor(
+    private repositoryId: string,
+    private resources: { resource: EntityConstructor; endCursor?: string | undefined }[],
+    private opts: {
+      local: LocalService;
+      github: GitHubService;
+      metadataRepo: IMetadataRepository;
+      stargazersRepo: IStargazersRepository;
+      tagsRepo: ITagsRepository;
+      releasesRepo: IReleasesRepository;
+    },
+  ) {}
 
-    let skipCache = opts?.endCursor !== undefined;
+  [Symbol.asyncIterator](): AsyncIterableIterator<TIterableResourceResult> {
+    return this;
+  }
 
-    return {
-      [Symbol.iterator]() {
-        return this;
-      },
-      async next() {
-        if (!skipCache && (this.cacheHit === undefined || this.cacheHit === true)) {
-          if (this.cacheHit === undefined) {
-            const meta = (await self.persistence.metadata.findByRepository(id, 'stargazers')).at(0);
+  async next(): Promise<IteratorResult<TIterableResourceResult>> {
+    if (this.done) return Promise.resolve({ done: true, value: undefined });
 
-            this.cacheHit = meta ? true : false;
-            iterator = self.githubService.stargazers(id, { endCursor: meta?.end_cursor });
+    const cachedResources = this.resources.filter((res) => !res.endCursor);
+
+    if (!this.localIterables && !this.githubIterables) {
+      this.localIterables = this.opts.local.resources(this.repositoryId, cachedResources);
+
+      const metas = await this.opts.metadataRepo.findByRepository(this.repositoryId);
+
+      this.githubIterables = this.opts.github.resources(
+        this.repositoryId,
+        this.resources.map((res) => {
+          let resource: string;
+          if (res.resource === Stargazer) resource = 'stargazers';
+          else if (res.resource === Tag) resource = 'tags';
+          else if (res.resource === Release) resource = 'releases';
+          return { ...res, endCursor: metas.find((m) => m.resource === resource)?.end_cursor };
+        }),
+      );
+    }
+
+    if (!this.localIterables || !this.githubIterables) throw new Error('Unknown error on ProxyServer class');
+
+    const [cachedResults, githubResults] = await Promise.all([this.localIterables.next(), this.githubIterables.next()]);
+
+    if (githubResults.value) {
+      for (let index = 0; index < githubResults.value.length; index++) {
+        const result = (githubResults.value as TIterableResourceResult)[index];
+        let resource: 'stargazers' | 'tags' | 'releases';
+
+        switch (this.resources[index].resource) {
+          case Stargazer: {
+            await this.opts.stargazersRepo.save(result.items as Stargazer[]);
+            resource = 'stargazers';
+            break;
           }
-
-          if (this.cacheHit === true) {
-            const { done, value, endCursor } = await cachedIterator.next();
-            if (!done) return { done: false, value, endCursor };
+          case Tag: {
+            await this.opts.tagsRepo.save(result.items as Tag[]);
+            resource = 'tags';
+            break;
           }
-
-          skipCache = true;
+          case Release: {
+            await this.opts.releasesRepo.save(result.items as Release[]);
+            resource = 'tags';
+            break;
+          }
+          default:
+            throw new Error('TODO');
         }
 
-        const { done, value, endCursor } = await iterator.next();
+        await this.opts.metadataRepo.save(
+          new Metadata({
+            repository: this.repositoryId,
+            end_cursor: result.endCursor ? `${result.endCursor}` : undefined,
+            resource: resource,
+            updated_at: new Date(),
+          }),
+        );
+      }
+    }
 
-        if (value) {
-          await self.persistence.stargazers.save(value);
-          await self.persistence.metadata.save(
-            new Metadata({
-              repository: id,
-              end_cursor: endCursor as string,
-              resource: 'stargazers',
-              updated_at: new Date(),
-            }),
-          );
-        }
+    if (cachedResults.done && githubResults.done) this.done = true;
 
-        return { done, value };
-      },
-    };
+    cachedResources.forEach((cr) => {
+      const index = this.resources.findIndex((r) => r.resource === cr.resource);
+      githubResults.value[index].items = [...githubResults.value[index].items, ...cachedResults.value[index].items];
+    });
+
+    return githubResults;
   }
 }
