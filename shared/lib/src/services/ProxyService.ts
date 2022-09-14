@@ -1,9 +1,10 @@
-import { Metadata, Release, Repository, Stargazer, Tag } from '../entities';
+import { Metadata, Release, Repository, RepositoryResource, Stargazer, Tag } from '../entities';
 import HttpClient from '../github/HttpClient';
-import { IMetadataRepository, IReleasesRepository, IStargazersRepository, ITagsRepository } from '../repos';
+import { IResourceRepository } from '../repos';
+import { Constructor } from '../types';
 import { GitHubService } from './GithubService';
 import { LocalService, ServiceOpts } from './LocalService';
-import { EntityConstructor, Iterable, Service, TIterableResourceResult } from './Service';
+import { Iterable, Service } from './Service';
 
 export class ProxyService implements Service {
   private readonly cacheService: LocalService;
@@ -17,15 +18,12 @@ export class ProxyService implements Service {
 
   resources(
     repositoryId: string,
-    resources: { resource: EntityConstructor; endCursor?: string | undefined }[],
+    resources: { resource: Constructor<RepositoryResource>; endCursor?: string | undefined }[],
   ): Iterable {
     return new ProxiedIterator(repositoryId, resources, {
       github: this.githubService,
       local: this.cacheService,
-      metadataRepo: this.persistence.metadata,
-      stargazersRepo: this.persistence.stargazers,
-      tagsRepo: this.persistence.tags,
-      releasesRepo: this.persistence.releases,
+      repos: this.persistence,
     });
   }
 
@@ -47,40 +45,35 @@ class ProxiedIterator implements Iterable {
 
   constructor(
     private repositoryId: string,
-    private resources: { resource: EntityConstructor; endCursor?: string | undefined }[],
-    private opts: {
-      local: LocalService;
-      github: GitHubService;
-      metadataRepo: IMetadataRepository;
-      stargazersRepo: IStargazersRepository;
-      tagsRepo: ITagsRepository;
-      releasesRepo: IReleasesRepository;
-    },
+    private resources: { resource: Constructor<RepositoryResource>; endCursor?: string | undefined }[],
+    private opts: { local: LocalService; github: GitHubService; repos: ServiceOpts },
   ) {}
 
-  [Symbol.asyncIterator](): AsyncIterableIterator<TIterableResourceResult> {
+  [Symbol.asyncIterator](): AsyncIterableIterator<{ items: RepositoryResource[]; endCursor?: string }[]> {
     return this;
   }
 
-  async next(): Promise<IteratorResult<TIterableResourceResult>> {
+  async next(): Promise<IteratorResult<{ items: RepositoryResource[]; endCursor?: string }[]>> {
     if (this.done) return Promise.resolve({ done: true, value: undefined });
 
-    const cachedResources = this.resources.filter((res) => !res.endCursor);
+    const cachedResourcesIndexes = this.resources
+      .reduce((memo: (number | null)[], res, index) => memo.concat([!res.endCursor ? index : null]), [])
+      .filter((v) => v !== null) as number[];
 
     if (!this.localIterables && !this.githubIterables) {
-      this.localIterables = this.opts.local.resources(this.repositoryId, cachedResources);
+      this.localIterables = this.opts.local.resources(
+        this.repositoryId,
+        this.resources.filter((_, index) => cachedResourcesIndexes.find((v) => v === index)),
+      );
 
-      const metas = await this.opts.metadataRepo.findByRepository(this.repositoryId);
+      const metas = await this.opts.repos.metadata.findByRepository(this.repositoryId);
 
       this.githubIterables = this.opts.github.resources(
         this.repositoryId,
-        this.resources.map((res) => {
-          let resource: string;
-          if (res.resource === Stargazer) resource = 'stargazers';
-          else if (res.resource === Tag) resource = 'tags';
-          else if (res.resource === Release) resource = 'releases';
-          return { ...res, endCursor: metas.find((m) => m.resource === resource)?.end_cursor };
-        }),
+        this.resources.map((res) => ({
+          ...res,
+          endCursor: metas.find((m) => m.resource === (res.resource as any).__collection_name)?.end_cursor,
+        })),
       );
     }
 
@@ -90,45 +83,33 @@ class ProxiedIterator implements Iterable {
 
     if (githubResults.value) {
       for (let index = 0; index < githubResults.value.length; index++) {
-        const result = (githubResults.value as TIterableResourceResult)[index];
-        let resource: 'stargazers' | 'tags' | 'releases';
+        const result = (githubResults.value as { items: RepositoryResource[]; endCursor?: string }[])[index];
 
-        switch (this.resources[index].resource) {
-          case Stargazer: {
-            await this.opts.stargazersRepo.save(result.items as Stargazer[]);
-            resource = 'stargazers';
-            break;
-          }
-          case Tag: {
-            await this.opts.tagsRepo.save(result.items as Tag[]);
-            resource = 'tags';
-            break;
-          }
-          case Release: {
-            await this.opts.releasesRepo.save(result.items as Release[]);
-            resource = 'tags';
-            break;
-          }
-          default:
-            throw new Error('TODO');
-        }
+        const repository: IResourceRepository<RepositoryResource> = (this.opts.repos as any)[
+          (this.resources[index].resource as any).__collection_name
+        ];
 
-        await this.opts.metadataRepo.save(
-          new Metadata({
-            repository: this.repositoryId,
-            end_cursor: result.endCursor ? `${result.endCursor}` : undefined,
-            resource: resource,
-            updated_at: new Date(),
-          }),
+        await repository.save(result.items).then(() =>
+          this.opts.repos.metadata.save(
+            new Metadata({
+              repository: this.repositoryId,
+              end_cursor: result.endCursor ? `${result.endCursor}` : undefined,
+              resource: (this.resources[index].resource as any).__collection_name,
+              updated_at: new Date(),
+            }),
+          ),
         );
       }
     }
 
-    if (cachedResults.done && githubResults.done) this.done = true;
+    if (cachedResults.done && githubResults.done) return { done: (this.done = true), value: undefined };
+    else if (cachedResults.done) return githubResults;
 
-    cachedResources.forEach((cr) => {
-      const index = this.resources.findIndex((r) => r.resource === cr.resource);
-      githubResults.value[index].items = [...githubResults.value[index].items, ...cachedResults.value[index].items];
+    cachedResourcesIndexes.forEach((ghrIndex, crIndex) => {
+      githubResults.value[ghrIndex].items = [
+        ...(githubResults.value?.[ghrIndex]?.items || []),
+        ...(cachedResults.value?.[crIndex]?.items || []),
+      ] as any;
     });
 
     return githubResults;

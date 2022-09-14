@@ -20,7 +20,7 @@ export abstract class Actor extends Entity {
     });
   }
 
-  public static from(object: Record<string, unknown>) {
+  public static from(object: Record<string, unknown>): Actor {
     switch (object.type) {
       case 'User':
         return new User(object);
@@ -33,7 +33,7 @@ export abstract class Actor extends Entity {
       case 'EnterpriseUserAccount':
         return new EnterpriseUserAccount(object);
       default:
-        super.transform(object);
+        throw new Error('Unknown actor type: ' + object.type);
     }
   }
 }

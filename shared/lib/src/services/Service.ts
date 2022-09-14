@@ -1,11 +1,12 @@
-import { Release, Repository, Stargazer, Tag } from '../entities';
+import { Repository, RepositoryResource } from '../entities';
+import { Constructor } from '../types';
 
-export type TIterableResourceResult = { items: Stargazer[] | Release[] | Tag[]; endCursor?: string }[];
-
-export type EntityConstructor = new (...args: any) => Stargazer | Release | Tag;
-export type Iterable = AsyncIterableIterator<TIterableResourceResult>;
+export type Iterable = AsyncIterableIterator<{ items: RepositoryResource[]; endCursor?: string }[]>;
 
 export interface Service {
   find(name: string): Promise<Repository | undefined>;
-  resources(repositoryId: string, resources: { resource: EntityConstructor; endCursor?: string }[]): Iterable;
+  resources(
+    repositoryId: string,
+    resources: { resource: Constructor<RepositoryResource>; endCursor?: string }[],
+  ): Iterable;
 }

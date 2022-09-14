@@ -1,25 +1,25 @@
-import { Tag } from '../../entities';
-import { ITagsRepository } from '../../repos';
+import { RepositoryResource } from '../../entities';
+import { IResourceRepository } from '../../repos';
 import { Iterable } from '../Service';
 
-export class TagsIterator implements Iterable {
-  private repository: ITagsRepository;
+export class ResourceIterator<T extends RepositoryResource> implements Iterable {
+  private repository: IResourceRepository<T>;
 
   private hasNext: boolean = true;
   private limit: number = 1000;
   private skip: number = 0;
 
-  constructor(private repositoryId: string, opts: { repository: ITagsRepository; limit: number; skip: number }) {
+  constructor(private repositoryId: string, opts: { repository: IResourceRepository<T>; limit: number; skip: number }) {
     this.repository = opts.repository;
     this.limit = opts.limit || 500;
     this.skip = opts.skip || 0;
   }
 
-  [Symbol.asyncIterator](): AsyncIterableIterator<[{ items: Tag[]; endCursor?: string | undefined }]> {
+  [Symbol.asyncIterator](): AsyncIterableIterator<[{ items: T[]; endCursor?: string | undefined }]> {
     return this;
   }
 
-  async next(): Promise<IteratorResult<[{ items: Tag[]; endCursor?: string | undefined }], any>> {
+  async next(): Promise<IteratorResult<[{ items: T[]; endCursor?: string | undefined }], any>> {
     if (!this.hasNext) return Promise.resolve({ done: true, value: undefined });
 
     const releases = await this.repository.findByRepository(this.repositoryId, {

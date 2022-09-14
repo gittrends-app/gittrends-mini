@@ -54,6 +54,7 @@ export class Repository extends Entity {
   repository_topics?: Array<string>;
   squash_merge_allowed?: boolean;
   stargazers?: number;
+  tags?: number;
   template_repository?: string;
   updated_at?: Date;
   url?: string;
@@ -128,12 +129,25 @@ export class Repository extends Entity {
       repository_topics: Joi.array().items(Joi.string()),
       squash_merge_allowed: Joi.boolean(),
       stargazers: Joi.number(),
+      tags: Joi.number(),
       template_repository: Joi.string(),
       updated_at: Joi.date(),
       url: Joi.string(),
       uses_custom_open_graph_image: Joi.boolean(),
       vulnerability_alerts: Joi.number(),
       watchers: Joi.number(),
+    });
+  }
+}
+
+export class RepositoryResource<T = any> extends Entity<{ repository: string | Repository } & T> {
+  repository!: string | Repository;
+
+  public static get __schema(): Joi.ObjectSchema<RepositoryResource> {
+    return Joi.object<RepositoryResource>({
+      repository: Joi.alternatives(Joi.string(), Repository.__schema)
+        .custom((value) => (typeof value === 'string' ? value : new Repository(value)))
+        .required(),
     });
   }
 }

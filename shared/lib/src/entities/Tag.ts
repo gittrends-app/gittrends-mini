@@ -4,33 +4,27 @@
 import Joi from 'joi';
 
 import { Actor, User } from './Actor';
-import { Entity } from './Entity';
-import { Repository } from './Repository';
+import { RepositoryResource } from './Repository';
 
 type TTag = {
-  repository: string | Repository;
   id: string;
   message: string;
   name: string;
   oid: string;
   tagger: { date: Date; email: string; name: string; user?: string | Actor };
-  target: string;
+  target?: string;
 };
 
-export class Tag extends Entity<TTag> {
-  repository!: string | Repository;
+export class Tag extends RepositoryResource<TTag> {
   id!: string;
   message!: string;
   name!: string;
   oid!: string;
-  tagger!: { date: Date; email: string; user?: string | Actor };
-  target!: string;
+  tagger!: { date: Date; email: string; name: string; user?: string | Actor };
+  target?: string;
 
   public static get __schema(): Joi.ObjectSchema<Tag> {
-    return Joi.object<Tag>({
-      repository: Joi.alternatives(Joi.string(), Repository.__schema)
-        .custom((value) => (typeof value === 'string' ? value : new Repository(value)))
-        .required(),
+    return super.__schema.append<Tag>({
       id: Joi.string().required(),
       message: Joi.string().required(),
       name: Joi.string().required(),
@@ -43,7 +37,7 @@ export class Tag extends Entity<TTag> {
           typeof value === 'string' ? value : new User(value),
         ),
       }),
-      target: Joi.string().required(),
+      target: Joi.string(),
     });
   }
 }

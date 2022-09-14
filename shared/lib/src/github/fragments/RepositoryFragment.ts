@@ -67,6 +67,7 @@ export class Repository extends Fragment {
       ${Fragment.include(this.full, 'releases { totalCount }')}
       ${Fragment.include(this.full, 'squashMergeAllowed')}
       stargazers:stargazerCount
+      ${Fragment.include(this.full, 'tags:refs(refPrefix: "refs/tags/") { totalCount }')}
       ${Fragment.include(this.full, 'templateRepository { id }')}
       updatedAt
       ${Fragment.include(this.full, 'url')}

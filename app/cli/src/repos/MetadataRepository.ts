@@ -11,7 +11,7 @@ export class MetadataRepository implements IMetadataRepository {
 
   async findByRepository(repository: string, resource?: 'stargazers' | 'repository' | undefined): Promise<Metadata[]> {
     const metas = await this.db
-      .table('metadata')
+      .table(Metadata.__collection_name)
       .select('*')
       .where({ repository, ...(resource ? { resource } : {}) });
 
@@ -22,7 +22,7 @@ export class MetadataRepository implements IMetadataRepository {
     await map(Array.isArray(metadata) ? metadata : [metadata], (meta) => {
       const fields = ['repository', 'resource', 'end_cursor', 'updated_at'];
       const command = this.db
-        .table('metadata')
+        .table(Metadata.__collection_name)
         .insert({ ...pick(meta.toJSON(), fields), payload: JSON.stringify(omit(meta.toJSON(), fields)) })
         .onConflict(['repository', 'resource'])
         .merge();

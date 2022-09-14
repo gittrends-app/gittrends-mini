@@ -1,12 +1,12 @@
 import { map } from 'bluebird';
 import { Knex } from 'knex';
 
-import { IStargazersRepository, Repository, Stargazer, User } from '@gittrends/lib';
+import { IResourceRepository, Repository, Stargazer, User } from '@gittrends/lib';
 
 import { parse } from '../helpers/sqlite';
 import { ActorsRepository } from './ActorRepository';
 
-export class StargazersRepository implements IStargazersRepository {
+export class StargazersRepository implements IResourceRepository<Stargazer> {
   private actorsRepo: ActorsRepository;
 
   constructor(private db: Knex) {
@@ -15,7 +15,7 @@ export class StargazersRepository implements IStargazersRepository {
 
   async countByRepository(repository: string): Promise<number> {
     const [{ count }] = await this.db
-      .table('stargazers')
+      .table(Stargazer.__collection_name)
       .where('repository', repository)
       .count('user', { as: 'count' });
     return count;
@@ -23,7 +23,7 @@ export class StargazersRepository implements IStargazersRepository {
 
   async findByRepository(repository: string, opts?: { limit: number; skip: number } | undefined): Promise<Stargazer[]> {
     const stars = await this.db
-      .table('stargazers')
+      .table(Stargazer.__collection_name)
       .select('*')
       .where('repository', repository)
       .orderBy('starred_at', 'asc')
@@ -45,7 +45,7 @@ export class StargazersRepository implements IStargazersRepository {
       ),
       map(stars, (star) =>
         this.db
-          .table('stargazers')
+          .table(Stargazer.__collection_name)
           .insert({
             repository: star.repository instanceof Repository ? star.repository.id : star.repository,
             user: star.user instanceof User ? star.user.id : star.user,

@@ -1,23 +1,15 @@
-import { Release, Repository, Stargazer, Tag } from '../../entities';
-import {
-  IActorsRepository,
-  IMetadataRepository,
-  IReleasesRepository,
-  IRepositoriesRepository,
-  IStargazersRepository,
-  ITagsRepository,
-} from '../../repos';
-import { EntityConstructor, Iterable, Service, TIterableResourceResult } from '../Service';
-import { ReleasesIterator } from './ReleasesIterator';
-import { StargazersIterator } from './StargazersIterator';
-import { TagsIterator } from './TagsIterator';
+import { Release, Repository, RepositoryResource, Stargazer, Tag } from '../../entities';
+import { IActorsRepository, IMetadataRepository, IRepositoriesRepository, IResourceRepository } from '../../repos';
+import { Constructor } from '../../types';
+import { Iterable, Service } from '../Service';
+import { ResourceIterator } from './ResourcesIterator';
 
 export type ServiceOpts = Required<{
   actors: IActorsRepository;
   repositories: IRepositoriesRepository;
-  stargazers: IStargazersRepository;
-  tags: ITagsRepository;
-  releases: IReleasesRepository;
+  stargazers: IResourceRepository<Stargazer>;
+  tags: IResourceRepository<Tag>;
+  releases: IResourceRepository<Release>;
   metadata: IMetadataRepository;
 }>;
 
@@ -32,30 +24,16 @@ export class LocalService implements Service {
     return this.persistence.repositories.findByName(name, { resolve: ['owner'] });
   }
 
-  resources(repositoryId: string, resources: { resource: EntityConstructor }[]): Iterable {
+  resources(repositoryId: string, resources: { resource: Constructor<RepositoryResource> }[]): Iterable {
     const iterators: Iterable[] = resources.map((it) => {
-      switch (it.resource) {
-        case Stargazer:
-          return new StargazersIterator(repositoryId, {
-            repository: this.persistence.stargazers,
-            limit: 1000,
-            skip: 0,
-          });
-        case Tag:
-          return new TagsIterator(repositoryId, {
-            repository: this.persistence.tags,
-            limit: 1000,
-            skip: 0,
-          });
-        case Release:
-          return new ReleasesIterator(repositoryId, {
-            repository: this.persistence.releases,
-            limit: 1000,
-            skip: 0,
-          });
-        default:
-          throw new Error('Unknown iterator');
-      }
+      let repository: IResourceRepository<RepositoryResource> | undefined = undefined;
+      if (it.resource === Stargazer) repository = this.persistence.stargazers;
+      else if (it.resource === Tag) repository = this.persistence.tags;
+      else if (it.resource === Release) repository = this.persistence.releases;
+
+      if (!repository) throw new Error('Repository not found for ' + it.resource.name);
+
+      return new ResourceIterator(repositoryId, { repository, limit: 1000, skip: 0 });
     });
 
     return new ResourcesIterator(iterators);
@@ -69,15 +47,15 @@ class ResourcesIterator implements Iterable {
     return this;
   }
 
-  async next(): Promise<IteratorResult<TIterableResourceResult, any>> {
+  async next(): Promise<IteratorResult<{ items: RepositoryResource[]; endCursor?: string }[]>> {
     if (this.iterables.length === 0) return Promise.resolve({ done: true, value: undefined });
 
     const results = await Promise.all(this.iterables.map((pi) => pi.next()));
 
     const finalResult = results.reduce(
-      (memo, result) =>
+      (memo: { items: RepositoryResource[]; endCursor?: string }[], result) =>
         result.done ? memo : memo.concat([{ items: result.value[0]?.items, endCursor: result.value[0]?.endCursor }]),
-      [] as TIterableResourceResult,
+      [],
     );
 
     this.iterables = this.iterables.filter((_, index) => !results[index].done);

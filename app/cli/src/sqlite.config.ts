@@ -3,6 +3,8 @@ import { knex } from 'knex';
 import { homedir } from 'os';
 import path from 'path';
 
+import { Actor, Metadata, Release, Repository, Stargazer, Tag } from '@gittrends/lib/dist';
+
 export async function createOrConnectDatabase(name: string | 'repositories') {
   const databaseFile = path.resolve(homedir(), '.gittrends', ...name.split('/')) + '.sqlite';
 
@@ -16,9 +18,9 @@ export async function createOrConnectDatabase(name: string | 'repositories') {
 
   await knexInstance.transaction((trx) =>
     Promise.all([
-      trx.schema.hasTable('actors').then((hasTable) => {
+      trx.schema.hasTable(Actor.__collection_name).then((hasTable) => {
         if (!hasTable)
-          return trx.schema.createTable('actors', (table) => {
+          return trx.schema.createTable(Actor.__collection_name, (table) => {
             table.string('id').primary();
             table.enum('type', ['User', 'Organization', 'Mannequin', 'Bot', 'EnterpriseUserAccount']).notNullable();
             table.string('login').notNullable();
@@ -68,9 +70,9 @@ export async function createOrConnectDatabase(name: string | 'repositories') {
           });
       }),
 
-      trx.schema.hasTable('repositories').then((hasTable) => {
+      trx.schema.hasTable(Repository.__collection_name).then((hasTable) => {
         if (!hasTable)
-          return trx.schema.createTable('repositories', (table) => {
+          return trx.schema.createTable(Repository.__collection_name, (table) => {
             table.string('id').primary();
             table.integer('assignable_users').nullable();
             table.string('code_of_conduct').nullable();
@@ -120,6 +122,7 @@ export async function createOrConnectDatabase(name: string | 'repositories') {
             table.json('repository_topics').nullable();
             table.boolean('squash_merge_allowed').nullable();
             table.integer('stargazers').nullable();
+            table.integer('tags').nullable();
             table.string('template_repository').nullable();
             table.timestamp('updated_at').nullable();
             table.string('url').nullable();
@@ -128,11 +131,11 @@ export async function createOrConnectDatabase(name: string | 'repositories') {
             table.integer('watchers').nullable();
           });
       }),
-      trx.schema.hasTable('metadata').then((hasTable) => {
+      trx.schema.hasTable(Metadata.__collection_name).then((hasTable) => {
         if (!hasTable)
-          return trx.schema.createTable('metadata', (table) => {
+          return trx.schema.createTable(Metadata.__collection_name, (table) => {
             table.string('repository').notNullable();
-            table.string('resource').notNullable();
+            table.string('resource').nullable();
             table.string('end_cursor').nullable();
             table.datetime('updated_at').nullable();
             table.json('payload').nullable();
@@ -140,13 +143,45 @@ export async function createOrConnectDatabase(name: string | 'repositories') {
           });
       }),
       name !== 'repositories' &&
-        trx.schema.hasTable('stargazers').then((hasTable) => {
+        trx.schema.hasTable(Stargazer.__collection_name).then((hasTable) => {
           if (!hasTable)
-            return trx.schema.createTable('stargazers', (table) => {
+            return trx.schema.createTable(Stargazer.__collection_name, (table) => {
               table.string('repository').notNullable();
               table.string('user').notNullable();
               table.timestamp('starred_at').notNullable();
               table.primary(['repository', 'user', 'starred_at']);
+            });
+        }),
+      name !== 'repositories' &&
+        trx.schema.hasTable(Tag.__collection_name).then((hasTable) => {
+          if (!hasTable)
+            return trx.schema.createTable(Tag.__collection_name, (table) => {
+              table.string('id').primary();
+              table.string('repository').notNullable();
+              table.string('message').notNullable();
+              table.string('name').notNullable();
+              table.string('oid').notNullable();
+              table.json('tagger').notNullable();
+              table.string('target').nullable();
+            });
+        }),
+      name !== 'repositories' &&
+        trx.schema.hasTable(Release.__collection_name).then((hasTable) => {
+          if (!hasTable)
+            return trx.schema.createTable(Release.__collection_name, (table) => {
+              table.string('id').primary();
+              table.string('repository').notNullable();
+              table.string('author').notNullable();
+              table.timestamp('created_at').notNullable();
+              table.string('description').nullable();
+              table.boolean('is_draft').nullable();
+              table.boolean('is_prerelease').nullable();
+              table.string('name').nullable();
+              table.timestamp('published_at').nullable();
+              table.integer('release_assets').nullable();
+              table.string('tag').notNullable();
+              table.string('tag_name').notNullable();
+              table.timestamp('updated_at').notNullable();
             });
         }),
     ]),

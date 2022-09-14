@@ -4,11 +4,9 @@
 import Joi from 'joi';
 
 import { Actor, User } from './Actor';
-import { Entity } from './Entity';
-import { Repository } from './Repository';
+import { RepositoryResource } from './Repository';
 
 type TRelease = {
-  repository: string | Repository;
   author: string | Actor;
   created_at: Date;
   description?: string;
@@ -23,8 +21,7 @@ type TRelease = {
   updated_at: Date;
 };
 
-export class Release extends Entity<TRelease> {
-  repository!: string | Repository;
+export class Release extends RepositoryResource<TRelease> {
   author!: string | Actor;
   created_at!: Date;
   description?: string;
@@ -39,10 +36,7 @@ export class Release extends Entity<TRelease> {
   updated_at!: Date;
 
   public static get __schema(): Joi.ObjectSchema<Release> {
-    return Joi.object<Release>({
-      repository: Joi.alternatives(Joi.string(), Repository.__schema)
-        .custom((value) => (typeof value === 'string' ? value : new Repository(value)))
-        .required(),
+    return super.__schema.append<Release>({
       author: Joi.alternatives(Joi.string(), User.__schema)
         .custom((value) => (typeof value === 'string' ? value : new User(value)))
         .required(),

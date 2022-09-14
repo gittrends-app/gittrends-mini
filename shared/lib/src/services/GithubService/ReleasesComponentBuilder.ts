@@ -1,6 +1,6 @@
 import { get } from 'lodash';
 
-import { Release, User } from '../../entities';
+import { Actor, Release } from '../../entities';
 import { RepositoryComponent } from '../../github/components';
 import { ComponentBuilder } from './ComponentBuilder';
 
@@ -22,12 +22,7 @@ export class ReleasesComponentBuilder implements ComponentBuilder<RepositoryComp
       hasNextPage: get(data, '_releases.page_info.has_next_page', false),
       endCursor: (this.endCursor = get(data, '_releases.page_info.end_cursor', this.endCursor)),
       data: get<any[]>(data, '_releases.nodes', []).map(
-        (target) =>
-          new Release({
-            repository: this.repositoryId,
-            ...target,
-            author: target.author && User.from(target.author),
-          }),
+        (node) => new Release({ ...node, repository: this.repositoryId, author: Actor.from(node.author) }),
       ),
     };
   }

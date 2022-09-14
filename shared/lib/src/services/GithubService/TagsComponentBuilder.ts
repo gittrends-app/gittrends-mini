@@ -18,23 +18,38 @@ export class TagsComponentBuilder implements ComponentBuilder<RepositoryComponen
   }
 
   parse(data: any): { hasNextPage: boolean; endCursor?: string; data: Tag[] } {
+    const parsedData = get<any[]>(data, '_tags.nodes', []).map((node) => {
+      if (node.target.type === 'Tag') {
+        const target = node.target;
+        return new Tag({
+          id: target.id,
+          message: target.message,
+          name: target.name,
+          oid: target.oid,
+          repository: this.repositoryId,
+          tagger: { ...target.tagger, ...(target.tagger.user ? { user: new User(target.tagger.user) } : {}) },
+          target: target.target?.oid,
+        });
+      } else {
+        return new Tag({
+          id: `commit_${node.target.id}`,
+          message: node.target.message,
+          name: node.name,
+          oid: node.target.oid,
+          repository: this.repositoryId,
+          tagger: {
+            ...node.target.author,
+            ...(node.target.author ? { user: new User(node.target.author.user) } : {}),
+          },
+          target: node.target.oid,
+        });
+      }
+    });
+
     return {
       hasNextPage: get(data, '_tags.page_info.has_next_page', false),
       endCursor: (this.endCursor = get(data, '_tags.page_info.end_cursor', this.endCursor)),
-      data: get<any[]>(data, '_tags.nodes', [])
-        .map((node) => node.target)
-        .map(
-          (target) =>
-            new Tag({
-              id: target.id,
-              message: target.message,
-              name: target.name,
-              oid: target.oid,
-              repository: this.repositoryId,
-              tagger: { ...target.tagger, ...(target.tagger.user ? { user: new User(target.tagger.user) } : {}) },
-              target: target.target?.oid,
-            }),
-        ),
+      data: parsedData,
     };
   }
 }

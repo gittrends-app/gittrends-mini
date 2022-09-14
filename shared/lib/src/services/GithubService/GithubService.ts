@@ -1,10 +1,12 @@
 import { get } from 'lodash';
 
-import { Release, Repository, Stargazer, Tag } from '../../entities';
+import { Release, Repository, RepositoryResource, Stargazer, Tag } from '../../entities';
 import HttpClient from '../../github/HttpClient';
 import Query from '../../github/Query';
 import { SearchComponent } from '../../github/components';
-import { EntityConstructor, Iterable, Service } from '../Service';
+import { RequestError } from '../../helpers/errors';
+import { Constructor } from '../../types';
+import { Iterable, Service } from '../Service';
 import { ComponentBuilder } from './ComponentBuilder';
 import { ReleasesComponentBuilder } from './ReleasesComponentBuilder';
 import { StargazersComponentBuilder } from './StargazersComponentBuilder';
@@ -31,19 +33,13 @@ async function request(
 
     return builders.map((builder, i) => builder.parse(results.at(i)));
   } catch (error) {
+    if (!(error instanceof RequestError)) throw error;
     if (builders.length === 1) return request(httpClient, builders, error as Error);
-
-    return Promise.all(
-      builders.map((builer) =>
-        request(httpClient, [builer])
-          .then((res) => res.at(0))
-          .catch((error) => error),
-      ),
-    );
+    return Promise.all(builders.map((builer) => request(httpClient, [builer]).then((res) => res[0])));
   }
 }
 
-function getComponentBuilder(Target: EntityConstructor) {
+function getComponentBuilder(Target: Constructor<RepositoryResource>) {
   if (Target === Stargazer) return StargazersComponentBuilder;
   else if (Target === Tag) return TagsComponentBuilder;
   else if (Target === Release) return ReleasesComponentBuilder;
@@ -61,7 +57,7 @@ class ResourceIterator implements Iterable {
     return this;
   }
 
-  async next(): Promise<IteratorResult<{ items: Stargazer[] | Tag[] | Release[]; endCursor?: string | undefined }[]>> {
+  async next(): Promise<IteratorResult<{ items: RepositoryResource[]; endCursor?: string | undefined }[]>> {
     const done = this.resourcesStatus.reduce((done, rs) => done && !rs.hasMore, true);
 
     if (done) return Promise.resolve({ done: true, value: undefined });
@@ -98,14 +94,13 @@ export class GitHubService implements Service {
       });
   }
 
-  resources(repositoryId: string, resources: { resource: EntityConstructor; endCursor?: string }[]): Iterable {
+  resources(
+    repositoryId: string,
+    resources: { resource: Constructor<RepositoryResource>; endCursor?: string }[],
+  ): Iterable {
     return new ResourceIterator(
       resources.map((res) => new (getComponentBuilder(res.resource))(repositoryId, res.endCursor)),
       this.httpClient,
     );
-  }
-
-  stargazers(repositoryId: string, opts?: { endCursor?: string }): Iterable {
-    return this.resources(repositoryId, [{ resource: Stargazer, endCursor: opts?.endCursor }]);
   }
 }

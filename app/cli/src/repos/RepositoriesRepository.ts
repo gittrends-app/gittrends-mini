@@ -17,7 +17,7 @@ export class RepositoriesRepository implements IRepositoriesRepository {
   }
 
   private async find(query: Knex.QueryBuilder, resolve: boolean = false): Promise<Repository | undefined> {
-    const repo = await query.table('repositories').select('*');
+    const repo = await query.table(Repository.__collection_name).select('*');
 
     if (repo) {
       const parsedRepo = new Repository(
@@ -56,7 +56,7 @@ export class RepositoriesRepository implements IRepositoriesRepository {
       if (repo.owner instanceof Actor) await this.actorRepo.save(repo.owner, transaction);
 
       await this.db
-        .table('repositories')
+        .table(Repository.__collection_name)
         .insert({
           ...transform(repo),
           funding_links: repo.funding_links && JSON.stringify(repo.funding_links),
@@ -68,10 +68,7 @@ export class RepositoriesRepository implements IRepositoriesRepository {
         .merge()
         .transacting(transaction);
 
-      await this.metaRepo.save(
-        new Metadata({ repository: repo.id, resource: 'repository', updated_at: new Date() }),
-        transaction,
-      );
+      await this.metaRepo.save(new Metadata({ repository: repo.id, updated_at: new Date() }), transaction);
 
       if (!trx) await transaction.commit();
     });

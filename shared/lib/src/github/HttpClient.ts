@@ -4,6 +4,8 @@
 import axios, { AxiosError, AxiosInstance } from 'axios';
 import retry from 'axios-retry';
 
+import { RequestError } from '../helpers/errors';
+
 export type HttpClientOpts = {
   protocol: string;
   host: string;
@@ -68,7 +70,7 @@ export default class HttpClient {
       }))
       .catch((error: AxiosError) => {
         const { status, statusText, data, headers } = error.response || {};
-        return Promise.reject(Object.assign(new Error(), { status, statusText, data, headers }));
+        return Promise.reject(RequestError.create(Object.assign(new Error(), { status, statusText, data, headers })));
       });
   }
 }

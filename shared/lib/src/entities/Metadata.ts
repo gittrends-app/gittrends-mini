@@ -4,11 +4,14 @@
 import Joi from 'joi';
 
 import { Entity } from './Entity';
+import { Release } from './Release';
 import { Repository } from './Repository';
+import { Stargazer } from './Stargazer';
+import { Tag } from './Tag';
 
 type TMetadata = {
   repository: string | Repository;
-  resource: 'repository' | 'stargazers' | 'tags' | 'releases';
+  resource?: string;
   end_cursor?: string;
   updated_at: Date;
 } & Record<string, unknown>;
@@ -20,7 +23,7 @@ export class Metadata extends Entity<TMetadata> {
 
   // Entity fields
   repository!: string | Repository;
-  resource!: TMetadata['resource'];
+  resource?: string;
   end_cursor?: string;
   updated_at?: Date;
 
@@ -31,7 +34,7 @@ export class Metadata extends Entity<TMetadata> {
       repository: Joi.alternatives(Joi.string(), Repository.__schema)
         .custom((value) => (typeof value === 'string' ? value : new Repository(value)))
         .required(),
-      resource: Joi.string().valid('repository', 'stargazers').required(),
+      resource: Joi.string().valid(...[Repository, Stargazer, Tag, Release].map((t) => t.__collection_name)),
       end_cursor: Joi.string(),
       updated_at: Joi.date(),
     });
