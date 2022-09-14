@@ -18,6 +18,7 @@
     "lodash": "^4.17.21"
   },
   "devDependencies": {
+    "@gittrends-app/github-proxy-server": "gittrends-app/github-proxy-server",
     "@types/cli-progress": "^3.11.0"
   }
 }

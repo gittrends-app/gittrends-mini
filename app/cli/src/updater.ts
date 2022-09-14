@@ -2,8 +2,10 @@ import { MultiBar, Presets } from 'cli-progress';
 import { Argument, Option, program } from 'commander';
 import consola from 'consola';
 import { get } from 'lodash';
+import { URL } from 'node:url';
 
 import { Actor, ProxyService, Release, Stargazer, Tag } from '@gittrends/lib';
+import { HttpClient } from '@gittrends/lib';
 
 import { version } from './package.json';
 import { ActorsRepository } from './repos/ActorRepository';
@@ -61,17 +63,28 @@ async function withMultibar(context: (multibar: MultiBar) => Promise<void>): Pro
 async function exec(args: string[] = process.argv, from: 'user' | 'node' = 'node'): Promise<void> {
   await program
     .addArgument(new Argument('<repo>', 'Repository name with format <owner/name>'))
-    .addOption(new Option('-t, --token [string]', 'Github access token').env('TOKEN'))
+    .addOption(new Option('--token [string]', 'Github access token').env('TOKEN').conflicts('api-url'))
+    .addOption(new Option('--api-url [string]', 'URL of the target API').conflicts('token'))
     .addOption(
       new Option('-r, --resources [string...]', 'Resources to update')
         .choices([Stargazer.__collection_name, Tag.__collection_name, Release.__collection_name, 'all'])
         .default(['all']),
     )
-    .action(async (name, opts: { token: string; resources: string[] }) => {
+    .action(async (name, opts: { token?: string; apiUrl?: string; resources: string[] }) => {
       consola.info('Opening local cache database ...');
       return withDatabase('repositories', async (globalRepos) => {
-        const { actors: actorsRepo, repositories: reposRepo } = globalRepos;
-        const globalService = new ProxyService(opts.token, globalRepos);
+        const { actors: actorsRepo } = globalRepos;
+
+        const apiURL = new URL((opts.token ? 'https://api.github.com' : opts.apiUrl) as string);
+
+        const httpClient = new HttpClient({
+          host: apiURL.hostname,
+          protocol: apiURL.protocol.slice(0, -1),
+          port: parseInt(apiURL.port),
+          authToken: opts.token,
+        });
+
+        const globalService = new ProxyService(httpClient, globalRepos);
 
         consola.info(`Finding repository "${name}" ...`);
         const repo = await globalService.find(name);
@@ -79,12 +92,12 @@ async function exec(args: string[] = process.argv, from: 'user' | 'node' = 'node
         if (!repo) throw new Error('Repository not found!');
         const owner = repo.owner instanceof Actor ? repo.owner : await actorsRepo.findById(repo.owner);
 
-        consola.info('Opening repository local database ...\n');
+        consola.info('Opening repository local database ...');
         return withDatabase(repo.name_with_owner, async (localRepos) => {
           await withMultibar(async (multibar) => {
             await Promise.all([localRepos.repositories.save(repo), owner && localRepos.actors.save(owner)]);
 
-            const localService = new ProxyService(opts.token, localRepos);
+            const localService = new ProxyService(httpClient, localRepos);
 
             const resources = [];
             const includesAll = opts.resources.includes('all');
@@ -112,8 +125,7 @@ async function exec(args: string[] = process.argv, from: 'user' | 'node' = 'node
 
             const iterator = localService.resources(repo.id, resourcesInfo);
 
-            consola.info('Iterating over repository resources ...');
-
+            consola.info('Iterating over repository resources ...\n');
             while (true) {
               const { done, value } = await iterator.next();
               if (done) break;
