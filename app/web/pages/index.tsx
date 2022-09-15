@@ -34,12 +34,12 @@ const Home: NextPage = () => {
     if (!repo) return alert('Repositório não encontrado.');
 
     const stargazers: Stargazer[] = [];
-    const iterator = service.stargazers(repo.id);
+    const iterator = service.resources(repo.id, [{ resource: Stargazer, endCursor: undefined }]);
 
     while (true) {
       const { done, value } = await iterator.next();
-      if (value) {
-        stargazers.push(...value);
+      if (!done) {
+        stargazers.push(...(value[0].items as Stargazer[]));
         setEstrelas(stargazers);
       }
       if (done || !runningRef.current) break;

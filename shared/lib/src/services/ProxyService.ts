@@ -63,7 +63,7 @@ class ProxiedIterator implements Iterable {
     if (!this.localIterables && !this.githubIterables) {
       this.localIterables = this.opts.local.resources(
         this.repositoryId,
-        this.resources.filter((_, index) => cachedResourcesIndexes.find((v) => v === index)),
+        this.resources.filter((_, index) => cachedResourcesIndexes.includes(index)),
       );
 
       const metas = await this.opts.repos.metadata.findByRepository(this.repositoryId);
@@ -104,12 +104,15 @@ class ProxiedIterator implements Iterable {
 
     if (cachedResults.done && githubResults.done) return { done: (this.done = true), value: undefined };
     else if (cachedResults.done) return githubResults;
+    else if (githubResults.done) githubResults.value = new Array(this.resources.length);
 
     cachedResourcesIndexes.forEach((ghrIndex, crIndex) => {
-      githubResults.value[ghrIndex].items = [
-        ...(githubResults.value?.[ghrIndex]?.items || []),
-        ...(cachedResults.value?.[crIndex]?.items || []),
-      ] as any;
+      if (!githubResults.value[ghrIndex]) githubResults.value[ghrIndex] = cachedResults.value;
+      else
+        githubResults.value[ghrIndex].items = [
+          ...(githubResults.value?.[ghrIndex]?.items || []),
+          ...(cachedResults.value?.[crIndex]?.items || []),
+        ] as any;
     });
 
     return githubResults;

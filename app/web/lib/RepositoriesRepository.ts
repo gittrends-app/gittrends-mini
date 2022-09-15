@@ -1,7 +1,6 @@
 import { each } from 'bluebird';
 import { omit } from 'lodash';
 
-import { Metadata } from '@gittrends/lib';
 import { IRepositoriesRepository } from '@gittrends/lib';
 import { Repository } from '@gittrends/lib/dist/entities';
 
@@ -59,10 +58,6 @@ export default class RepositoriesRepo implements IRepositoriesRepository {
           ...omit({ ...repo.toJSON(), owner: ownerId }, ['id']),
         })),
       ]);
-
-      await this.metadataRepository.save(
-        new Metadata({ repository: repo.id, resource: 'repository', updated_at: new Date() }),
-      );
     });
   }
 }

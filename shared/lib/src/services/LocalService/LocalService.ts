@@ -4,14 +4,14 @@ import { Constructor } from '../../types';
 import { Iterable, Service } from '../Service';
 import { ResourceIterator } from './ResourcesIterator';
 
-export type ServiceOpts = Required<{
+export type ServiceOpts = {
   actors: IActorsRepository;
   repositories: IRepositoriesRepository;
-  stargazers: IResourceRepository<Stargazer>;
-  tags: IResourceRepository<Tag>;
-  releases: IResourceRepository<Release>;
   metadata: IMetadataRepository;
-}>;
+  stargazers?: IResourceRepository<Stargazer>;
+  tags?: IResourceRepository<Tag>;
+  releases?: IResourceRepository<Release>;
+};
 
 export class LocalService implements Service {
   private readonly persistence: ServiceOpts;
@@ -31,7 +31,7 @@ export class LocalService implements Service {
       else if (it.resource === Tag) repository = this.persistence.tags;
       else if (it.resource === Release) repository = this.persistence.releases;
 
-      if (!repository) throw new Error('Repository not found for ' + it.resource.name);
+      if (!repository) throw new Error('Data repository is required for ' + it.resource.name);
 
       return new ResourceIterator(repositoryId, { repository, limit: 1000, skip: 0 });
     });

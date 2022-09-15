@@ -1,7 +1,7 @@
 import { map } from 'bluebird';
 
-import { Actor, Metadata, Repository, Stargazer } from '@gittrends/lib';
-import { IStargazersRepository } from '@gittrends/lib';
+import { Actor, Repository, Stargazer } from '@gittrends/lib';
+import { IResourceRepository } from '@gittrends/lib';
 
 import PouchDB from '../pouch.config';
 import ActorsRepository from './ActorsRepository';
@@ -13,7 +13,7 @@ type StargazerCollection = Omit<Stargazer, 'user' | 'toJSON'> & {
   user: string;
 };
 
-export default class StargazersRepository implements IStargazersRepository {
+export default class StargazersRepository implements IResourceRepository<Stargazer> {
   private static collection = new PouchDB<StargazerCollection>('stargazers', { auto_compaction: true });
 
   static {
@@ -21,7 +21,10 @@ export default class StargazersRepository implements IStargazersRepository {
   }
 
   private readonly actorsRepo = new ActorsRepository();
-  private readonly metadataRepository = new MetadataRepository();
+
+  async countByRepository(repository: string): Promise<number> {
+    throw new Error('Method not implemented.');
+  }
 
   async findByRepository(repository: string, opts?: { limit: number; skip: number }): Promise<Stargazer[]> {
     const { docs } = await StargazersRepository.collection.find({
