@@ -3,7 +3,7 @@ import { get } from 'lodash';
 import { Release, Repository, RepositoryResource, Stargazer, Tag } from '../../entities';
 import HttpClient from '../../github/HttpClient';
 import Query from '../../github/Query';
-import { SearchComponent } from '../../github/components';
+import { RepositoryComponent, SearchComponent } from '../../github/components';
 import { RequestError } from '../../helpers/errors';
 import { Constructor } from '../../types';
 import { Iterable, Service } from '../Service';
@@ -86,12 +86,26 @@ export class GitHubService implements Service {
 
   async find(name: string): Promise<Repository | undefined> {
     return Query.create(this.httpClient)
-      .compose(new SearchComponent({ repo: name }, { first: 1, full: true }).setAlias('search'))
+      .compose(new SearchComponent({ repo: name }, { first: 1 }).setAlias('search'))
       .run()
-      .then((response) => {
-        const repo = get(response, ['search', 'nodes', 0]);
-        if (repo) return new Repository(repo);
-      });
+      .then((response) =>
+        Query.create(this.httpClient)
+          .compose(
+            new RepositoryComponent(get(response, ['search', 'nodes', 0, 'id']))
+              .includeDetails(true)
+              .includeLanguages(true, { first: 100 })
+              .includeTopics(true, { first: 100 }),
+          )
+          .run(),
+      )
+      .then(
+        ({ repository: { _languages, _topics, ...repo } }) =>
+          new Repository({
+            ...repo,
+            languages: _languages.edges,
+            repository_topics: _topics?.nodes?.map((n: any) => n.topic),
+          }),
+      );
   }
 
   resources(
