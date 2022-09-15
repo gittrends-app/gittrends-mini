@@ -1,4 +1,4 @@
-import { Release, Repository, RepositoryResource, Stargazer, Tag } from '../../entities';
+import { Release, Repository, RepositoryResource, Stargazer, Tag, Watcher } from '../../entities';
 import { IActorsRepository, IMetadataRepository, IRepositoriesRepository, IResourceRepository } from '../../repos';
 import { Constructor } from '../../types';
 import { Iterable, Service } from '../Service';
@@ -11,6 +11,7 @@ export type ServiceOpts = {
   stargazers?: IResourceRepository<Stargazer>;
   tags?: IResourceRepository<Tag>;
   releases?: IResourceRepository<Release>;
+  watchers?: IResourceRepository<Watcher>;
 };
 
 export class LocalService implements Service {
@@ -30,6 +31,7 @@ export class LocalService implements Service {
       if (it.resource === Stargazer) repository = this.persistence.stargazers;
       else if (it.resource === Tag) repository = this.persistence.tags;
       else if (it.resource === Release) repository = this.persistence.releases;
+      else if (it.resource === Watcher) repository = this.persistence.watchers;
 
       if (!repository) throw new Error('Data repository is required for ' + it.resource.name);
 

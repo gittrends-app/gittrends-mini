@@ -4,7 +4,7 @@ import consola from 'consola';
 import { get } from 'lodash';
 import { URL } from 'node:url';
 
-import { Actor, ProxyService, Release, Stargazer, Tag } from '@gittrends/lib';
+import { Actor, ProxyService, Release, Stargazer, Tag, Watcher } from '@gittrends/lib';
 import { HttpClient } from '@gittrends/lib';
 
 import { version } from './package.json';
@@ -14,6 +14,7 @@ import { ReleasesRepository } from './repos/ReleasesRepository';
 import { RepositoriesRepository } from './repos/RepositoriesRepository';
 import { StargazersRepository } from './repos/StargazersRepository';
 import { TagsRepository } from './repos/TagsRepository';
+import { WatchersRepository } from './repos/WatchersRepository';
 import { createOrConnectDatabase } from './sqlite.config';
 
 type Repositories = {
@@ -22,6 +23,7 @@ type Repositories = {
   stargazers: StargazersRepository;
   tags: TagsRepository;
   releases: ReleasesRepository;
+  watchers: WatchersRepository;
   metadata: MetadataRepository;
 };
 
@@ -37,6 +39,7 @@ async function withDatabase(
     stargazers: new StargazersRepository(knex),
     tags: new TagsRepository(knex),
     releases: new ReleasesRepository(knex),
+    watchers: new WatchersRepository(knex),
     metadata: new MetadataRepository(knex),
   }).finally(async () => {
     knex.destroy();
@@ -67,7 +70,7 @@ async function exec(args: string[] = process.argv, from: 'user' | 'node' = 'node
     .addOption(new Option('--api-url [string]', 'URL of the target API').conflicts('token'))
     .addOption(
       new Option('-r, --resources [string...]', 'Resources to update')
-        .choices([Stargazer.__collection_name, Tag.__collection_name, Release.__collection_name, 'all'])
+        .choices([Stargazer, Tag, Release, Watcher].map((r) => r.__collection_name).concat(['all']))
         .default(['all']),
     )
     .action(async (name, opts: { token?: string; apiUrl?: string; resources: string[] }) => {
@@ -108,6 +111,8 @@ async function exec(args: string[] = process.argv, from: 'user' | 'node' = 'node
               resources.push({ resource: Tag, repository: localRepos.tags });
             if (includesAll || opts.resources.includes(Release.__collection_name))
               resources.push({ resource: Release, repository: localRepos.releases });
+            if (includesAll || opts.resources.includes(Watcher.__collection_name))
+              resources.push({ resource: Watcher, repository: localRepos.watchers });
 
             const resourcesInfo = await Promise.all(
               resources.map(async (info) => {

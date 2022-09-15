@@ -1,6 +1,6 @@
 import { get } from 'lodash';
 
-import { Release, Repository, RepositoryResource, Stargazer, Tag } from '../../entities';
+import { Release, Repository, RepositoryResource, Stargazer, Tag, Watcher } from '../../entities';
 import HttpClient from '../../github/HttpClient';
 import Query from '../../github/Query';
 import { RepositoryComponent, SearchComponent } from '../../github/components';
@@ -11,6 +11,7 @@ import { ComponentBuilder } from './ComponentBuilder';
 import { ReleasesComponentBuilder } from './ReleasesComponentBuilder';
 import { StargazersComponentBuilder } from './StargazersComponentBuilder';
 import { TagsComponentBuilder } from './TagsComponentBuilder';
+import { WatchersComponentBuilder } from './WatchersComponentBuilder';
 
 async function request(
   httpClient: HttpClient,
@@ -43,6 +44,7 @@ function getComponentBuilder(Target: Constructor<RepositoryResource>) {
   if (Target === Stargazer) return StargazersComponentBuilder;
   else if (Target === Tag) return TagsComponentBuilder;
   else if (Target === Release) return ReleasesComponentBuilder;
+  else if (Target === Watcher) return WatchersComponentBuilder;
   throw new Error('No ComponentBuilder found for ' + Target.name);
 }
 

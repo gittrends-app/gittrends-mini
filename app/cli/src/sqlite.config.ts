@@ -3,7 +3,7 @@ import { knex } from 'knex';
 import { homedir } from 'os';
 import path from 'path';
 
-import { Actor, Metadata, Release, Repository, Stargazer, Tag } from '@gittrends/lib/dist';
+import { Actor, Metadata, Release, Repository, Stargazer, Tag, Watcher } from '@gittrends/lib';
 
 export async function createOrConnectDatabase(name: string | 'repositories') {
   const databaseFile = path.resolve(homedir(), '.gittrends', ...name.split('/')) + '.sqlite';
@@ -182,6 +182,15 @@ export async function createOrConnectDatabase(name: string | 'repositories') {
               table.string('tag').notNullable();
               table.string('tag_name').notNullable();
               table.timestamp('updated_at').notNullable();
+            });
+        }),
+      name !== 'repositories' &&
+        trx.schema.hasTable(Watcher.__collection_name).then((hasTable) => {
+          if (!hasTable)
+            return trx.schema.createTable(Watcher.__collection_name, (table) => {
+              table.string('repository').notNullable();
+              table.string('user').notNullable();
+              table.primary(['repository', 'user']);
             });
         }),
     ]),
