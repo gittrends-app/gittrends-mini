@@ -39,7 +39,7 @@ export class TagsComponentBuilder implements ComponentBuilder<RepositoryComponen
           repository: this.repositoryId,
           tagger: {
             ...node.target.author,
-            ...(node.target.author ? { user: new User(node.target.author.user) } : {}),
+            ...(node.target.author?.user ? { user: new User(node.target.author.user) } : {}),
           },
           target: node.target.oid,
         });
