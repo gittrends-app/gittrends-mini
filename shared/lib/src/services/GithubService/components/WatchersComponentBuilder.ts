@@ -1,7 +1,7 @@
 import { get } from 'lodash';
 
-import { Watcher } from '../../entities';
-import { RepositoryComponent } from '../../github/components';
+import { Watcher } from '../../../entities';
+import { RepositoryComponent } from '../../../github/components';
 import { ComponentBuilder } from './ComponentBuilder';
 
 export class WatchersComponentBuilder implements ComponentBuilder<RepositoryComponent, Watcher[]> {

@@ -4,11 +4,12 @@ import consola from 'consola';
 import { get } from 'lodash';
 import { URL } from 'node:url';
 
-import { Actor, ProxyService, Release, Stargazer, Tag, Watcher } from '@gittrends/lib';
+import { Actor, Dependency, ProxyService, Release, Stargazer, Tag, Watcher } from '@gittrends/lib';
 import { HttpClient } from '@gittrends/lib';
 
 import { version } from './package.json';
 import { ActorsRepository } from './repos/ActorRepository';
+import { DependenciesRepository } from './repos/DependenciesRepository';
 import { MetadataRepository } from './repos/MetadataRepository';
 import { ReleasesRepository } from './repos/ReleasesRepository';
 import { RepositoriesRepository } from './repos/RepositoriesRepository';
@@ -24,13 +25,11 @@ type Repositories = {
   tags: TagsRepository;
   releases: ReleasesRepository;
   watchers: WatchersRepository;
+  dependencies: DependenciesRepository;
   metadata: MetadataRepository;
 };
 
-async function withDatabase(
-  db: string = 'repositories',
-  context: (repos: Repositories) => Promise<void>,
-): Promise<void> {
+async function withDatabase(db = 'repositories', context: (repos: Repositories) => Promise<void>): Promise<void> {
   const knex = await createOrConnectDatabase(db);
 
   await context({
@@ -40,6 +39,7 @@ async function withDatabase(
     tags: new TagsRepository(knex),
     releases: new ReleasesRepository(knex),
     watchers: new WatchersRepository(knex),
+    dependencies: new DependenciesRepository(knex),
     metadata: new MetadataRepository(knex),
   }).finally(async () => {
     knex.destroy();
@@ -70,7 +70,7 @@ async function exec(args: string[] = process.argv, from: 'user' | 'node' = 'node
     .addOption(new Option('--api-url [string]', 'URL of the target API').conflicts('token'))
     .addOption(
       new Option('-r, --resources [string...]', 'Resources to update')
-        .choices([Stargazer, Tag, Release, Watcher].map((r) => r.__collection_name).concat(['all']))
+        .choices([Stargazer, Tag, Release, Watcher, Dependency].map((r) => r.__collection_name).concat(['all']))
         .default(['all']),
     )
     .action(async (name, opts: { token?: string; apiUrl?: string; resources: string[] }) => {
@@ -113,6 +113,8 @@ async function exec(args: string[] = process.argv, from: 'user' | 'node' = 'node
               resources.push({ resource: Release, repository: localRepos.releases });
             if (includesAll || opts.resources.includes(Watcher.__collection_name))
               resources.push({ resource: Watcher, repository: localRepos.watchers });
+            if (includesAll || opts.resources.includes(Dependency.__collection_name))
+              resources.push({ resource: Dependency, repository: localRepos.dependencies });
 
             const resourcesInfo = await Promise.all(
               resources.map(async (info) => {

@@ -1,7 +1,7 @@
 import { get } from 'lodash';
 
-import { Stargazer, User } from '../../entities';
-import { RepositoryComponent } from '../../github/components';
+import { Stargazer } from '../../../entities';
+import { RepositoryComponent } from '../../../github/components';
 import { ComponentBuilder } from './ComponentBuilder';
 
 export class StargazersComponentBuilder implements ComponentBuilder<RepositoryComponent, Stargazer[]> {

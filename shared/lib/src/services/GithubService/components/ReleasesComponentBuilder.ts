@@ -1,7 +1,7 @@
 import { get } from 'lodash';
 
-import { Actor, Release } from '../../entities';
-import { RepositoryComponent } from '../../github/components';
+import { Actor, Release } from '../../../entities';
+import { RepositoryComponent } from '../../../github/components';
 import { ComponentBuilder } from './ComponentBuilder';
 
 export class ReleasesComponentBuilder implements ComponentBuilder<RepositoryComponent, Release[]> {

@@ -1,4 +1,5 @@
 export * from './Actor';
+export * from './Dependency';
 export { Entity } from './Entity';
 export * from './Metadata';
 export * from './Release';

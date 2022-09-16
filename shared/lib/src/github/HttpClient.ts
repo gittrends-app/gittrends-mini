@@ -46,6 +46,7 @@ export default class HttpClient {
       headers: {
         'user-agent': opts.userAgent || '[GitTrends.app] My awesome app',
         Authorization: 'bearer ' + opts.authToken || '',
+        Accept: ['application/vnd.github.hawkgirl-preview+json'].join(', '),
       },
       timeout: this.timeout,
       validateStatus: (status) => Math.floor(status / 100) === 2,

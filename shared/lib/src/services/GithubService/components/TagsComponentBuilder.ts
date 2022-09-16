@@ -1,7 +1,7 @@
 import { get } from 'lodash';
 
-import { Tag, User } from '../../entities';
-import { RepositoryComponent } from '../../github/components';
+import { Tag, User } from '../../../entities';
+import { RepositoryComponent } from '../../../github/components';
 import { ComponentBuilder } from './ComponentBuilder';
 
 export class TagsComponentBuilder implements ComponentBuilder<RepositoryComponent, Tag[]> {

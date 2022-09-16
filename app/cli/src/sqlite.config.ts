@@ -3,7 +3,7 @@ import { knex } from 'knex';
 import { homedir } from 'os';
 import path from 'path';
 
-import { Actor, Metadata, Release, Repository, Stargazer, Tag, Watcher } from '@gittrends/lib';
+import { Actor, Dependency, Metadata, Release, Repository, Stargazer, Tag, Watcher } from '@gittrends/lib';
 
 export async function createOrConnectDatabase(name: string | 'repositories') {
   const databaseFile = path.resolve(homedir(), '.gittrends', ...name.split('/')) + '.sqlite';
@@ -191,6 +191,21 @@ export async function createOrConnectDatabase(name: string | 'repositories') {
               table.string('repository').notNullable();
               table.string('user').notNullable();
               table.primary(['repository', 'user']);
+            });
+        }),
+      name !== 'repositories' &&
+        trx.schema.hasTable(Dependency.__collection_name).then((hasTable) => {
+          if (!hasTable)
+            return trx.schema.createTable(Dependency.__collection_name, (table) => {
+              table.string('repository').notNullable();
+              table.string('manifest').notNullable();
+              table.string('package_name').notNullable();
+              table.string('filename').nullable();
+              table.boolean('has_dependencies').nullable();
+              table.string('package_manager').nullable();
+              table.json('target_repository').nullable();
+              table.string('requirements').nullable();
+              table.primary(['repository', 'manifest', 'package_name']);
             });
         }),
     ]),

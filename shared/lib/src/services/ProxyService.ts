@@ -1,4 +1,4 @@
-import { Metadata, Release, Repository, RepositoryResource, Stargazer, Tag } from '../entities';
+import { Metadata, Repository, RepositoryResource } from '../entities';
 import HttpClient from '../github/HttpClient';
 import { IResourceRepository } from '../repos';
 import { Constructor } from '../types';
@@ -41,7 +41,7 @@ export class ProxyService implements Service {
 class ProxiedIterator implements Iterable {
   private localIterables?: Iterable;
   private githubIterables?: Iterable;
-  private done: boolean = false;
+  private done = false;
 
   constructor(
     private repositoryId: string,
