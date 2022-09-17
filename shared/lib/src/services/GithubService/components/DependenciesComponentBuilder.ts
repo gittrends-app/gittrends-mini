@@ -24,11 +24,11 @@ export class DependenciesComponentBuilder implements ComponentBuilder<Component,
     dependencies: Dependency[];
   }[] = [];
 
-  private get pendingManifests() {
-    return this.dependenciesMeta.filter((dm) => dm.hasNextPage !== false).slice(this.manifestsBatchSize);
-  }
-
   private manifestsBatchSize = 5;
+
+  private get pendingManifests() {
+    return this.dependenciesMeta.filter((dm) => dm.hasNextPage === true).slice(0, this.manifestsBatchSize);
+  }
 
   constructor(private repositoryId: string, endCursor?: string) {
     this.previousEndCursor = endCursor;
@@ -50,8 +50,9 @@ export class DependenciesComponentBuilder implements ComponentBuilder<Component,
     }
 
     if (this.currentStage === Stages.GET_DEPENDENCIES) {
-      return this.pendingManifests.map((pendingManifest) =>
+      return this.pendingManifests.map((pendingManifest, index) =>
         new DependencyGraphManifestComponent(pendingManifest.manifest.id)
+          .setAlias(`repo_${index}`)
           .includeDetails(false)
           .includeDependencies(true, { after: pendingManifest.endCursor, first: pendingManifest.first }),
       );
@@ -78,33 +79,34 @@ export class DependenciesComponentBuilder implements ComponentBuilder<Component,
 
       this.currentStage = Stages.GET_DEPENDENCIES;
 
-      return { hasNextPage: this.dependenciesMeta.length > 0, endCursor: this.previousEndCursor, data: [] };
+      return { hasNextPage: this.pendingManifests.length > 0, endCursor: this.previousEndCursor, data: [] };
     }
 
     if (this.currentStage === Stages.GET_DEPENDENCIES) {
-      let hasNextPage = false;
-
-      this.pendingManifests.forEach((pendingManifest) => {
-        pendingManifest.hasNextPage = get(data, 'dependencies.page_info.has_next_page', false);
-        pendingManifest.endCursor = get(data, 'dependencies.page_info.end_cursor', pendingManifest.endCursor);
+      this.pendingManifests.forEach((pendingManifest, index) => {
+        pendingManifest.hasNextPage = get(data, `repo_${index}.dependencies.page_info.has_next_page`, false);
+        pendingManifest.endCursor = get(
+          data,
+          `repo_${index}.dependencies.page_info.end_cursor`,
+          pendingManifest.endCursor,
+        );
         pendingManifest.dependencies.push(
-          ...get<any[]>(data, 'dependencies.nodes', []).map(
+          ...get<any[]>(data, `repo_${index}.dependencies.nodes`, []).map(
             (d) =>
               new Dependency({
                 ...d,
-                manifest: pendingManifest.manifest.id,
                 repository: this.repositoryId,
+                manifest: pendingManifest.manifest.id,
                 filename: pendingManifest.manifest.filename,
               }),
           ),
         );
-
-        hasNextPage = hasNextPage || pendingManifest.hasNextPage;
       });
 
-      if (hasNextPage === false) {
+      if (this.dependenciesMeta.reduce((done, dm) => done && !dm.hasNextPage, true)) {
+        this.currentStage = Stages.GET_MANIFESTS;
         return {
-          hasNextPage,
+          hasNextPage: this.manifestsMeta.hasNextPage || false,
           endCursor: this.manifestsMeta.endCursor,
           data: this.dependenciesMeta.reduce((deps: Dependency[], dep) => deps.concat(dep.dependencies), []),
         };

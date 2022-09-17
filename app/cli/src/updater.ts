@@ -60,7 +60,7 @@ async function updater(
             const [meta] = await localRepos.metadata.findByRepository(repo.id, info.resource.__collection_name as any);
             const cachedCount = await info.repository.countByRepository(repo.id);
             const progressBar = opts.progress
-              ? multibar.create(get(repo, info.resource.__collection_name) || 0, cachedCount, {
+              ? multibar.create(get(repo, info.resource.__collection_name, Infinity), cachedCount, {
                   resource: info.resource.__collection_name.padStart(14, ' '),
                 })
               : undefined;

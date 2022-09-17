@@ -80,6 +80,7 @@ export async function createOrConnectDatabase(name: string | 'repositories') {
             table.integer('database_id').nullable();
             table.string('default_branch').nullable();
             table.boolean('delete_branch_on_merge').nullable();
+            table.integer('dependency_graph_manifests').nullable();
             table.string('description').nullable();
             table.integer('disk_usage').nullable();
             table.integer('forks').nullable();
@@ -205,7 +206,7 @@ export async function createOrConnectDatabase(name: string | 'repositories') {
               table.string('package_manager').nullable();
               table.json('target_repository').nullable();
               table.string('requirements').nullable();
-              table.primary(['repository', 'manifest', 'package_name']);
+              table.primary(['repository', 'manifest', 'package_name', 'requirements']);
             });
         }),
     ]),

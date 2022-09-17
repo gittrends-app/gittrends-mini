@@ -52,7 +52,7 @@ export class DependenciesRepository implements IResourceRepository<Dependency> {
             repository: dep.repository instanceof Repository ? dep.repository.id : dep.repository,
             target_repository: JSON.stringify(dep.target_repository),
           })
-          .onConflict(['repository', 'manifest', 'package_name'])
+          .onConflict(['repository', 'manifest', 'package_name', 'requirements'])
           .ignore()
           .transacting(transaction),
       ),
