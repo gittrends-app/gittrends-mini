@@ -1,4 +1,4 @@
-import { get } from 'lodash';
+import { flatten, get, mapKeys, pick } from 'lodash';
 
 import { Dependency, Release, Repository, RepositoryResource, Stargazer, Tag, Watcher } from '../../entities';
 import HttpClient from '../../github/HttpClient';
@@ -19,21 +19,23 @@ async function request(
   builders: ComponentBuilder[],
   error?: Error,
 ): Promise<ReturnType<ComponentBuilder['parse']>[]> {
-  const components = builders.map((builder) => builder.build(error));
+  const components = builders.map((builder) => {
+    const _component = builder.build(error);
+    return Array.isArray(_component) ? _component : [_component];
+  });
 
   try {
-    const aliases = components.map((component) => component.alias);
-    const componentsWithNewAliases = components.map((c, i) => c.setAlias(`${c.alias}__${i}`));
-    const newAliases = componentsWithNewAliases.map((component) => component.alias);
+    const newAliases = components.map((ca, i) => ca.map((c, i2) => `${c.alias}__${i}_${i2}`));
+    const componentsWithNewAliases = components.map((ca, i) => ca.map((c, i2) => c.setAlias(`${c.alias}__${i}_${i2}`)));
 
     const response = await Query.create(httpClient)
-      .compose(...componentsWithNewAliases)
+      .compose(...flatten(componentsWithNewAliases))
       .run()
-      .finally(() => components.map((comp, i) => comp.setAlias(aliases[i])));
+      .finally(() => components.map((ca) => ca.map((comp) => comp.setAlias(comp.alias.replace(/__\d+_\d+$/i, '')))));
 
-    const results = newAliases.map((na) => get(response, na, {}));
+    const results = newAliases.map((na) => mapKeys(pick(response, na), (_, key) => key.replace(/__\d+_\d+$/i, '')));
 
-    return builders.map((builder, i) => builder.parse(results.at(i)));
+    return builders.map((builder, i) => builder.parse(results[i]));
   } catch (error) {
     if (!(error instanceof RequestError)) throw error;
     if (builders.length === 1) return request(httpClient, builders, error as Error);

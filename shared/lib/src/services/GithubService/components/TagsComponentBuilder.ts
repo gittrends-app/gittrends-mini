@@ -13,12 +13,13 @@ export class TagsComponentBuilder implements ComponentBuilder<RepositoryComponen
     if (error) throw error;
 
     return new RepositoryComponent(this.repositoryId)
+      .setAlias('repo')
       .includeDetails(false)
-      .includeTags(true, { after: this.endCursor, first: this.first, alias: '_tags' });
+      .includeTags(true, { after: this.endCursor, first: this.first, alias: 'tags' });
   }
 
   parse(data: any): { hasNextPage: boolean; endCursor?: string; data: Tag[] } {
-    const parsedData = get<any[]>(data, '_tags.nodes', []).map((node) => {
+    const parsedData = get<any[]>(data, 'repo.tags.nodes', []).map((node) => {
       if (node.target.type === 'Tag') {
         const target = node.target;
         return new Tag({
@@ -47,8 +48,8 @@ export class TagsComponentBuilder implements ComponentBuilder<RepositoryComponen
     });
 
     return {
-      hasNextPage: get(data, '_tags.page_info.has_next_page', false),
-      endCursor: (this.endCursor = get(data, '_tags.page_info.end_cursor', this.endCursor)),
+      hasNextPage: get(data, 'repo.tags.page_info.has_next_page', false),
+      endCursor: (this.endCursor = get(data, 'repo.tags.page_info.end_cursor', this.endCursor)),
       data: parsedData,
     };
   }
