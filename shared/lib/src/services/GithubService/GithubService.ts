@@ -51,7 +51,7 @@ function getComponentBuilder(Target: Constructor<RepositoryResource>) {
 }
 
 class ResourceIterator implements Iterable {
-  private readonly resourcesStatus;
+  private readonly resourcesStatus: { hasMore: boolean; builder: ComponentBuilder; endCursor?: string }[];
 
   constructor(components: ComponentBuilder[], private httpClient: HttpClient) {
     this.resourcesStatus = components.map((component) => ({ hasMore: true, builder: component }));
@@ -66,17 +66,26 @@ class ResourceIterator implements Iterable {
 
     if (done) return Promise.resolve({ done: true, value: undefined });
 
+    const pendingResources = this.resourcesStatus.filter((rs) => rs.hasMore);
+
     const results = await request(
       this.httpClient,
-      this.resourcesStatus.map((rs) => rs.builder),
+      pendingResources.map((rs) => rs.builder),
     );
 
-    results.forEach((result, index) => (this.resourcesStatus[index].hasMore = result?.hasNextPage));
+    results.forEach((result, index) => {
+      pendingResources[index].hasMore = result?.hasNextPage;
+      pendingResources[index].endCursor = result?.endCursor;
+    });
 
-    return {
-      done: false,
-      value: results.map((result) => ({ items: result.data, endCursor: result.endCursor })),
-    };
+    const value = this.resourcesStatus.map((rs) => {
+      const index = pendingResources.findIndex((pr) => pr.builder === rs.builder);
+      if (index < 0) return { items: [], endCursor: rs.endCursor };
+      const result = results[index];
+      return { items: result?.data, endCursor: result?.endCursor };
+    });
+
+    return { done: false, value };
   }
 }
 

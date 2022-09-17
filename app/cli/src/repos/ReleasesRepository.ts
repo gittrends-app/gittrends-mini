@@ -1,7 +1,7 @@
 import { map } from 'bluebird';
 import { Knex } from 'knex';
 
-import { Actor, IResourceRepository, Release, Repository } from '@gittrends/lib';
+import { Actor, IResourceRepository, Release } from '@gittrends/lib';
 
 import { parse, transform } from '../helpers/sqlite';
 import { ActorsRepository } from './ActorRepository';

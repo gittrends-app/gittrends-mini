@@ -5,7 +5,7 @@ import { RepositoryComponent } from '../../../github/components';
 import { ComponentBuilder } from './ComponentBuilder';
 
 export class TagsComponentBuilder implements ComponentBuilder<RepositoryComponent, Tag[]> {
-  private first: number = 100;
+  private first = 100;
 
   constructor(private repositoryId: string, private endCursor?: string) {}
 

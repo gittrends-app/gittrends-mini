@@ -5,7 +5,8 @@
   "types": "dist",
   "license": "MIT",
   "scripts": {
-    "build": "rm -rf dist tsconfig.tsbuildinfo && tsc"
+    "build": "rm -rf dist tsconfig.tsbuildinfo && tsc",
+    "eslint": "eslint --color"
   },
   "dependencies": {
     "axios": "^0.27.2",

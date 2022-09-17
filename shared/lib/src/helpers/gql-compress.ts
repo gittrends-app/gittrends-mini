@@ -1,7 +1,7 @@
 /*
  *  Inspired by: https://github.com/jane/gql-compress
  */
-export default function gglCompress(s: string = ''): string {
+export default function gglCompress(s = ''): string {
   return s
     .trim()
     .replace(/(\b|\B)[\s\t\r\n]+(\b|\B)/gm, ' ')

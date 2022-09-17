@@ -5,9 +5,9 @@ import { Iterable } from '../Service';
 export class ResourceIterator<T extends RepositoryResource> implements Iterable {
   private repository: IResourceRepository<T>;
 
-  private hasNext: boolean = true;
-  private limit: number = 1000;
-  private skip: number = 0;
+  private hasNext = true;
+  private limit = 1000;
+  private skip = 0;
 
   constructor(private repositoryId: string, opts: { repository: IResourceRepository<T>; limit: number; skip: number }) {
     this.repository = opts.repository;

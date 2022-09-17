@@ -11,7 +11,7 @@ const camelToSnakeCase = (str: string) => str.replace(/[A-Z]/g, (letter) => `_${
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/i;
 
-export default function normalize(object: any, compact: boolean = false): any {
+export default function normalize(object: any, compact = false): any {
   if (isArray(object)) {
     return object
       .map((value) => normalize(value, compact))

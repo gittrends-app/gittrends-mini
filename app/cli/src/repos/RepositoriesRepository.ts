@@ -16,7 +16,7 @@ export class RepositoriesRepository implements IRepositoriesRepository {
     this.metaRepo = new MetadataRepository(db);
   }
 
-  private async find(query: Knex.QueryBuilder, resolve: boolean = false): Promise<Repository | undefined> {
+  private async find(query: Knex.QueryBuilder, resolve = false): Promise<Repository | undefined> {
     const repo = await query.table(Repository.__collection_name).select('*');
 
     if (repo) {

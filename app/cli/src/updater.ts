@@ -73,9 +73,10 @@ async function exec(args: string[] = process.argv, from: 'user' | 'node' = 'node
         .choices([Stargazer, Tag, Release, Watcher, Dependency].map((r) => r.__collection_name).concat(['all']))
         .default(['all']),
     )
-    .action(async (name, opts: { token?: string; apiUrl?: string; resources: string[] }) => {
+    .addOption(new Option('--no-progress', 'Disable progress bars'))
+    .action(async (name, opts: { token?: string; apiUrl?: string; resources: string[]; progress: boolean }) => {
       consola.info('Opening local cache database ...');
-      return withDatabase('repositories', async (globalRepos) => {
+      return withDatabase('repositories', async (globalRepos): Promise<void> => {
         const { actors: actorsRepo } = globalRepos;
 
         const apiURL = new URL((opts.token ? 'https://api.github.com' : opts.apiUrl) as string);
@@ -123,9 +124,12 @@ async function exec(args: string[] = process.argv, from: 'user' | 'node' = 'node
                   info.resource.__collection_name as any,
                 );
                 const cachedCount = await info.repository.countByRepository(repo.id);
-                const progressBar = multibar.create(get(repo, info.resource.__collection_name) || 0, cachedCount, {
-                  resource: info.resource.__collection_name.padStart(11, ' '),
-                });
+                const progressBar = opts.progress
+                  ? multibar.create(get(repo, info.resource.__collection_name) || 0, cachedCount, {
+                      resource: info.resource.__collection_name.padStart(14, ' '),
+                    })
+                  : undefined;
+
                 return { resource: info.resource, endCursor: meta?.end_cursor, progressBar };
               }),
             );
@@ -138,7 +142,7 @@ async function exec(args: string[] = process.argv, from: 'user' | 'node' = 'node
               if (done) break;
 
               resourcesInfo.forEach((info, index) => {
-                info.progressBar.increment(value[index].items.length);
+                info.progressBar?.increment(value[index].items.length);
               });
             }
           });

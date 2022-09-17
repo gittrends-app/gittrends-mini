@@ -5,6 +5,7 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc",
+    "eslint": "eslint --color",
     "updater": "node dist/updater.js",
     "dev:updater": "ts-node -T src/updater.ts"
   },
