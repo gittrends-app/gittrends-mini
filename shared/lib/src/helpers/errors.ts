@@ -57,9 +57,9 @@ export class RequestError extends ExtendedError {
 
   static create(error: Error, opts?: RequestErrorOptions): RequestError;
   static create(error: Error & HttpClientResponse, opts?: RequestErrorOptions): RequestError {
-    const status = error.status || opts?.status;
+    const status = `${error.status || opts?.status}`;
     if (status) {
-      if (/[24]\d{2}/.test(status.toString())) return new GithubRequestError(error, opts);
+      if (/[24]\d{2}/.test(status)) return new GithubRequestError(error, opts);
       else return new ServerRequestError(error, opts);
     } else {
       return new RequestError(error, opts);
@@ -72,8 +72,8 @@ export class RequestError extends ExtendedError {
 
     this.response = {
       message: error.message,
-      status: opts?.status ?? error.status,
-      data: opts?.data ?? error.data,
+      status: error.status || opts?.status,
+      data: error.data || opts?.data,
     };
 
     if (opts?.components) {
@@ -89,9 +89,8 @@ export class ServerRequestError extends RequestError {
   constructor(error: Error, opts?: RequestErrorOptions);
   constructor(error: Error & HttpClientResponse, opts?: RequestErrorOptions) {
     super(error, opts);
-
-    if (this.response?.status === 500) this.type = 'INTERNAL_SERVER';
-    else if (this.response?.status === 502) this.type = 'BAD_GATEWAY';
+    if (this.response?.status == 500) this.type = 'INTERNAL_SERVER';
+    else if (this.response?.status == 502) this.type = 'BAD_GATEWAY';
     else this.type = 'UNKNOWN';
   }
 }

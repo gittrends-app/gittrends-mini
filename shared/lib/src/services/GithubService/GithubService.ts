@@ -1,10 +1,10 @@
-import { flatten, get, mapKeys, pick } from 'lodash';
+import { flatten, get, mapKeys, min, pick } from 'lodash';
 
 import { Dependency, Release, Repository, RepositoryResource, Stargazer, Tag, Watcher } from '../../entities';
 import HttpClient from '../../github/HttpClient';
 import Query from '../../github/Query';
-import { RepositoryComponent, SearchComponent } from '../../github/components';
-import { RequestError } from '../../helpers/errors';
+import { RepositoryComponent, SearchComponent, SearchComponentQuery } from '../../github/components';
+import { RequestError, ServerRequestError } from '../../helpers/errors';
 import { Constructor } from '../../types';
 import { Iterable, Service } from '../Service';
 import { ComponentBuilder } from './components/ComponentBuilder';
@@ -121,6 +121,65 @@ export class GitHubService implements Service {
             repository_topics: _topics?.nodes?.map((n: any) => n.topic),
           }),
       );
+  }
+
+  search({ limit, ...queryOpts }: SearchComponentQuery & { limit: number }): Iterable<Repository> {
+    const { httpClient } = this;
+
+    const cachedIds = new Set();
+    let hasNextPage = true;
+    let endCursor: string | undefined;
+    let maxStargazers: number | undefined = queryOpts.maxStargazers;
+    let first = 100;
+
+    async function run(): Promise<any> {
+      try {
+        return await Query.create(httpClient)
+          .compose(
+            new SearchComponent(
+              { ...queryOpts, maxStargazers },
+              { after: endCursor, first: Math.min(first, limit - cachedIds.size) },
+            ).setAlias('search'),
+          )
+          .run();
+      } catch (error) {
+        if (error instanceof ServerRequestError && first > 1) {
+          first = Math.ceil(first / 2);
+          return run();
+        }
+        throw error;
+      }
+    }
+
+    return {
+      [Symbol.asyncIterator]() {
+        return this;
+      },
+      async next() {
+        if (!hasNextPage || cachedIds.size >= limit) return { done: true, value: undefined };
+
+        return run().then((result) => {
+          hasNextPage = get<boolean>(result, 'search.page_info.has_next_page', false);
+          endCursor = get<string | undefined>(result, 'search.page_info.end_cursor', endCursor);
+
+          const repos = get<any[]>(result, 'search.nodes', []).map((data) => new Repository(data));
+          const newRepos = repos.filter((repo) => !cachedIds.has(repo.id));
+
+          if (repos.length === 0) return { done: true, value: undefined };
+
+          repos.forEach((repo) => cachedIds.add(repo.id));
+          first = Math.min(100, first * 2);
+
+          if (!hasNextPage && repos.length === first) {
+            hasNextPage = true;
+            endCursor = undefined;
+            maxStargazers = min(repos.map((repo) => repo.stargazers));
+          }
+
+          return { done: false, value: [{ items: newRepos, endCursor }] };
+        });
+      },
+    };
   }
 
   resources(

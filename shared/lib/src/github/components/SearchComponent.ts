@@ -7,7 +7,7 @@ import Component from '../Component';
 import Fragment from '../Fragment';
 import RepositoryFragment, { Repository, SimplifiedRepositoryFragment } from '../fragments/RepositoryFragment';
 
-type Query = {
+export type SearchComponentQuery = {
   minStargazers?: number;
   maxStargazers?: number;
   language?: string;
@@ -20,7 +20,7 @@ type Query = {
 export default class SearchComponent extends Component {
   private readonly Fragment: Repository;
 
-  constructor(query?: Query, opts?: { after?: string; first?: number; full?: boolean }) {
+  constructor(query?: SearchComponentQuery, opts?: { after?: string; first?: number; full?: boolean }) {
     super(null, 'search');
     this.Fragment = opts?.full ? RepositoryFragment : SimplifiedRepositoryFragment;
     this.includes.search = {
@@ -36,9 +36,9 @@ export default class SearchComponent extends Component {
   }
 
   toString(): string {
-    const searchQuery = get(this.includes, 'search.query', {}) as Query;
+    const searchQuery = get(this.includes, 'search.query', {}) as SearchComponentQuery;
 
-    let query = `repo:${searchQuery.repo}`;
+    let query = searchQuery.repo ? `repo:${searchQuery.repo}` : '';
 
     query += ` stars:${searchQuery.minStargazers ?? 0}..${searchQuery.maxStargazers ?? '*'}`;
 

@@ -12,7 +12,6 @@ export class Repository extends Entity {
   database_id?: number;
   default_branch?: string;
   delete_branch_on_merge?: boolean;
-  dependency_graph_manifests?: number;
   description?: string;
   disk_usage?: number;
   forks?: number;
@@ -72,7 +71,6 @@ export class Repository extends Entity {
       database_id: Joi.number(),
       default_branch: Joi.string(),
       delete_branch_on_merge: Joi.boolean(),
-      dependency_graph_manifests: Joi.number(),
       description: Joi.string(),
       disk_usage: Joi.number(),
       forks: Joi.number(),

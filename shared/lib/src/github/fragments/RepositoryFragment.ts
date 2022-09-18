@@ -26,7 +26,6 @@ export class Repository extends Fragment {
       databaseId
       defaultBranch:defaultBranchRef { name }
       ${Fragment.include(this.full, 'deleteBranchOnMerge')}
-      dependencyGraphManifests (withDependencies: true) { totalCount }
       description
       ${Fragment.include(this.full, 'diskUsage')}
       forks:forkCount
