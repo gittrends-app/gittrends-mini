@@ -1,6 +1,6 @@
 import { MultiBar, Presets } from 'cli-progress';
 
-export async function withMultibar(context: (multibar: MultiBar) => Promise<void>): Promise<void> {
+export async function withMultibar<T>(context: (multibar: MultiBar) => Promise<T>): Promise<T> {
   const multibar = new MultiBar(
     {
       format: '{resource} [{bar}] {eta_formatted} | {value}/{total} ({percentage}%)',
@@ -12,7 +12,7 @@ export async function withMultibar(context: (multibar: MultiBar) => Promise<void
     Presets.rect,
   );
 
-  await context(multibar).finally(() => {
+  return context(multibar).finally(() => {
     multibar.stop();
   });
 }
