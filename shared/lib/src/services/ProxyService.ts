@@ -27,8 +27,8 @@ export class ProxyService implements Service {
     });
   }
 
-  async find(name: string, opts?: { noCache: boolean }): Promise<Repository | undefined> {
-    if (!opts?.noCache) {
+  async find(name: string, opts: { noCache: boolean } = { noCache: false }): Promise<Repository | undefined> {
+    if (opts.noCache === false) {
       const cachedRepo = await this.cacheService.find(name);
       if (cachedRepo) return cachedRepo;
     }

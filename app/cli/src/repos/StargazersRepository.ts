@@ -1,4 +1,4 @@
-import { map } from 'bluebird';
+import { all, map } from 'bluebird';
 import { Knex } from 'knex';
 
 import { IResourceRepository, Repository, Stargazer, User } from '@gittrends/lib';
@@ -38,7 +38,7 @@ export class StargazersRepository implements IResourceRepository<Stargazer> {
 
     const transaction = trx || (await this.db.transaction());
 
-    await Promise.all([
+    await all([
       this.actorsRepo.save(
         stars.reduce((memo, user) => (user.user instanceof User ? memo.concat([user.user]) : memo), new Array<User>()),
         transaction,

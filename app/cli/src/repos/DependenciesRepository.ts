@@ -43,20 +43,18 @@ export class DependenciesRepository implements IResourceRepository<Dependency> {
 
     const transaction = trx || (await this.db.transaction());
 
-    await Promise.all([
-      map(dependencies, (dep) =>
-        this.db
-          .table(Dependency.__collection_name)
-          .insert({
-            ...transform(dep),
-            repository: dep.repository instanceof Repository ? dep.repository.id : dep.repository,
-            target_repository: JSON.stringify(dep.target_repository),
-          })
-          .onConflict(['repository', 'manifest', 'package_name', 'requirements'])
-          .ignore()
-          .transacting(transaction),
-      ),
-    ]);
+    await map(dependencies, (dep) =>
+      this.db
+        .table(Dependency.__collection_name)
+        .insert({
+          ...transform(dep),
+          repository: dep.repository instanceof Repository ? dep.repository.id : dep.repository,
+          target_repository: JSON.stringify(dep.target_repository),
+        })
+        .onConflict(['repository', 'manifest', 'package_name', 'requirements'])
+        .ignore()
+        .transacting(transaction),
+    );
 
     if (!trx) await transaction.commit();
   }

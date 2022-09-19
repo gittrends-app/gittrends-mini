@@ -11,7 +11,7 @@ export async function createOrConnectDatabase(name: string | 'repositories') {
   await mkdir(path.dirname(databaseFile), { recursive: true });
 
   const knexInstance = knex({
-    client: 'better-sqlite3',
+    client: 'sqlite3',
     useNullAsDefault: true,
     connection: { filename: databaseFile },
   });

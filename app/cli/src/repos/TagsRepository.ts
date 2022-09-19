@@ -1,4 +1,4 @@
-import { map } from 'bluebird';
+import { all, map } from 'bluebird';
 import { Knex } from 'knex';
 
 import { Actor, IResourceRepository, Repository, Tag, User } from '@gittrends/lib';
@@ -52,7 +52,7 @@ export class TagsRepository implements IResourceRepository<Tag> {
       { users: [] as Actor[], tags: [] as Tag[] },
     );
 
-    await Promise.all([
+    await all([
       this.actorsRepo.save(_users, transaction),
       map(_tags, (tag) =>
         this.db
@@ -66,8 +66,8 @@ export class TagsRepository implements IResourceRepository<Tag> {
           .ignore()
           .transacting(transaction),
       ),
-    ])
-      .then(async () => (!trx ? transaction.commit() : null))
-      .catch(async () => (!trx ? transaction.rollback() : null));
+    ]);
+
+    if (!trx) transaction.commit();
   }
 }

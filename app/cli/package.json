@@ -12,9 +12,7 @@
   },
   "dependencies": {
     "@gittrends/lib": "link:../../shared/lib",
-    "@types/prettyjson": "^0.0.30",
     "async": "^3.2.4",
-    "better-sqlite3": "^7.6.2",
     "bluebird": "^3.7.2",
     "bullmq": "^1.91.1",
     "cli-progress": "^3.11.2",
@@ -22,12 +20,13 @@
     "consola": "^2.15.3",
     "knex": "^2.3.0",
     "lodash": "^4.17.21",
-    "prettyjson": "^1.2.5"
+    "prettyjson": "^1.2.5",
+    "sqlite3": "^5.1.1"
   },
   "devDependencies": {
     "@gittrends-app/github-proxy-server": "gittrends-app/github-proxy-server",
     "@types/async": "^3.2.15",
-    "@types/better-sqlite3": "^7.6.0",
-    "@types/cli-progress": "^3.11.0"
+    "@types/cli-progress": "^3.11.0",
+    "@types/prettyjson": "^0.0.30"
   }
 }

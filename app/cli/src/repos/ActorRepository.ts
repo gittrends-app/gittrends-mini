@@ -1,5 +1,6 @@
 import { map } from 'bluebird';
 import { Knex } from 'knex';
+import { uniqBy } from 'lodash';
 
 import { Actor, IActorsRepository } from '@gittrends/lib';
 
@@ -19,7 +20,7 @@ export class ActorsRepository implements IActorsRepository {
   }
 
   async save<T extends Actor>(user: T | T[], trx?: Knex.Transaction): Promise<void> {
-    await map(Array.isArray(user) ? user : [user], (actor: any) => {
+    await map(uniqBy(Array.isArray(user) ? user : [user], 'id'), (actor: any) => {
       const command = this.db
         .table(Actor.__collection_name)
         .insert({

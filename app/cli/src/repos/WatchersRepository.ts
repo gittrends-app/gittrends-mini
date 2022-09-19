@@ -1,4 +1,4 @@
-import { map } from 'bluebird';
+import { all, map } from 'bluebird';
 import { Knex } from 'knex';
 
 import { IResourceRepository, Repository, User, Watcher } from '@gittrends/lib';
@@ -37,7 +37,7 @@ export class WatchersRepository implements IResourceRepository<Watcher> {
 
     const transaction = trx || (await this.db.transaction());
 
-    await Promise.all([
+    await all([
       this.actorsRepo.save(
         watchers.reduce(
           (memo, user) => (user.user instanceof User ? memo.concat([user.user]) : memo),
