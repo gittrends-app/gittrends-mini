@@ -1,3 +1,5 @@
+import { Knex } from 'knex';
+
 import { ActorsRepository } from '../repos/ActorRepository';
 import { DependenciesRepository } from '../repos/DependenciesRepository';
 import { MetadataRepository } from '../repos/MetadataRepository';
@@ -9,6 +11,7 @@ import { WatchersRepository } from '../repos/WatchersRepository';
 import { createOrConnectDatabase } from '../sqlite.config';
 
 type Repositories = {
+  knex: Knex;
   actors: ActorsRepository;
   repositories: RepositoriesRepository;
   stargazers: StargazersRepository;
@@ -30,6 +33,7 @@ export async function withDatabase<T>(db: string | TCallback<T>, context?: TCall
   const knex = await createOrConnectDatabase(dbName);
 
   return callback({
+    knex,
     actors: new ActorsRepository(knex),
     repositories: new RepositoriesRepository(knex),
     stargazers: new StargazersRepository(knex),
