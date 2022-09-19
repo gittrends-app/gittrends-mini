@@ -1,4 +1,6 @@
 import { queue } from 'async';
+import { each } from 'bluebird';
+import { Queue, QueueEvents, Worker } from 'bullmq';
 import { MultiBar } from 'cli-progress';
 import { Argument, Option, program } from 'commander';
 import consola from 'consola';
@@ -8,10 +10,11 @@ import prettyjson from 'prettyjson';
 
 import { Dependency, HttpClient, ProxyService, Release, Stargazer, Tag, Watcher } from '@gittrends/lib';
 
-import { createWorker } from './bullmq.config';
+import { createEvents, createQueue, createWorker } from './bullmq.config';
 import { withDatabase } from './helpers/withDatabase';
 import { withMultibar } from './helpers/withMultibar';
 import { version } from './package.json';
+import { schedule } from './schedule';
 
 type UpdaterOpts = {
   httpClient: HttpClient;
@@ -100,8 +103,31 @@ async function asyncQueue(names: string[], opts: { resources: string[]; concurre
 }
 
 async function redisQueue(opts: { httpClient: HttpClient; concurrency: number }) {
-  return withMultibar((multibar) => {
-    const worker = createWorker(
+  let queue: Queue, events: QueueEvents, worker: Worker;
+
+  return withMultibar(async (multibar) => {
+    queue = createQueue();
+
+    const counts = await queue.getJobCounts();
+    const total = Object.values(counts).reduce((acc, v) => acc + v, 0);
+    const start = total - (counts.waiting || 0);
+
+    const queueProgressBar = multibar.create(total, start, {
+      resource: truncate('Redis Queue', { length: 28, omission: '..' }).padStart(30, ' '),
+    });
+
+    const eventHandler = async () => {
+      const counts = await queue.getJobCounts();
+      const total = Object.values(counts).reduce((acc, v) => acc + v, 0);
+      const progress = total - (counts.waiting || 0);
+      queueProgressBar.update(progress);
+    };
+
+    events = createEvents();
+    events.on('completed', eventHandler);
+    events.on('failed', eventHandler);
+
+    worker = createWorker(
       async (job) =>
         updater(job.data.name_with_owner, { httpClient: opts.httpClient, multibar, resources: ['all'] }).catch(
           (error) => {
@@ -113,7 +139,7 @@ async function redisQueue(opts: { httpClient: HttpClient; concurrency: number })
     );
 
     return new Promise<void>((resolve) => worker.on('closed', resolve));
-  });
+  }).finally(() => each([queue, events, queue], (q) => q && q.close()));
 }
 
 async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void> {
@@ -147,9 +173,14 @@ async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void
           authToken: opts.token,
         });
 
-        return names.length
-          ? asyncQueue(names, { ...opts, httpClient })
-          : redisQueue({ httpClient, concurrency: opts.concurrency });
+        if (names.length) {
+          return asyncQueue(names, { ...opts, httpClient });
+        } else {
+          consola.info('Scheduling repositories ...');
+          await schedule(24);
+          consola.info('Processing repositories ...\n');
+          return redisQueue({ httpClient, concurrency: opts.concurrency });
+        }
       },
     )
     .helpOption(true)
@@ -157,4 +188,4 @@ async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void
     .parseAsync(args, { from });
 }
 
-cli(process.argv);
+if (require.main === module) cli(process.argv);

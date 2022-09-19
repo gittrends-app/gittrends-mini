@@ -10,7 +10,7 @@ import { version } from './package.json';
 
 const Resources = [Repository, Stargazer, Watcher, Tag, Release, Dependency].map((entity) => entity.__collection_name);
 
-async function schedule(hours = 24) {
+export async function schedule(hours = 24) {
   const repos = await withDatabase<{ id: string; name_with_owner: string }[]>(({ knex }) => {
     return knex.select('id', 'name_with_owner').from(Repository.__collection_name);
   });
@@ -23,15 +23,17 @@ async function schedule(hours = 24) {
     const priority = Resources.reduce((acc, resource) => {
       const meta = metadata.find((m) => m.resource === resource);
       if (!meta) return acc;
-      else if (dayjs(meta.updated_at).isBefore(dayjs().subtract(hours, 'hours'))) return acc + 5;
-      else return acc + 10;
-    }, 0);
+      else if (dayjs(meta.updated_at).isBefore(dayjs().subtract(hours, 'hours'))) return acc + 2;
+      else return acc + 4;
+    }, 1);
 
-    return queue.add(repo.name_with_owner, repo, { priority });
+    return queue.getJob(repo.name_with_owner).then((job) => {
+      if (!job?.isActive) return queue.add(repo.name_with_owner, repo, { priority });
+    });
   }).finally(() => queue.close());
 }
 
-export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void> {
+async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void> {
   await program
     .addOption(new Option('-w, --wait [hours]', 'Number of hours before updating').default(24))
     .action((opts: { wait: number }) => schedule(opts.wait))
@@ -40,4 +42,4 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
     .parseAsync(args, { from });
 }
 
-cli(process.argv);
+if (require.main === module) cli(process.argv);
