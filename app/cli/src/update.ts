@@ -1,8 +1,10 @@
 import { queue } from 'async';
+import { MultiBar } from 'cli-progress';
 import { Argument, Option, program } from 'commander';
-import consola, { LogLevel } from 'consola';
+import consola from 'consola';
 import { get } from 'lodash';
 import { URL } from 'node:url';
+import prettyjson from 'prettyjson';
 
 import { Dependency, HttpClient, ProxyService, Release, Stargazer, Tag, Watcher } from '@gittrends/lib';
 
@@ -10,79 +12,96 @@ import { withDatabase } from './helpers/withDatabase';
 import { withMultibar } from './helpers/withMultibar';
 import { version } from './package.json';
 
-export async function updater(name: string, opts: { httpClient: HttpClient; resources: string[]; silent: boolean }) {
-  const logger = consola.create({ level: opts.silent ? LogLevel.Silent : LogLevel.Verbose });
+type UpdaterOpts = {
+  httpClient: HttpClient;
+  resources: string[];
+  multibar?: MultiBar;
+};
 
-  logger.info('Opening local cache database ...');
+export async function updater(name: string, opts: UpdaterOpts) {
   const repo = await withDatabase(async (globalRepos) => {
     const globalService = new ProxyService(opts.httpClient, globalRepos);
-    logger.info(`Finding repository "${name}" ...`);
     return globalService.find(name);
   });
 
   if (!repo) throw new Error('Repository not found!');
 
-  logger.info('Opening repository local database ...');
   await withDatabase(repo.name_with_owner, async (localRepos) => {
-    await withMultibar(async (multibar) => {
-      const localService = new ProxyService(opts.httpClient, localRepos);
+    const localService = new ProxyService(opts.httpClient, localRepos);
 
-      const updatedRepo = await localService.find(repo.name_with_owner, { noCache: true });
-      if (!updatedRepo) throw new Error('Repository not found!');
+    const updatedRepo = await localService.find(repo.name_with_owner, { noCache: true });
+    if (!updatedRepo) throw new Error('Repository not found!');
 
-      await withDatabase(({ repositories }) => repositories.save(updatedRepo));
+    await withDatabase(({ repositories }) => repositories.save(updatedRepo));
 
-      const resources = [];
-      const includesAll = opts.resources.includes('all');
+    const resources = [];
+    const includesAll = opts.resources.includes('all');
 
-      if (includesAll || opts.resources.includes(Stargazer.__collection_name))
-        resources.push({ resource: Stargazer, repository: localRepos.stargazers });
-      if (includesAll || opts.resources.includes(Tag.__collection_name))
-        resources.push({ resource: Tag, repository: localRepos.tags });
-      if (includesAll || opts.resources.includes(Release.__collection_name))
-        resources.push({ resource: Release, repository: localRepos.releases });
-      if (includesAll || opts.resources.includes(Watcher.__collection_name))
-        resources.push({ resource: Watcher, repository: localRepos.watchers });
-      if (includesAll || opts.resources.includes(Dependency.__collection_name))
-        resources.push({ resource: Dependency, repository: localRepos.dependencies });
+    if (includesAll || opts.resources.includes(Stargazer.__collection_name))
+      resources.push({ resource: Stargazer, repository: localRepos.stargazers });
+    if (includesAll || opts.resources.includes(Tag.__collection_name))
+      resources.push({ resource: Tag, repository: localRepos.tags });
+    if (includesAll || opts.resources.includes(Release.__collection_name))
+      resources.push({ resource: Release, repository: localRepos.releases });
+    if (includesAll || opts.resources.includes(Watcher.__collection_name))
+      resources.push({ resource: Watcher, repository: localRepos.watchers });
+    if (includesAll || opts.resources.includes(Dependency.__collection_name))
+      resources.push({ resource: Dependency, repository: localRepos.dependencies });
 
-      const resourcesInfo = await Promise.all(
-        resources.map(async (info) => {
-          const [meta] = await localRepos.metadata.findByRepository(
-            updatedRepo.id,
-            info.resource.__collection_name as any,
-          );
-          const cachedCount = await info.repository.countByRepository(updatedRepo.id);
-          const progressBar = opts.silent
-            ? undefined
-            : multibar.create(get(updatedRepo, info.resource.__collection_name, Infinity), cachedCount, {
-                resource: info.resource.__collection_name.padStart(14, ' '),
-              });
+    const resourcesInfo = await Promise.all(
+      resources.map(async (info) => {
+        const [meta] = await localRepos.metadata.findByRepository(
+          updatedRepo.id,
+          info.resource.__collection_name as any,
+        );
+        const cachedCount = await info.repository.countByRepository(updatedRepo.id);
+        const total = get(updatedRepo, info.resource.__collection_name, 0);
+        return { resource: info.resource, endCursor: meta?.end_cursor, total, cachedCount };
+      }),
+    );
 
-          return { resource: info.resource, endCursor: meta?.end_cursor, progressBar };
-        }),
-      );
+    const progressBar = !opts.multibar
+      ? undefined
+      : opts.multibar.create(
+          resourcesInfo.reduce((acc, p) => acc + p.total, 0),
+          resourcesInfo.reduce((acc, p) => acc + p.cachedCount, 0),
+          { resource: updatedRepo.name_with_owner.padStart(14, ' ') },
+        );
 
-      const iterator = localService.resources(updatedRepo.id, resourcesInfo);
+    const iterator = localService.resources(updatedRepo.id, resourcesInfo);
 
-      logger.info('Iterating over repository resources ...\n');
-      // eslint-disable-next-line no-constant-condition
-      while (true) {
-        const { done, value } = await iterator.next();
-        if (done) break;
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const { done, value } = await iterator.next();
+      if (done) break;
 
-        resourcesInfo.forEach((info, index) => {
-          info.progressBar?.increment(value[index].items.length);
-        });
-      }
-    });
+      resourcesInfo.forEach((_, index) => {
+        progressBar?.increment(value[index].items.length);
+      });
+    }
+  });
+}
+
+async function asyncQueue(names: string[], opts: { resources: string[]; concurrency: number; httpClient: HttpClient }) {
+  return withMultibar(async (multibar) => {
+    consola.info('Preparing processing queue ....');
+    const queueRef = queue(
+      (name: string) => updater(name, { httpClient: opts.httpClient, resources: opts.resources, multibar }),
+      opts.concurrency,
+    );
+
+    consola.info('Pushing repositories to queue ....');
+    queueRef.push(names);
+
+    consola.info('Waiting process to finish ....\n');
+    return queueRef.drain();
   });
 }
 
 async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void> {
   await program
     .addArgument(new Argument('[repo...]', 'Repository name with format <owner/name>'))
-    .addOption(new Option('--token [string]', 'Github access token').env('TOKEN').conflicts('api-url'))
+    .addOption(new Option('--token [string]', 'Github access token').conflicts('api-url'))
     .addOption(new Option('--api-url [string]', 'URL of the target API').conflicts('token'))
     .addOption(
       new Option('-r, --resources [string...]', 'Resources to update')
@@ -93,9 +112,12 @@ async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void
     .addOption(new Option('--concurrency [number]', 'Use paralled processing').default(1))
     .action(
       async (
-        names: string,
+        names: string[],
         opts: { token?: string; apiUrl?: string; resources: string[]; progress: boolean; concurrency: number },
       ) => {
+        consola.info('Running updater with the following parameters: ');
+        consola.log(`\n${prettyjson.render({ names, opts }, { inlineArrays: true })}\n`);
+
         const apiURL = new URL((opts.token ? 'https://api.github.com' : opts.apiUrl) as string);
 
         const httpClient = new HttpClient({
@@ -105,14 +127,7 @@ async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void
           authToken: opts.token,
         });
 
-        const queueRef = queue(
-          (name: string) => updater(name, { httpClient, resources: opts.resources, silent: false }),
-          opts.concurrency,
-        );
-
-        queueRef.push(names);
-
-        await queueRef.drain();
+        await asyncQueue(names, { ...opts, httpClient });
       },
     )
     .helpOption(true)

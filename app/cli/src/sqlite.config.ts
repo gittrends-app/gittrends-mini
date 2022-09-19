@@ -16,7 +16,7 @@ export async function createOrConnectDatabase(name: string | 'repositories') {
     connection: { filename: databaseFile },
   });
 
-  await knexInstance.raw('PRAGMA busy_timeout=3000;');
+  await knexInstance.raw('PRAGMA busy_timeout=30000;');
 
   await knexInstance.transaction((trx) =>
     Promise.all([

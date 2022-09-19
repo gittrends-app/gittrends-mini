@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@gittrends/lib": "link:../../shared/lib",
+    "@types/prettyjson": "^0.0.30",
     "async": "^3.2.4",
     "better-sqlite3": "^7.6.2",
     "bluebird": "^3.7.2",
@@ -20,7 +21,8 @@
     "commander": "^9.4.0",
     "consola": "^2.15.3",
     "knex": "^2.3.0",
-    "lodash": "^4.17.21"
+    "lodash": "^4.17.21",
+    "prettyjson": "^1.2.5"
   },
   "devDependencies": {
     "@gittrends-app/github-proxy-server": "gittrends-app/github-proxy-server",
