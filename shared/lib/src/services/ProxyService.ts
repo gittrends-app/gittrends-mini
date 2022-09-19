@@ -27,9 +27,11 @@ export class ProxyService implements Service {
     });
   }
 
-  async find(name: string): Promise<Repository | undefined> {
-    const cachedRepo = await this.cacheService.find(name);
-    if (cachedRepo) return cachedRepo;
+  async find(name: string, opts?: { noCache: boolean }): Promise<Repository | undefined> {
+    if (!opts?.noCache) {
+      const cachedRepo = await this.cacheService.find(name);
+      if (cachedRepo) return cachedRepo;
+    }
 
     const repo = await this.githubService.find(name);
     if (repo) await this.persistence.repositories.save(repo);

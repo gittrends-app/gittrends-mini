@@ -6,11 +6,13 @@
   "scripts": {
     "build": "tsc",
     "eslint": "eslint --color",
-    "updater": "node dist/updater.js",
-    "dev:updater": "ts-node -T src/updater.ts"
+    "update": "node dist/update.js",
+    "dev:schedule": "ts-node -T src/schedule.ts",
+    "dev:update": "ts-node -T src/update.ts"
   },
   "dependencies": {
     "@gittrends/lib": "link:../../shared/lib",
+    "async": "^3.2.4",
     "better-sqlite3": "^7.6.2",
     "bluebird": "^3.7.2",
     "bullmq": "^1.91.1",
@@ -22,6 +24,8 @@
   },
   "devDependencies": {
     "@gittrends-app/github-proxy-server": "gittrends-app/github-proxy-server",
+    "@types/async": "^3.2.15",
+    "@types/better-sqlite3": "^7.6.0",
     "@types/cli-progress": "^3.11.0"
   }
 }
