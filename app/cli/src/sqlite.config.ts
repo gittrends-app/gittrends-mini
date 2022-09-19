@@ -160,7 +160,7 @@ export async function createOrConnectDatabase(name: string | 'repositories') {
             return trx.schema.createTable(Tag.__collection_name, (table) => {
               table.string('id').primary();
               table.string('repository').notNullable();
-              table.string('message').notNullable();
+              table.string('message');
               table.string('name').notNullable();
               table.string('oid').notNullable();
               table.json('tagger').notNullable();

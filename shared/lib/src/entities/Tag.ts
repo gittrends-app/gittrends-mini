@@ -8,7 +8,7 @@ import { RepositoryResource } from './Repository';
 
 type TTag = {
   id: string;
-  message: string;
+  message?: string;
   name: string;
   oid: string;
   tagger: { date: Date; email: string; name: string; user?: string | Actor };
@@ -17,7 +17,7 @@ type TTag = {
 
 export class Tag extends RepositoryResource<TTag> {
   id!: string;
-  message!: string;
+  message?: string;
   name!: string;
   oid!: string;
   tagger!: { date: Date; email: string; name: string; user?: string | Actor };
@@ -26,7 +26,7 @@ export class Tag extends RepositoryResource<TTag> {
   public static get __schema(): Joi.ObjectSchema<Tag> {
     return super.__schema.append<Tag>({
       id: Joi.string().required(),
-      message: Joi.string().required(),
+      message: Joi.string(),
       name: Joi.string().required(),
       oid: Joi.string().required(),
       tagger: Joi.object({

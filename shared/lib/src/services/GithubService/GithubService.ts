@@ -117,7 +117,7 @@ export class GitHubService implements Service {
         ({ repository: { _languages, _topics, ...repo } }) =>
           new Repository({
             ...repo,
-            languages: _languages.edges,
+            languages: _languages?.edges,
             repository_topics: _topics?.nodes?.map((n: any) => n.topic),
           }),
       );

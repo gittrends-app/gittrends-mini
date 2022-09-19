@@ -2,12 +2,13 @@ import { queue } from 'async';
 import { MultiBar } from 'cli-progress';
 import { Argument, Option, program } from 'commander';
 import consola from 'consola';
-import { get } from 'lodash';
+import { get, truncate } from 'lodash';
 import { URL } from 'node:url';
 import prettyjson from 'prettyjson';
 
 import { Dependency, HttpClient, ProxyService, Release, Stargazer, Tag, Watcher } from '@gittrends/lib';
 
+import { createWorker } from './bullmq.config';
 import { withDatabase } from './helpers/withDatabase';
 import { withMultibar } from './helpers/withMultibar';
 import { version } from './package.json';
@@ -65,7 +66,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
       : opts.multibar.create(
           resourcesInfo.reduce((acc, p) => acc + p.total, 0),
           resourcesInfo.reduce((acc, p) => acc + p.cachedCount, 0),
-          { resource: updatedRepo.name_with_owner.padStart(14, ' ') },
+          { resource: truncate(updatedRepo.name_with_owner, { length: 28, omission: '..' }).padStart(30, ' ') },
         );
 
     const iterator = localService.resources(updatedRepo.id, resourcesInfo);
@@ -98,11 +99,28 @@ async function asyncQueue(names: string[], opts: { resources: string[]; concurre
   });
 }
 
+async function redisQueue(opts: { httpClient: HttpClient; concurrency: number }) {
+  return withMultibar((multibar) => {
+    const worker = createWorker(
+      async (job) =>
+        updater(job.data.name_with_owner, { httpClient: opts.httpClient, multibar, resources: ['all'] }).catch(
+          (error) => {
+            consola.error(error);
+            throw error;
+          },
+        ),
+      { concurrency: opts.concurrency },
+    );
+
+    return new Promise<void>((resolve) => worker.on('closed', resolve));
+  });
+}
+
 async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void> {
   await program
     .addArgument(new Argument('[repo...]', 'Repository name with format <owner/name>'))
-    .addOption(new Option('--token [string]', 'Github access token').conflicts('api-url'))
-    .addOption(new Option('--api-url [string]', 'URL of the target API').conflicts('token'))
+    .addOption(new Option('--token [string]', 'Github access token').env('TOKEN').conflicts('api-url'))
+    .addOption(new Option('--api-url [string]', 'URL of the target API').env('API_URL').conflicts('token'))
     .addOption(
       new Option('-r, --resources [string...]', 'Resources to update')
         .choices([Stargazer, Tag, Release, Watcher, Dependency].map((r) => r.__collection_name).concat(['all']))
@@ -115,6 +133,8 @@ async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void
         names: string[],
         opts: { token?: string; apiUrl?: string; resources: string[]; progress: boolean; concurrency: number },
       ) => {
+        if (!opts.apiUrl && !opts.token) program.error('--token or --api-url is mandatory!');
+
         consola.info('Running updater with the following parameters: ');
         consola.log(`\n${prettyjson.render({ names, opts }, { inlineArrays: true })}\n`);
 
@@ -127,7 +147,9 @@ async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void
           authToken: opts.token,
         });
 
-        await asyncQueue(names, { ...opts, httpClient });
+        return names.length
+          ? asyncQueue(names, { ...opts, httpClient })
+          : redisQueue({ httpClient, concurrency: opts.concurrency });
       },
     )
     .helpOption(true)

@@ -7,6 +7,7 @@
     "build": "tsc",
     "eslint": "eslint --color",
     "update": "node dist/update.js",
+    "dev:add-repositories": "ts-node -T src/add-repositories.ts",
     "dev:schedule": "ts-node -T src/schedule.ts",
     "dev:update": "ts-node -T src/update.ts"
   },
