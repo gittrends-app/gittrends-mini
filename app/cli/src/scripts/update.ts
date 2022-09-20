@@ -10,10 +10,10 @@ import prettyjson from 'prettyjson';
 
 import { Dependency, HttpClient, ProxyService, Release, Stargazer, Tag, Watcher } from '@gittrends/lib';
 
-import { createEvents, createQueue, createWorker } from './bullmq.config';
-import { withDatabase } from './helpers/withDatabase';
-import { withMultibar } from './helpers/withMultibar';
-import { version } from './package.json';
+import { createEvents, createQueue, createWorker } from '../config/bullmq.config';
+import { withDatabase } from '../helpers/withDatabase';
+import { withMultibar } from '../helpers/withMultibar';
+import { version } from '../package.json';
 import { schedule } from './schedule';
 
 type UpdaterOpts = {

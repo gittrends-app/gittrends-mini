@@ -6,10 +6,9 @@
   "scripts": {
     "build": "tsc",
     "eslint": "eslint --color",
-    "update": "node dist/update.js",
-    "dev:add-repositories": "ts-node -T src/add-repositories.ts",
-    "dev:schedule": "ts-node -T src/schedule.ts",
-    "dev:update": "ts-node -T src/update.ts",
+    "dev:add-repositories": "ts-node -T src/scripts/add-repositories.ts",
+    "dev:schedule": "ts-node -T src/scripts/schedule.ts",
+    "dev:update": "ts-node -T src/scripts/update.ts",
     "migrate:make": "knex migrate:make --migrations-directory src/config/migrations -x ts"
   },
   "dependencies": {

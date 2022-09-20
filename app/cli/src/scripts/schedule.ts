@@ -4,9 +4,9 @@ import dayjs from 'dayjs';
 
 import { Dependency, Release, Repository, Stargazer, Tag, Watcher } from '@gittrends/lib';
 
-import { createQueue } from './bullmq.config';
-import { withDatabase } from './helpers/withDatabase';
-import { version } from './package.json';
+import { createQueue } from '../config/bullmq.config';
+import { withDatabase } from '../helpers/withDatabase';
+import { version } from '../package.json';
 
 const Resources = [Repository, Stargazer, Watcher, Tag, Release, Dependency].map((entity) => entity.__collection_name);
 

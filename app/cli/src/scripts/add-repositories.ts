@@ -3,9 +3,9 @@ import consola from 'consola';
 
 import { GitHubService, HttpClient } from '@gittrends/lib';
 
-import { withDatabase } from './helpers/withDatabase';
-import { withMultibar } from './helpers/withMultibar';
-import { version } from './package.json';
+import { withDatabase } from '../helpers/withDatabase';
+import { withMultibar } from '../helpers/withMultibar';
+import { version } from '../package.json';
 
 export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void> {
   await program
