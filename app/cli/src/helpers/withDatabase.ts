@@ -1,5 +1,6 @@
 import { Knex } from 'knex';
 
+import { createOrConnectDatabase } from '../config/knex.config';
 import { ActorsRepository } from '../repos/ActorRepository';
 import { DependenciesRepository } from '../repos/DependenciesRepository';
 import { MetadataRepository } from '../repos/MetadataRepository';
@@ -8,7 +9,6 @@ import { RepositoriesRepository } from '../repos/RepositoriesRepository';
 import { StargazersRepository } from '../repos/StargazersRepository';
 import { TagsRepository } from '../repos/TagsRepository';
 import { WatchersRepository } from '../repos/WatchersRepository';
-import { createOrConnectDatabase } from '../sqlite.config';
 
 type Repositories = {
   knex: Knex;

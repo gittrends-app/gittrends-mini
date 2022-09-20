@@ -9,7 +9,8 @@
     "update": "node dist/update.js",
     "dev:add-repositories": "ts-node -T src/add-repositories.ts",
     "dev:schedule": "ts-node -T src/schedule.ts",
-    "dev:update": "ts-node -T src/update.ts"
+    "dev:update": "ts-node -T src/update.ts",
+    "migrate:make": "knex migrate:make --migrations-directory src/config/migrations -x ts"
   },
   "dependencies": {
     "@gittrends/lib": "link:../../shared/lib",
