@@ -11,7 +11,7 @@ type TTag = {
   message?: string;
   name: string;
   oid: string;
-  tagger: { date: Date; email: string; name: string; user?: string | Actor };
+  tagger: { date: Date; email?: string; name: string; user?: string | Actor };
   target?: string;
 };
 
@@ -20,7 +20,7 @@ export class Tag extends RepositoryResource<TTag> {
   message?: string;
   name!: string;
   oid!: string;
-  tagger!: { date: Date; email: string; name: string; user?: string | Actor };
+  tagger!: { date: Date; email?: string; name: string; user?: string | Actor };
   target?: string;
 
   public static get __schema(): Joi.ObjectSchema<Tag> {
