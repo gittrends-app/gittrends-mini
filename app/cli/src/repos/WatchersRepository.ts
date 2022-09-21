@@ -1,9 +1,8 @@
-import { all, map } from 'bluebird';
+import { all, each } from 'bluebird';
 import { Knex } from 'knex';
 
 import { IResourceRepository, Repository, User, Watcher } from '@gittrends/lib';
 
-import { parse } from '../helpers/sqlite';
 import { ActorsRepository } from './ActorRepository';
 
 export class WatchersRepository implements IResourceRepository<Watcher> {
@@ -18,7 +17,7 @@ export class WatchersRepository implements IResourceRepository<Watcher> {
       .table(Watcher.__collection_name)
       .where('repository', repository)
       .count('user', { as: 'count' });
-    return count;
+    return parseInt(count);
   }
 
   async findByRepository(repository: string, opts?: { limit: number; skip: number } | undefined): Promise<Watcher[]> {
@@ -29,7 +28,7 @@ export class WatchersRepository implements IResourceRepository<Watcher> {
       .limit(opts?.limit || 1000)
       .offset(opts?.skip || 0);
 
-    return watcher.map((star) => new Watcher(parse(star)));
+    return watcher.map((star) => new Watcher(star));
   }
 
   async save(watcher: Watcher | Watcher[], trx?: Knex.Transaction): Promise<void> {
@@ -45,7 +44,7 @@ export class WatchersRepository implements IResourceRepository<Watcher> {
         ),
         transaction,
       ),
-      map(watchers, (star) =>
+      each(watchers, (star) =>
         this.db
           .table(Watcher.__collection_name)
           .insert({

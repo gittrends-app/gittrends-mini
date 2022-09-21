@@ -1,10 +1,9 @@
-import { map } from 'bluebird';
+import { each } from 'bluebird';
 import { Knex } from 'knex';
 import { uniqBy } from 'lodash';
 
 import { Actor, IRepositoriesRepository, Metadata, Repository } from '@gittrends/lib';
 
-import { parse, transform } from '../helpers/sqlite';
 import { ActorsRepository } from './ActorRepository';
 import { MetadataRepository } from './MetadataRepository';
 
@@ -21,14 +20,12 @@ export class RepositoriesRepository implements IRepositoriesRepository {
     const repo = await query.table(Repository.__collection_name).select('*');
 
     if (repo) {
-      const parsedRepo = new Repository(
-        parse({
-          ...repo,
-          funding_links: repo.funding_links && JSON.parse(repo.funding_links),
-          languages: repo.languages && JSON.parse(repo.languages),
-          repository_topics: repo.repository_topics && JSON.parse(repo.repository_topics),
-        }),
-      );
+      const parsedRepo = new Repository({
+        ...repo,
+        funding_links: repo.funding_links && JSON.parse(repo.funding_links),
+        languages: repo.languages && JSON.parse(repo.languages),
+        repository_topics: repo.repository_topics && JSON.parse(repo.repository_topics),
+      });
 
       if (resolve) {
         const owner = await this.actorRepo.findById(parsedRepo.owner as string);
@@ -53,13 +50,13 @@ export class RepositoriesRepository implements IRepositoriesRepository {
   async save(repo: Repository | Repository[], trx?: Knex.Transaction): Promise<void> {
     const transaction = trx || (await this.db.transaction());
 
-    await map(uniqBy(Array.isArray(repo) ? repo : [repo], 'id'), async (repo) => {
+    await each(uniqBy(Array.isArray(repo) ? repo : [repo], 'id'), async (repo) => {
       if (repo.owner instanceof Actor) await this.actorRepo.save(repo.owner, transaction);
 
       await this.db
         .table(Repository.__collection_name)
         .insert({
-          ...transform(repo),
+          ...repo,
           funding_links: repo.funding_links && JSON.stringify(repo.funding_links),
           languages: repo.languages && JSON.stringify(repo.languages),
           owner: repo.owner instanceof Actor ? repo.owner.id : repo.owner,
@@ -69,12 +66,12 @@ export class RepositoriesRepository implements IRepositoriesRepository {
         .merge()
         .transacting(transaction);
 
-      await this.metaRepo.save(
+      return this.metaRepo.save(
         new Metadata({ repository: repo.id, resource: Repository.__collection_name, updated_at: new Date() }),
         transaction,
       );
-
-      if (!trx) await transaction.commit();
     });
+
+    if (!trx) await transaction.commit();
   }
 }

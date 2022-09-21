@@ -1,9 +1,8 @@
-import { all, map } from 'bluebird';
+import { all, each } from 'bluebird';
 import { Knex } from 'knex';
 
 import { IResourceRepository, Repository, Stargazer, User } from '@gittrends/lib';
 
-import { parse } from '../helpers/sqlite';
 import { ActorsRepository } from './ActorRepository';
 
 export class StargazersRepository implements IResourceRepository<Stargazer> {
@@ -18,7 +17,7 @@ export class StargazersRepository implements IResourceRepository<Stargazer> {
       .table(Stargazer.__collection_name)
       .where('repository', repository)
       .count('user', { as: 'count' });
-    return count;
+    return parseInt(count);
   }
 
   async findByRepository(repository: string, opts?: { limit: number; skip: number } | undefined): Promise<Stargazer[]> {
@@ -30,7 +29,7 @@ export class StargazersRepository implements IResourceRepository<Stargazer> {
       .limit(opts?.limit || 1000)
       .offset(opts?.skip || 0);
 
-    return stars.map((star) => new Stargazer(parse(star)));
+    return stars.map((star) => new Stargazer(star));
   }
 
   async save(stargazer: Stargazer | Stargazer[], trx?: Knex.Transaction): Promise<void> {
@@ -43,7 +42,7 @@ export class StargazersRepository implements IResourceRepository<Stargazer> {
         stars.reduce((memo, user) => (user.user instanceof User ? memo.concat([user.user]) : memo), new Array<User>()),
         transaction,
       ),
-      map(stars, (star) =>
+      each(stars, (star) =>
         this.db
           .table(Stargazer.__collection_name)
           .insert({

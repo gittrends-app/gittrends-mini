@@ -4,13 +4,13 @@ import { Tag } from '@gittrends/lib';
 
 export async function up(knex: Knex): Promise<void> {
   return knex.schema.createTable(Tag.__collection_name, (table) => {
-    table.string('id').primary();
-    table.string('repository').notNullable();
-    table.string('message');
-    table.string('name').notNullable();
-    table.string('oid').notNullable();
+    table.text('id').primary();
+    table.text('repository').notNullable();
+    table.text('message');
+    table.text('name').notNullable();
+    table.text('oid').notNullable();
     table.json('tagger').notNullable();
-    table.string('target').nullable();
+    table.text('target').nullable();
   });
 }
 

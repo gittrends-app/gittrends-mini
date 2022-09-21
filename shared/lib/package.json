@@ -1,7 +1,7 @@
 {
   "name": "@gittrends/lib",
   "version": "0.1.0",
-  "main": "src",
+  "main": "dist",
   "types": "dist",
   "license": "MIT",
   "scripts": {

@@ -19,11 +19,13 @@ export class ProxyService implements Service {
   resources(
     repositoryId: string,
     resources: { resource: Constructor<RepositoryResource>; endCursor?: string | undefined }[],
+    opts?: { persistenceBatchSize?: number },
   ): Iterable {
     return new ProxiedIterator(repositoryId, resources, {
       github: this.githubService,
       local: this.cacheService,
       repos: this.persistence,
+      persistenceBatchSize: opts?.persistenceBatchSize,
     });
   }
 
@@ -44,12 +46,15 @@ class ProxiedIterator implements Iterable {
   private localIterables?: Iterable;
   private githubIterables?: Iterable;
   private done = false;
+  private resourcesBatch: { items: RepositoryResource[]; endCursor?: string }[];
 
   constructor(
     private repositoryId: string,
     private resources: { resource: Constructor<RepositoryResource>; endCursor?: string | undefined }[],
-    private opts: { local: LocalService; github: GitHubService; repos: ServiceOpts },
-  ) {}
+    private opts: { local: LocalService; github: GitHubService; repos: ServiceOpts; persistenceBatchSize?: number },
+  ) {
+    this.resourcesBatch = resources.map(() => ({ items: [] }));
+  }
 
   [Symbol.asyncIterator](): AsyncIterableIterator<{ items: RepositoryResource[]; endCursor?: string }[]> {
     return this;
@@ -83,26 +88,36 @@ class ProxiedIterator implements Iterable {
 
     const [cachedResults, githubResults] = await Promise.all([this.localIterables.next(), this.githubIterables.next()]);
 
-    if (githubResults.value) {
-      for (let index = 0; index < githubResults.value.length; index++) {
-        const result = (githubResults.value as { items: RepositoryResource[]; endCursor?: string }[])[index];
+    await Promise.all(
+      ((githubResults.value || []) as { items: RepositoryResource[]; endCursor?: string }[]).map(
+        async (result, index) => {
+          const repository: IResourceRepository<RepositoryResource> = (this.opts.repos as any)[
+            (this.resources[index].resource as any).__collection_name
+          ];
 
-        const repository: IResourceRepository<RepositoryResource> = (this.opts.repos as any)[
-          (this.resources[index].resource as any).__collection_name
-        ];
+          const arrayRef = this.resourcesBatch[index];
+          arrayRef.items.push(...result.items);
+          arrayRef.endCursor = result.endCursor;
 
-        await repository.save(result.items).then(() =>
-          this.opts.repos.metadata.save(
-            new Metadata({
-              repository: this.repositoryId,
-              end_cursor: result.endCursor ? `${result.endCursor}` : undefined,
-              resource: (this.resources[index].resource as any).__collection_name,
-              updated_at: new Date(),
-            }),
-          ),
-        );
-      }
-    }
+          if (
+            !this.opts.persistenceBatchSize ||
+            (!result.items.length && arrayRef.items.length > 0) ||
+            arrayRef.items.length >= this.opts.persistenceBatchSize
+          ) {
+            await repository.save(arrayRef.items.splice(0)).then(() =>
+              this.opts.repos.metadata.save(
+                new Metadata({
+                  repository: this.repositoryId,
+                  end_cursor: arrayRef.endCursor,
+                  resource: (this.resources[index].resource as any).__collection_name,
+                  updated_at: new Date(),
+                }),
+              ),
+            );
+          }
+        },
+      ),
+    );
 
     if (cachedResults.done && githubResults.done) return { done: (this.done = true), value: undefined };
     else if (cachedResults.done) return githubResults;

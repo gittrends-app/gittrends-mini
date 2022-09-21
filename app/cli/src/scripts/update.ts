@@ -1,6 +1,4 @@
 import { queue } from 'async';
-import { each } from 'bluebird';
-import { Queue, QueueEvents, Worker } from 'bullmq';
 import { MultiBar } from 'cli-progress';
 import { Argument, Option, program } from 'commander';
 import consola from 'consola';
@@ -10,7 +8,7 @@ import prettyjson from 'prettyjson';
 
 import { Dependency, HttpClient, ProxyService, Release, Stargazer, Tag, Watcher } from '@gittrends/lib';
 
-import { createEvents, createQueue, createWorker } from '../config/bullmq.config';
+import { withBullQueue } from '../helpers/withBullQueue';
 import { withDatabase } from '../helpers/withDatabase';
 import { withMultibar } from '../helpers/withMultibar';
 import { version } from '../package.json';
@@ -23,20 +21,11 @@ type UpdaterOpts = {
 };
 
 export async function updater(name: string, opts: UpdaterOpts) {
-  const repo = await withDatabase(async (globalRepos) => {
-    const globalService = new ProxyService(opts.httpClient, globalRepos);
-    return globalService.find(name);
-  });
-
-  if (!repo) throw new Error('Repository not found!');
-
-  await withDatabase(repo.name_with_owner, async (localRepos) => {
+  await withDatabase(name, async (localRepos) => {
     const localService = new ProxyService(opts.httpClient, localRepos);
 
-    const updatedRepo = await localService.find(repo.name_with_owner, { noCache: true });
-    if (!updatedRepo) throw new Error('Repository not found!');
-
-    await withDatabase(({ repositories }) => repositories.save(updatedRepo));
+    const repo = await localService.find(name, { noCache: true });
+    if (!repo) throw new Error('Repository not found!');
 
     const resources = [];
     const includesAll = opts.resources.includes('all');
@@ -54,12 +43,9 @@ export async function updater(name: string, opts: UpdaterOpts) {
 
     const resourcesInfo = await Promise.all(
       resources.map(async (info) => {
-        const [meta] = await localRepos.metadata.findByRepository(
-          updatedRepo.id,
-          info.resource.__collection_name as any,
-        );
-        const cachedCount = await info.repository.countByRepository(updatedRepo.id);
-        const total = get(updatedRepo, info.resource.__collection_name, 0);
+        const [meta] = await localRepos.metadata.findByRepository(repo.id, info.resource.__collection_name as any);
+        const cachedCount = await info.repository.countByRepository(repo.id);
+        const total = get(repo, info.resource.__collection_name, 0);
         return { resource: info.resource, endCursor: meta?.end_cursor, total, cachedCount };
       }),
     );
@@ -69,10 +55,10 @@ export async function updater(name: string, opts: UpdaterOpts) {
       : opts.multibar.create(
           resourcesInfo.reduce((acc, p) => acc + p.total, 0),
           resourcesInfo.reduce((acc, p) => acc + p.cachedCount, 0),
-          { resource: truncate(updatedRepo.name_with_owner, { length: 28, omission: '..' }).padStart(30, ' ') },
+          { resource: truncate(repo.name_with_owner, { length: 28, omission: '..' }).padStart(30, ' ') },
         );
 
-    const iterator = localService.resources(updatedRepo.id, resourcesInfo);
+    const iterator = localService.resources(repo.id, resourcesInfo, { persistenceBatchSize: 500 });
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
@@ -83,63 +69,42 @@ export async function updater(name: string, opts: UpdaterOpts) {
         progressBar?.increment(value[index].items.length);
       });
     }
+
+    if (progressBar) opts.multibar?.remove(progressBar);
   });
 }
 
-async function asyncQueue(names: string[], opts: { resources: string[]; concurrency: number; httpClient: HttpClient }) {
-  return withMultibar(async (multibar) => {
-    consola.info('Preparing processing queue ....');
-    const queueRef = queue(
-      (name: string) => updater(name, { httpClient: opts.httpClient, resources: opts.resources, multibar }),
-      opts.concurrency,
-    );
+async function asyncQueue(
+  names: string[],
+  opts: { resources: string[]; concurrency: number; httpClient: HttpClient; multibar?: MultiBar },
+) {
+  consola.info('Preparing processing queue ....');
+  const queueRef = queue(
+    (name: string) =>
+      updater(name, { httpClient: opts.httpClient, resources: opts.resources, multibar: opts.multibar }),
+    opts.concurrency,
+  );
 
-    consola.info('Pushing repositories to queue ....');
-    queueRef.push(names);
+  consola.info('Pushing repositories to queue ....');
+  queueRef.push(names);
 
-    consola.info('Waiting process to finish ....\n');
-    return queueRef.drain();
-  });
+  consola.info('Waiting process to finish ....\n');
+  return queueRef.drain();
 }
 
-async function redisQueue(opts: { httpClient: HttpClient; concurrency: number }) {
-  let queue: Queue, events: QueueEvents, worker: Worker;
-
-  return withMultibar(async (multibar) => {
-    queue = createQueue();
-
-    const counts = await queue.getJobCounts();
-    const total = Object.values(counts).reduce((acc, v) => acc + v, 0);
-    const start = total - (counts.waiting || 0);
-
-    const queueProgressBar = multibar.create(total, start, {
-      resource: truncate('Redis Queue', { length: 28, omission: '..' }).padStart(30, ' '),
-    });
-
-    const eventHandler = async () => {
-      const counts = await queue.getJobCounts();
-      const total = Object.values(counts).reduce((acc, v) => acc + v, 0);
-      const progress = total - (counts.waiting || 0);
-      queueProgressBar.update(progress);
-    };
-
-    events = createEvents();
-    events.on('completed', eventHandler);
-    events.on('failed', eventHandler);
-
-    worker = createWorker(
-      async (job) =>
-        updater(job.data.name_with_owner, { httpClient: opts.httpClient, multibar, resources: ['all'] }).catch(
-          (error) => {
-            consola.error(error);
-            throw error;
-          },
-        ),
-      { concurrency: opts.concurrency },
-    );
-
-    return new Promise<void>((resolve) => worker.on('closed', resolve));
-  }).finally(() => each([queue, events, queue], (q) => q && q.close()));
+async function redisQueue(opts: { httpClient: HttpClient; concurrency: number; multibar?: MultiBar }) {
+  await withBullQueue((queue) =>
+    queue.process('repositories', opts.concurrency, async (job) =>
+      updater(job.data.name_with_owner, {
+        httpClient: opts.httpClient,
+        multibar: opts.multibar,
+        resources: ['all'],
+      }).catch((error: Error) => {
+        opts.multibar?.log(error.message || JSON.stringify(error));
+        throw error;
+      }),
+    ),
+  );
 }
 
 async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void> {
@@ -171,6 +136,8 @@ async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void
           protocol: apiURL.protocol.slice(0, -1),
           port: parseInt(apiURL.port),
           authToken: opts.token,
+          timeout: 60000,
+          retries: 2,
         });
 
         if (names.length) {
@@ -179,7 +146,13 @@ async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void
           consola.info('Scheduling repositories ...');
           await schedule(24);
           consola.info('Processing repositories ...\n');
-          return redisQueue({ httpClient, concurrency: opts.concurrency });
+          return withMultibar(async (multibar) =>
+            redisQueue({
+              httpClient,
+              concurrency: opts.concurrency,
+              multibar: opts.progress ? multibar : undefined,
+            }),
+          );
         }
       },
     )

@@ -1,9 +1,8 @@
-import { all, map } from 'bluebird';
+import { all, each } from 'bluebird';
 import { Knex } from 'knex';
 
 import { Actor, IResourceRepository, Release } from '@gittrends/lib';
 
-import { parse, transform } from '../helpers/sqlite';
 import { ActorsRepository } from './ActorRepository';
 
 export class ReleasesRepository implements IResourceRepository<Release> {
@@ -18,7 +17,7 @@ export class ReleasesRepository implements IResourceRepository<Release> {
       .table(Release.__collection_name)
       .where('repository', repository)
       .count('id', { as: 'count' });
-    return count;
+    return parseInt(count);
   }
 
   async findByRepository(repository: string, opts?: { limit: number; skip: number } | undefined): Promise<Release[]> {
@@ -30,7 +29,7 @@ export class ReleasesRepository implements IResourceRepository<Release> {
       .limit(opts?.limit || 1000)
       .offset(opts?.skip || 0);
 
-    return releases.map((release) => new Release(parse(release)));
+    return releases.map((release) => new Release(release));
   }
 
   async save(release: Release | Release[], trx?: Knex.Transaction): Promise<void> {
@@ -46,13 +45,10 @@ export class ReleasesRepository implements IResourceRepository<Release> {
         ),
         transaction,
       ),
-      map(releases, (rel) =>
+      each(releases, (rel) =>
         this.db
           .table(Release.__collection_name)
-          .insert({
-            ...transform(rel),
-            author: rel.author instanceof Actor ? rel.author.id : rel.author,
-          })
+          .insert({ ...rel, author: rel.author instanceof Actor ? rel.author.id : rel.author })
           .onConflict(['id'])
           .ignore()
           .transacting(transaction),

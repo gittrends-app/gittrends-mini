@@ -1,23 +1,42 @@
-import { mkdir } from 'fs/promises';
-import { knex } from 'knex';
+import { mkdirSync } from 'fs';
+import knex, { Knex } from 'knex';
+import { isNil, omitBy } from 'lodash';
 import { homedir } from 'os';
-import path, { resolve } from 'path';
+import { dirname, extname, resolve } from 'path';
 
-export async function createOrConnectDatabase(name: string | 'repositories') {
-  const databaseFile = path.resolve(homedir(), '.gittrends', ...name.split('/')) + '.sqlite';
+function knexResponseParser(result: any) {
+  if (result.command && result.rows) return result;
+  return omitBy(result, isNil);
+}
 
-  await mkdir(path.dirname(databaseFile), { recursive: true });
+export async function createOrConnectDatabase(db: string | 'public') {
+  const databaseFile = resolve(homedir(), '.gittrends', ...db.split('/')) + '.sqlite';
 
-  const knexInstance = knex({
+  mkdirSync(dirname(databaseFile), { recursive: true });
+
+  const conn = knex({
     client: 'sqlite3',
     useNullAsDefault: true,
     connection: { filename: databaseFile },
+    migrations: {
+      directory: resolve(__dirname, 'migrations'),
+      tableName: '_migrations',
+      loadExtensions: [extname(__filename)],
+    },
+    postProcessResponse(result) {
+      if (Array.isArray(result)) return result.map(knexResponseParser);
+      return knexResponseParser(result);
+    },
   });
 
-  await Promise.all([
-    knexInstance.raw('PRAGMA busy_timeout=30000;'),
-    knexInstance.migrate.latest({ directory: resolve(__dirname, 'migrations') }),
-  ]);
+  return migrate(conn).then(() => conn);
+}
 
-  return knexInstance;
+export async function migrate(db: string | Knex): Promise<void> {
+  if (typeof db === 'string') {
+    const conn = await createOrConnectDatabase(db);
+    return migrate(conn).finally(() => conn.destroy());
+  }
+
+  return db.migrate.latest({ directory: resolve(__dirname, 'migrations') });
 }

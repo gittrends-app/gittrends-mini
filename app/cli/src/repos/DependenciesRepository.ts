@@ -1,9 +1,7 @@
-import { map } from 'bluebird';
+import { each } from 'bluebird';
 import { Knex } from 'knex';
 
 import { Dependency, IResourceRepository, Repository } from '@gittrends/lib';
-
-import { parse, transform } from '../helpers/sqlite';
 
 export class DependenciesRepository implements IResourceRepository<Dependency> {
   constructor(private db: Knex) {}
@@ -13,7 +11,7 @@ export class DependenciesRepository implements IResourceRepository<Dependency> {
       .table(Dependency.__collection_name)
       .where('repository', repository)
       .count('*', { as: 'count' });
-    return count;
+    return parseInt(count);
   }
 
   async findByRepository(repository: string, opts?: { limit: number; skip: number }): Promise<Dependency[]> {
@@ -31,10 +29,7 @@ export class DependenciesRepository implements IResourceRepository<Dependency> {
 
     return dependencies.map(
       (dep) =>
-        new Dependency({
-          ...parse(dep),
-          target_repository: dep.target_repository && JSON.parse(dep.target_repository),
-        }),
+        new Dependency({ ...dep, target_repository: dep.target_repository && JSON.parse(dep.target_repository) }),
     );
   }
 
@@ -43,11 +38,11 @@ export class DependenciesRepository implements IResourceRepository<Dependency> {
 
     const transaction = trx || (await this.db.transaction());
 
-    await map(dependencies, (dep) =>
+    await each(dependencies, (dep) =>
       this.db
         .table(Dependency.__collection_name)
         .insert({
-          ...transform(dep),
+          ...dep,
           repository: dep.repository instanceof Repository ? dep.repository.id : dep.repository,
           target_repository: JSON.stringify(dep.target_repository),
         })

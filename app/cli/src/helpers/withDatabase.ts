@@ -25,7 +25,7 @@ type Repositories = {
 type TCallback<T> = (repos: Repositories) => Promise<T>;
 
 export async function withDatabase<T>(db: string | TCallback<T>, context?: TCallback<T>): Promise<T> {
-  const dbName = typeof db === 'function' ? 'repositories' : db;
+  const dbName = typeof db === 'function' ? 'public' : db;
   const callback = typeof db === 'function' ? db : context;
 
   if (!callback) throw new Error('Callback function is mandatory!');
@@ -42,7 +42,5 @@ export async function withDatabase<T>(db: string | TCallback<T>, context?: TCall
     watchers: new WatchersRepository(knex),
     dependencies: new DependenciesRepository(knex),
     metadata: new MetadataRepository(knex),
-  }).finally(async () => {
-    knex.destroy();
-  });
+  }).finally(() => knex.destroy());
 }

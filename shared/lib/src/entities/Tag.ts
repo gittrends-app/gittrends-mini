@@ -31,7 +31,7 @@ export class Tag extends RepositoryResource<TTag> {
       oid: Joi.string().required(),
       tagger: Joi.object({
         date: Joi.date().required(),
-        email: Joi.string().required(),
+        email: Joi.string(),
         name: Joi.string().required(),
         user: Joi.alternatives(Joi.string(), User.__schema).custom((value) =>
           typeof value === 'string' ? value : new User(value),

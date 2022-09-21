@@ -6,6 +6,10 @@
   "scripts": {
     "build": "tsc",
     "eslint": "eslint --color",
+    "add-repositories": "node dist/scripts/add-repositories.js",
+    "schedule": "node dist/scripts/schedule.js",
+    "update": "node dist/scripts/update.js",
+    "clinic:update": "clinic bubbleprof -- node dist/scripts/update.js",
     "dev:add-repositories": "ts-node -T src/scripts/add-repositories.ts",
     "dev:schedule": "ts-node -T src/scripts/schedule.ts",
     "dev:update": "ts-node -T src/scripts/update.ts",
@@ -14,20 +18,26 @@
   "dependencies": {
     "@gittrends/lib": "link:../../shared/lib",
     "async": "^3.2.4",
+    "better-sqlite3": "^7.6.2",
     "bluebird": "^3.7.2",
-    "bullmq": "^1.91.1",
+    "bull": "^4.9.0",
     "cli-progress": "^3.11.2",
     "commander": "^9.4.0",
     "consola": "^2.15.3",
+    "glob": "^8.0.3",
     "knex": "^2.3.0",
     "lodash": "^4.17.21",
+    "pg": "^8.8.0",
     "prettyjson": "^1.2.5",
     "sqlite3": "^5.1.1"
   },
   "devDependencies": {
     "@gittrends-app/github-proxy-server": "gittrends-app/github-proxy-server",
     "@types/async": "^3.2.15",
+    "@types/bull": "^3.15.9",
     "@types/cli-progress": "^3.11.0",
-    "@types/prettyjson": "^0.0.30"
+    "@types/glob": "^8.0.0",
+    "@types/prettyjson": "^0.0.30",
+    "clinic": "^12.0.0"
   }
 }

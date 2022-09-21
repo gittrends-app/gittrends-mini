@@ -1,10 +1,8 @@
-import { map } from 'bluebird';
+import { each } from 'bluebird';
 import { Knex } from 'knex';
-import { omit, pick } from 'lodash';
+import { omit, pick, size } from 'lodash';
 
 import { IMetadataRepository, Metadata } from '@gittrends/lib';
-
-import { parse } from '../helpers/sqlite';
 
 export class MetadataRepository implements IMetadataRepository {
   constructor(private db: Knex) {}
@@ -15,18 +13,25 @@ export class MetadataRepository implements IMetadataRepository {
       .select('*')
       .where({ repository, ...(resource ? { resource } : {}) });
 
-    return metas.map((meta) => new Metadata(omit({ ...parse(meta), ...JSON.parse(meta.payload) }, 'payload') as any));
+    return metas.map(
+      (meta) => new Metadata(omit({ ...meta, ...(meta.payload && JSON.parse(meta.payload)) }, 'payload') as any),
+    );
   }
 
   async save(metadata: Metadata | Metadata[], trx?: Knex.Transaction): Promise<void> {
-    await map(Array.isArray(metadata) ? metadata : [metadata], (meta) => {
+    const transaction = trx || (await this.db.transaction());
+
+    await each(Array.isArray(metadata) ? metadata : [metadata], (meta) => {
       const fields = ['repository', 'resource', 'end_cursor', 'updated_at'];
-      const command = this.db
+      const payload = omit(meta.toJSON(), fields);
+      return this.db
         .table(Metadata.__collection_name)
-        .insert({ ...pick(meta.toJSON(), fields), payload: JSON.stringify(omit(meta.toJSON(), fields)) })
+        .insert({ ...pick(meta.toJSON(), fields), payload: size(payload) > 0 ? JSON.stringify(payload) : undefined })
         .onConflict(['repository', 'resource'])
-        .merge();
-      return trx ? command.transacting(trx) : command;
+        .merge()
+        .transacting(transaction);
     });
+
+    if (!trx) await transaction.commit();
   }
 }

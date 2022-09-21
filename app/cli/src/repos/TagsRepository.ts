@@ -1,9 +1,8 @@
-import { all, map } from 'bluebird';
+import { all, each } from 'bluebird';
 import { Knex } from 'knex';
 
 import { Actor, IResourceRepository, Repository, Tag, User } from '@gittrends/lib';
 
-import { parse } from '../helpers/sqlite';
 import { ActorsRepository } from './ActorRepository';
 
 export class TagsRepository implements IResourceRepository<Tag> {
@@ -18,7 +17,7 @@ export class TagsRepository implements IResourceRepository<Tag> {
       .table(Tag.__collection_name)
       .where('repository', repository)
       .count('id', { as: 'count' });
-    return count;
+    return parseInt(count);
   }
 
   async findByRepository(repository: string, opts?: { limit: number; skip: number } | undefined): Promise<Tag[]> {
@@ -30,7 +29,7 @@ export class TagsRepository implements IResourceRepository<Tag> {
       .limit(opts?.limit || 1000)
       .offset(opts?.skip || 0);
 
-    return tags.map((star) => new Tag(parse({ ...star, tagger: star.tagger && JSON.parse(star.tagger) })));
+    return tags.map((star) => new Tag({ ...star, tagger: star.tagger && JSON.parse(star.tagger) }));
   }
 
   async save(tag: Tag | Tag[], trx?: Knex.Transaction): Promise<void> {
@@ -54,7 +53,7 @@ export class TagsRepository implements IResourceRepository<Tag> {
 
     await all([
       this.actorsRepo.save(_users, transaction),
-      map(_tags, (tag) =>
+      each(_tags, (tag) =>
         this.db
           .table(Tag.__collection_name)
           .insert({

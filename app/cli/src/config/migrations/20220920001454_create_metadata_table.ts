@@ -4,10 +4,10 @@ import { Metadata } from '@gittrends/lib';
 
 export async function up(knex: Knex): Promise<void> {
   return knex.schema.createTable(Metadata.__collection_name, (table) => {
-    table.string('repository').notNullable();
-    table.string('resource').nullable();
-    table.string('end_cursor').nullable();
-    table.datetime('updated_at').nullable();
+    table.text('repository').notNullable();
+    table.text('resource').nullable();
+    table.text('end_cursor').nullable();
+    table.timestamp('updated_at').nullable();
     table.json('payload').nullable();
     table.primary(['repository', 'resource']);
   });
