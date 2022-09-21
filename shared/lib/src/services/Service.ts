@@ -3,7 +3,7 @@ import { SearchComponentQuery } from '../github/components';
 import { Constructor } from '../types';
 
 export type Iterable<T extends Entity = RepositoryResource> = AsyncIterableIterator<
-  { items: T[]; endCursor?: string }[]
+  { items: T[]; endCursor?: string; hasNextPage: boolean }[]
 >;
 
 export interface Service {

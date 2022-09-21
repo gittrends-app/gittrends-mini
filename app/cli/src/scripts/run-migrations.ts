@@ -1,20 +1,18 @@
 import { queue } from 'async';
 import consola from 'consola';
 import { GlobSync } from 'glob';
-import { homedir } from 'os';
-import path, { resolve } from 'path';
+import { resolve } from 'path';
 
-import { migrate } from '../config/knex.config';
+import { BASE_DIR, migrate } from '../config/knex.config';
 
 (async () => {
   consola.info('Searching for .sqlite files ...');
-  const baseDir = path.resolve(homedir(), '.gittrends');
-  const matches = new GlobSync('**/*.sqlite', { cwd: baseDir });
+  const matches = new GlobSync('**/*.sqlite', { cwd: BASE_DIR });
 
   consola.info('Preparing processing queue ...');
   const q = queue(async (db: string) => {
     consola.log(`-> migrating ${db}`);
-    await migrate(resolve(baseDir, db));
+    await migrate(resolve(BASE_DIR, db));
   }, 10);
 
   q.push(matches.found);

@@ -36,7 +36,15 @@ export class ProxyService implements Service {
     }
 
     const repo = await this.githubService.find(name);
-    if (repo) await this.persistence.repositories.save(repo);
+    if (repo) {
+      await this.persistence.repositories
+        .save(repo)
+        .then(() =>
+          this.persistence.metadata.save(
+            new Metadata({ repository: repo.id, resource: Repository.__collection_name, updated_at: new Date() }),
+          ),
+        );
+    }
 
     return repo;
   }
@@ -56,11 +64,11 @@ class ProxiedIterator implements Iterable {
     this.resourcesBatch = resources.map(() => ({ items: [] }));
   }
 
-  [Symbol.asyncIterator](): AsyncIterableIterator<{ items: RepositoryResource[]; endCursor?: string }[]> {
+  [Symbol.asyncIterator]() {
     return this;
   }
 
-  async next(): Promise<IteratorResult<{ items: RepositoryResource[]; endCursor?: string }[]>> {
+  async next(): Promise<IteratorResult<{ items: RepositoryResource[]; endCursor?: string; hasNextPage: boolean }[]>> {
     if (this.done) return Promise.resolve({ done: true, value: undefined });
 
     const cachedResourcesIndexes = this.resources
@@ -89,7 +97,7 @@ class ProxiedIterator implements Iterable {
     const [cachedResults, githubResults] = await Promise.all([this.localIterables.next(), this.githubIterables.next()]);
 
     await Promise.all(
-      ((githubResults.value || []) as { items: RepositoryResource[]; endCursor?: string }[]).map(
+      ((githubResults.value || []) as { items: RepositoryResource[]; endCursor?: string; hasNextPage: boolean }[]).map(
         async (result, index) => {
           const repository: IResourceRepository<RepositoryResource> = (this.opts.repos as any)[
             (this.resources[index].resource as any).__collection_name
@@ -101,6 +109,7 @@ class ProxiedIterator implements Iterable {
 
           if (
             !this.opts.persistenceBatchSize ||
+            !result.hasNextPage ||
             (!result.items.length && arrayRef.items.length > 0) ||
             arrayRef.items.length >= this.opts.persistenceBatchSize
           ) {

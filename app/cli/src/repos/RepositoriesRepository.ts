@@ -2,7 +2,7 @@ import { each } from 'bluebird';
 import { Knex } from 'knex';
 import { uniqBy } from 'lodash';
 
-import { Actor, IRepositoriesRepository, Metadata, Repository } from '@gittrends/lib';
+import { Actor, IRepositoriesRepository, Repository } from '@gittrends/lib';
 
 import { ActorsRepository } from './ActorRepository';
 import { MetadataRepository } from './MetadataRepository';
@@ -48,9 +48,11 @@ export class RepositoriesRepository implements IRepositoriesRepository {
   }
 
   async save(repo: Repository | Repository[], trx?: Knex.Transaction): Promise<void> {
+    const repos = uniqBy(Array.isArray(repo) ? repo : [repo], 'id').map((r) => r.toJSON('sqlite'));
+
     const transaction = trx || (await this.db.transaction());
 
-    await each(uniqBy(Array.isArray(repo) ? repo : [repo], 'id'), async (repo) => {
+    await each(repos, async (repo) => {
       if (repo.owner instanceof Actor) await this.actorRepo.save(repo.owner, transaction);
 
       await this.db
@@ -65,11 +67,6 @@ export class RepositoriesRepository implements IRepositoriesRepository {
         .onConflict('id')
         .merge()
         .transacting(transaction);
-
-      return this.metaRepo.save(
-        new Metadata({ repository: repo.id, resource: Repository.__collection_name, updated_at: new Date() }),
-        transaction,
-      );
     });
 
     if (!trx) await transaction.commit();

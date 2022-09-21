@@ -2,7 +2,7 @@
  *  Author: Hudson S. Borges
  */
 import Joi from 'joi';
-import { cloneDeep, omit, snakeCase } from 'lodash';
+import { cloneDeep, mapValues, omit, snakeCase } from 'lodash';
 import { plural } from 'pluralize';
 
 export class EntityValidationError extends Error {
@@ -26,8 +26,10 @@ export abstract class Entity<T = any> {
     if (object) Object.assign(this, (this.constructor as unknown as typeof Entity).transform(object));
   }
 
-  public toJSON(): Record<any, unknown> {
-    return omit(cloneDeep(this), ['toJSON']);
+  public toJSON(schema?: 'sqlite'): Record<any, unknown> {
+    return mapValues(omit(cloneDeep(this), ['toJSON']), (value) =>
+      schema === 'sqlite' && typeof value === 'boolean' ? value.toString().toUpperCase() : value,
+    );
   }
 
   public static get __schema(): Joi.ObjectSchema<Entity> {

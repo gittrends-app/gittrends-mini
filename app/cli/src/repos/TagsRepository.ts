@@ -53,17 +53,19 @@ export class TagsRepository implements IResourceRepository<Tag> {
 
     await all([
       this.actorsRepo.save(_users, transaction),
-      each(_tags, (tag) =>
-        this.db
-          .table(Tag.__collection_name)
-          .insert({
-            ...tag,
-            repository: tag.repository instanceof Repository ? tag.repository.id : tag.repository,
-            tagger: tag.tagger && JSON.stringify(tag.tagger),
-          })
-          .onConflict(['id'])
-          .ignore()
-          .transacting(transaction),
+      each(
+        _tags.map((t) => t.toJSON('sqlite')),
+        (tag) =>
+          this.db
+            .table(Tag.__collection_name)
+            .insert({
+              ...tag,
+              repository: tag.repository instanceof Repository ? tag.repository.id : tag.repository,
+              tagger: tag.tagger && JSON.stringify(tag.tagger),
+            })
+            .onConflict(['id'])
+            .ignore()
+            .transacting(transaction),
       ),
     ]);
 

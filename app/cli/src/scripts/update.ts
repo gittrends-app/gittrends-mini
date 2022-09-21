@@ -60,17 +60,19 @@ export async function updater(name: string, opts: UpdaterOpts) {
 
     const iterator = localService.resources(repo.id, resourcesInfo, { persistenceBatchSize: 500 });
 
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      const { done, value } = await iterator.next();
-      if (done) break;
+    try {
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { done, value } = await iterator.next();
+        if (done) break;
 
-      resourcesInfo.forEach((_, index) => {
-        progressBar?.increment(value[index].items.length);
-      });
+        resourcesInfo.forEach((_, index) => {
+          progressBar?.increment(value[index].items.length);
+        });
+      }
+    } finally {
+      if (progressBar) opts.multibar?.remove(progressBar);
     }
-
-    if (progressBar) opts.multibar?.remove(progressBar);
   });
 }
 
@@ -93,18 +95,35 @@ async function asyncQueue(
 }
 
 async function redisQueue(opts: { httpClient: HttpClient; concurrency: number; multibar?: MultiBar }) {
-  await withBullQueue((queue) =>
-    queue.process('repositories', opts.concurrency, async (job) =>
-      updater(job.data.name_with_owner, {
-        httpClient: opts.httpClient,
-        multibar: opts.multibar,
-        resources: ['all'],
-      }).catch((error: Error) => {
-        opts.multibar?.log(error.message || JSON.stringify(error));
-        throw error;
-      }),
-    ),
-  );
+  await withBullQueue(async (queue) => {
+    const counts = await queue.getJobCounts();
+    const total = Object.values(counts).reduce((acc, v) => acc + v, 0);
+
+    const generalProgress = opts.multibar?.create(total, counts.completed + counts.failed, {
+      resource: truncate('[queue progress]', { length: 28, omission: '..' }).padStart(30, ' '),
+    });
+
+    const updateProgressBar = async () => {
+      const counts = await queue.getJobCounts();
+      generalProgress?.update(counts.completed + counts.failed);
+      generalProgress?.setTotal(Object.values(counts).reduce((acc, v) => acc + v, 0));
+    };
+
+    queue.on('completed', updateProgressBar);
+    queue.on('failed', updateProgressBar);
+    queue.on('stalled', updateProgressBar);
+
+    return queue
+      .process('repositories', opts.concurrency, async (job) =>
+        updater(job.id.toString(), { httpClient: opts.httpClient, multibar: opts.multibar, resources: ['all'] }).catch(
+          (error: Error) => {
+            opts.multibar?.log(error.message || JSON.stringify(error));
+            throw error;
+          },
+        ),
+      )
+      .finally(() => generalProgress && opts.multibar?.remove(generalProgress));
+  });
 }
 
 async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void> {

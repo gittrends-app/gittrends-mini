@@ -22,17 +22,10 @@ type Repositories = {
   metadata: MetadataRepository;
 };
 
-type TCallback<T> = (repos: Repositories) => Promise<T>;
+export async function withDatabase<T>(db: string, context: (repos: Repositories) => Promise<T>): Promise<T> {
+  const knex = await createOrConnectDatabase(db);
 
-export async function withDatabase<T>(db: string | TCallback<T>, context?: TCallback<T>): Promise<T> {
-  const dbName = typeof db === 'function' ? 'public' : db;
-  const callback = typeof db === 'function' ? db : context;
-
-  if (!callback) throw new Error('Callback function is mandatory!');
-
-  const knex = await createOrConnectDatabase(dbName);
-
-  return callback({
+  const repos: Repositories = {
     knex,
     actors: new ActorsRepository(knex),
     repositories: new RepositoriesRepository(knex),
@@ -42,5 +35,7 @@ export async function withDatabase<T>(db: string | TCallback<T>, context?: TCall
     watchers: new WatchersRepository(knex),
     dependencies: new DependenciesRepository(knex),
     metadata: new MetadataRepository(knex),
-  }).finally(() => knex.destroy());
+  };
+
+  return context(repos).finally(() => knex.destroy());
 }

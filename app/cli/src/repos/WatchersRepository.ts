@@ -32,7 +32,7 @@ export class WatchersRepository implements IResourceRepository<Watcher> {
   }
 
   async save(watcher: Watcher | Watcher[], trx?: Knex.Transaction): Promise<void> {
-    const watchers = Array.isArray(watcher) ? watcher : [watcher];
+    const watchers = (Array.isArray(watcher) ? watcher : [watcher]).map((w) => w.toJSON('sqlite'));
 
     const transaction = trx || (await this.db.transaction());
 

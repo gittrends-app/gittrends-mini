@@ -21,12 +21,14 @@ export class MetadataRepository implements IMetadataRepository {
   async save(metadata: Metadata | Metadata[], trx?: Knex.Transaction): Promise<void> {
     const transaction = trx || (await this.db.transaction());
 
-    await each(Array.isArray(metadata) ? metadata : [metadata], (meta) => {
+    const metas = (Array.isArray(metadata) ? metadata : [metadata]).map((m) => m.toJSON('sqlite'));
+
+    await each(metas, (meta) => {
       const fields = ['repository', 'resource', 'end_cursor', 'updated_at'];
-      const payload = omit(meta.toJSON(), fields);
+      const payload = omit(meta, fields);
       return this.db
         .table(Metadata.__collection_name)
-        .insert({ ...pick(meta.toJSON(), fields), payload: size(payload) > 0 ? JSON.stringify(payload) : undefined })
+        .insert({ ...pick(meta, fields), payload: size(payload) > 0 ? JSON.stringify(payload) : undefined })
         .onConflict(['repository', 'resource'])
         .merge()
         .transacting(transaction);

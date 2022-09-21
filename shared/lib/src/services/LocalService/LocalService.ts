@@ -51,14 +51,14 @@ class ResourcesIterator implements Iterable {
     return this;
   }
 
-  async next(): Promise<IteratorResult<{ items: RepositoryResource[]; endCursor?: string }[]>> {
+  async next(): Promise<IteratorResult<{ items: RepositoryResource[]; endCursor?: string; hasNextPage: boolean }[]>> {
     if (this.iterables.length === 0) return Promise.resolve({ done: true, value: undefined });
 
     const results = await Promise.all(this.iterables.map((pi) => pi.next()));
 
     const finalResult = results.reduce(
-      (memo: { items: RepositoryResource[]; endCursor?: string }[], result) =>
-        result.done ? memo : memo.concat([{ items: result.value[0]?.items, endCursor: result.value[0]?.endCursor }]),
+      (memo: { items: RepositoryResource[]; endCursor?: string; hasNextPage: boolean }[], result) =>
+        result.done ? memo : memo.concat([result.value[0]]),
       [],
     );
 

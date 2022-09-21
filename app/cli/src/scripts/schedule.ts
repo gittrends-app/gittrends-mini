@@ -1,9 +1,11 @@
-import { mapSeries } from 'bluebird';
+import { each } from 'bluebird';
 import { Option, program } from 'commander';
 import dayjs from 'dayjs';
+import { GlobSync } from 'glob';
 
 import { Dependency, Release, Repository, Stargazer, Tag, Watcher } from '@gittrends/lib';
 
+import { BASE_DIR } from '../config/knex.config';
 import { withBullQueue } from '../helpers/withBullQueue';
 import { withDatabase } from '../helpers/withDatabase';
 import { version } from '../package.json';
@@ -11,13 +13,17 @@ import { version } from '../package.json';
 const Resources = [Repository, Stargazer, Watcher, Tag, Release, Dependency].map((entity) => entity.__collection_name);
 
 export async function schedule(hours = 24) {
-  const repos = await withDatabase<{ id: string; name_with_owner: string }[]>(({ knex }) => {
-    return knex.select('id', 'name_with_owner').from(Repository.__collection_name);
-  });
+  const { found } = new GlobSync('**/*.sqlite', { cwd: BASE_DIR });
+
+  const repos = found.map((file) => file.replace(/\.sqlite$/i, ''));
 
   await withBullQueue((queue) =>
-    mapSeries(repos, async (repo) => {
-      const metadata = await withDatabase(repo.name_with_owner, ({ metadata }) => metadata.findByRepository(repo.id));
+    each(repos, async (repo) => {
+      const metadata = await withDatabase(repo, async ({ repositories, metadata }) => {
+        const details = await repositories.findByName(repo);
+        if (!details) throw new Error('Database corrupted, repository details not found!');
+        return metadata.findByRepository(details.id);
+      });
 
       const priority = Resources.reduce((acc, resource) => {
         const meta = metadata.find((m) => m.resource === resource);
@@ -26,9 +32,9 @@ export async function schedule(hours = 24) {
         else return acc + 4;
       }, 1);
 
-      return queue.getJob(repo.name_with_owner).then(async (job) => {
+      return queue.getJob(repo).then(async (job) => {
         if (!(await job?.isActive())) await job?.remove();
-        return queue.add('repositories', repo, { priority, jobId: repo.name_with_owner });
+        return queue.add('repositories', undefined, { priority, jobId: repo });
       });
     }),
   );

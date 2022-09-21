@@ -15,11 +15,11 @@ export class ResourceIterator<T extends RepositoryResource> implements Iterable 
     this.skip = opts.skip || 0;
   }
 
-  [Symbol.asyncIterator](): AsyncIterableIterator<[{ items: T[]; endCursor?: string | undefined }]> {
+  [Symbol.asyncIterator](): AsyncIterableIterator<[{ items: T[]; endCursor?: string; hasNextPage: boolean }]> {
     return this;
   }
 
-  async next(): Promise<IteratorResult<[{ items: T[]; endCursor?: string | undefined }], any>> {
+  async next(): Promise<IteratorResult<[{ items: T[]; endCursor?: string; hasNextPage: boolean }], any>> {
     if (!this.hasNext) return Promise.resolve({ done: true, value: undefined });
 
     const releases = await this.repository.findByRepository(this.repositoryId, {
@@ -32,6 +32,9 @@ export class ResourceIterator<T extends RepositoryResource> implements Iterable 
 
     if (releases.length === 0) return Promise.resolve({ done: true, value: undefined });
 
-    return Promise.resolve({ done: false, value: [{ items: releases, endCursor: `${this.skip}` }] });
+    return Promise.resolve({
+      done: false,
+      value: [{ items: releases, endCursor: `${this.skip}`, hasNextPage: this.hasNext }],
+    });
   }
 }

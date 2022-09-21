@@ -26,29 +26,31 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
         authToken: opts.token,
       });
 
-      const service = new GitHubService(httpClient);
+      const iterator = new GitHubService(httpClient).search({
+        limit: opts.limit,
+        language: opts.language,
+        sort: 'stars',
+        order: 'desc',
+        minStargazers: 5,
+      });
 
       consola.info('Opening local database ...');
-      await withDatabase(async ({ repositories }) => {
-        const iterator = service.search({
-          limit: opts.limit,
-          language: opts.language,
-          sort: 'stars',
-          order: 'desc',
-          minStargazers: 5,
-        });
 
-        await withMultibar(async (multibar) => {
-          const progressBar = multibar.create(opts.limit, 0, { resource: 'repositories' });
+      await withMultibar(async (multibar) => {
+        const progressBar = multibar.create(opts.limit, 0, { resource: 'repositories' });
 
-          consola.info('Iterating over repositories ...\n');
-          for await (const [{ items }] of iterator) {
-            await repositories.save(items);
-            progressBar.increment(items.length);
-          }
+        consola.info('Iterating over repositories ...\n');
+        for await (const [{ items }] of iterator) {
+          await Promise.all(
+            items.map((item) =>
+              withDatabase(item.name_with_owner, ({ repositories }) => repositories.save(item)).then(() =>
+                progressBar.increment(),
+              ),
+            ),
+          );
+        }
 
-          consola.success(`Done! ${progressBar.getProgress() * progressBar.getTotal()} repositories added.`);
-        });
+        consola.success(`Done! ${progressBar.getProgress() * progressBar.getTotal()} repositories added.`);
       });
     })
     .helpOption(true)

@@ -33,7 +33,7 @@ export class StargazersRepository implements IResourceRepository<Stargazer> {
   }
 
   async save(stargazer: Stargazer | Stargazer[], trx?: Knex.Transaction): Promise<void> {
-    const stars = Array.isArray(stargazer) ? stargazer : [stargazer];
+    const stars = (Array.isArray(stargazer) ? stargazer : [stargazer]).map((s) => s.toJSON('sqlite'));
 
     const transaction = trx || (await this.db.transaction());
 

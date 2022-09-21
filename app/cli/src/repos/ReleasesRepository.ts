@@ -33,7 +33,7 @@ export class ReleasesRepository implements IResourceRepository<Release> {
   }
 
   async save(release: Release | Release[], trx?: Knex.Transaction): Promise<void> {
-    const releases = Array.isArray(release) ? release : [release];
+    const releases = (Array.isArray(release) ? release : [release]).map((r) => r.toJSON('sqlite'));
 
     const transaction = trx || (await this.db.transaction());
 

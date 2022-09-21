@@ -1,21 +1,27 @@
 import { mkdirSync } from 'fs';
 import knex, { Knex } from 'knex';
-import { isNil, omitBy } from 'lodash';
+import { isNil, mapValues, omitBy } from 'lodash';
 import { homedir } from 'os';
 import { dirname, extname, resolve } from 'path';
 
+export const BASE_DIR = resolve(homedir(), '.gittrends', process.env.NODE_ENV || 'development');
+
 function knexResponseParser(result: any) {
   if (result.command && result.rows) return result;
-  return omitBy(result, isNil);
+  return mapValues(omitBy(result, isNil), (value) => {
+    if (value === 'TRUE') return true;
+    else if (value === 'FALSE') return false;
+    else return value;
+  });
 }
 
-export async function createOrConnectDatabase(db: string | 'public') {
-  const databaseFile = resolve(homedir(), '.gittrends', ...db.split('/')) + '.sqlite';
+export async function createOrConnectDatabase(repo: string) {
+  const databaseFile = resolve(BASE_DIR, ...repo.split('/')) + '.sqlite';
 
   mkdirSync(dirname(databaseFile), { recursive: true });
 
   const conn = knex({
-    client: 'sqlite3',
+    client: 'better-sqlite3',
     useNullAsDefault: true,
     connection: { filename: databaseFile },
     migrations: {

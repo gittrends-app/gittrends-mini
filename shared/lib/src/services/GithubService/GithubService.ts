@@ -63,7 +63,7 @@ class ResourceIterator implements Iterable {
     return this;
   }
 
-  async next(): Promise<IteratorResult<{ items: RepositoryResource[]; endCursor?: string | undefined }[]>> {
+  async next(): Promise<IteratorResult<{ items: RepositoryResource[]; endCursor?: string; hasNextPage: boolean }[]>> {
     const done = this.resourcesStatus.reduce((done, rs) => done && !rs.hasMore, true);
 
     if (done) return Promise.resolve({ done: true, value: undefined });
@@ -82,9 +82,9 @@ class ResourceIterator implements Iterable {
 
     const value = this.resourcesStatus.map((rs) => {
       const index = pendingResources.findIndex((pr) => pr.builder === rs.builder);
-      if (index < 0) return { items: [], endCursor: rs.endCursor };
+      if (index < 0) return { items: [], endCursor: rs.endCursor, hasNextPage: rs.hasMore };
       const result = results[index];
-      return { items: result?.data, endCursor: result?.endCursor };
+      return { items: result.data, endCursor: result.endCursor, hasNextPage: result.hasNextPage };
     });
 
     return { done: false, value };
@@ -176,7 +176,7 @@ export class GitHubService implements Service {
             maxStargazers = min(repos.map((repo) => repo.stargazers));
           }
 
-          return { done: false, value: [{ items: newRepos, endCursor }] };
+          return { done: false, value: [{ items: newRepos, endCursor, hasNextPage }] };
         });
       },
     };

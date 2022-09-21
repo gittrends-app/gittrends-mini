@@ -34,7 +34,7 @@ export class DependenciesRepository implements IResourceRepository<Dependency> {
   }
 
   async save(dependency: Dependency | Dependency[], trx?: Knex.Transaction): Promise<void> {
-    const dependencies = Array.isArray(dependency) ? dependency : [dependency];
+    const dependencies = (Array.isArray(dependency) ? dependency : [dependency]).map((d) => d.toJSON('sqlite'));
 
     const transaction = trx || (await this.db.transaction());
 
