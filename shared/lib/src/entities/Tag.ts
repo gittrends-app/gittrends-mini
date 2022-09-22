@@ -24,20 +24,20 @@ export class Tag extends RepositoryResource<TTag> {
   target?: string;
 
   public static get __schema(): Joi.ObjectSchema<Tag> {
-    return super.__schema.append<Tag>({
-      id: Joi.string().required(),
-      message: Joi.string(),
-      name: Joi.string().required(),
-      oid: Joi.string().required(),
-      tagger: Joi.object({
-        date: Joi.date().required(),
-        email: Joi.string(),
+    return super.__schema
+      .append<Tag>({
+        id: Joi.string().required(),
+        message: Joi.string(),
         name: Joi.string().required(),
-        user: Joi.alternatives(Joi.string(), User.__schema).custom((value) =>
-          typeof value === 'string' ? value : new User(value),
-        ),
-      }),
-      target: Joi.string(),
-    });
+        oid: Joi.string().required(),
+        tagger: Joi.object({
+          date: Joi.date().required(),
+          email: Joi.string(),
+          name: Joi.string().required(),
+          user: Joi.alternatives(Joi.string(), User.__schema),
+        }),
+        target: Joi.string(),
+      })
+      .custom((value) => new Tag(value));
   }
 }

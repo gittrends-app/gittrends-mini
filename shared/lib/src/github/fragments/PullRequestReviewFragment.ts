@@ -20,6 +20,7 @@ export class PullRequestReviewFragment extends Fragment {
         type:__typename
         author { ...${SimplifiedActorFragment.code} }
         authorAssociation
+        authorCanPushToRepository
         body
         comments(first: 100) { nodes { ...${PullRequestReviewCommentFragment.code} } }
         commit { ...${CommitFragment.code} }

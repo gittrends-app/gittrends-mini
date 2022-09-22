@@ -11,11 +11,11 @@ export class Stargazer extends RepositoryResource<{ user: string | User; starred
   starred_at!: Date;
 
   public static get __schema(): Joi.ObjectSchema<Stargazer> {
-    return super.__schema.append<Stargazer>({
-      user: Joi.alternatives(Joi.string(), User.__schema)
-        .custom((value) => (typeof value === 'string' ? value : new User(value)))
-        .required(),
-      starred_at: Joi.date().required(),
-    });
+    return super.__schema
+      .append<Stargazer>({
+        user: Joi.alternatives(Joi.string(), User.__schema).required(),
+        starred_at: Joi.date().required(),
+      })
+      .custom((value) => new Stargazer(value));
   }
 }

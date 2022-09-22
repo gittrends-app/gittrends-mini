@@ -22,6 +22,7 @@ export class ClosedEvent extends Fragment {
           ... on Commit { ...${CommitFragment.code} }
         }
         createdAt
+        stateReason
       }
     `;
   }

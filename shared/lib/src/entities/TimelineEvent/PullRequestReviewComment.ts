@@ -1,0 +1,32 @@
+import Joi from 'joi';
+
+import { CommitComment } from './CommitComment';
+import { Reactable } from './Reactable';
+
+export class PullRequestReviewComment extends CommitComment implements Reactable {
+  diff_hunk!: string;
+  drafted_at!: Date;
+  is_minimized!: boolean;
+  minimized_reason?: string;
+  original_commit?: string;
+  original_position!: number;
+  outdated!: boolean;
+  reply_to?: string | PullRequestReviewComment;
+  state!: string;
+
+  public static get __schema(): Joi.ObjectSchema<PullRequestReviewComment> {
+    return super.__schema
+      .append<PullRequestReviewComment>({
+        diff_hunk: Joi.string().required(),
+        drafted_at: Joi.date().required(),
+        is_minimized: Joi.boolean().required(),
+        minimized_reason: Joi.string(),
+        original_commit: Joi.string(),
+        original_position: Joi.number().required(),
+        outdated: Joi.boolean().required(),
+        reply_to: Joi.alternatives(Joi.string(), PullRequestReviewComment.__schema),
+        state: Joi.string().required(),
+      })
+      .custom((value) => new PullRequestReviewComment(value));
+  }
+}

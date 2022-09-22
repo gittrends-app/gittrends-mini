@@ -16,6 +16,7 @@ export class ReopenedEvent extends Fragment {
       fragment ${this.code} on ReopenedEvent {
         actor { ...${SimplifiedActorFragment.code} }
         createdAt
+        stateReason
       }
     `;
   }

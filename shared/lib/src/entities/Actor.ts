@@ -74,41 +74,43 @@ export class User extends Actor {
   website_url?: string;
 
   public static get __schema(): Joi.ObjectSchema<User> {
-    return Actor.__schema.append<User>({
-      bio: Joi.string(),
-      company: Joi.string(),
-      created_at: Joi.date(),
-      database_id: Joi.number(),
-      email: Joi.string(),
-      followers: Joi.number(),
-      following: Joi.number(),
-      gists: Joi.number(),
-      is_bounty_hunter: Joi.boolean(),
-      is_campus_expert: Joi.boolean(),
-      is_developer_program_member: Joi.boolean(),
-      is_employee: Joi.boolean(),
-      is_hireable: Joi.boolean(),
-      is_site_admin: Joi.boolean(),
-      location: Joi.string(),
-      name: Joi.string(),
-      projects: Joi.number(),
-      projects_url: Joi.string(),
-      repositories: Joi.number(),
-      repositories_contributed_to: Joi.number(),
-      starred_repositories: Joi.number(),
-      status: Joi.object({
-        created_at: Joi.date().required(),
-        emoji: Joi.string(),
-        expires_at: Joi.date(),
-        indicates_limited_availability: Joi.boolean(),
-        message: Joi.string(),
+    return super.__schema
+      .append<User>({
+        bio: Joi.string(),
+        company: Joi.string(),
+        created_at: Joi.date(),
+        database_id: Joi.number(),
+        email: Joi.string(),
+        followers: Joi.number(),
+        following: Joi.number(),
+        gists: Joi.number(),
+        is_bounty_hunter: Joi.boolean(),
+        is_campus_expert: Joi.boolean(),
+        is_developer_program_member: Joi.boolean(),
+        is_employee: Joi.boolean(),
+        is_hireable: Joi.boolean(),
+        is_site_admin: Joi.boolean(),
+        location: Joi.string(),
+        name: Joi.string(),
+        projects: Joi.number(),
+        projects_url: Joi.string(),
+        repositories: Joi.number(),
+        repositories_contributed_to: Joi.number(),
+        starred_repositories: Joi.number(),
+        status: Joi.object({
+          created_at: Joi.date().required(),
+          emoji: Joi.string(),
+          expires_at: Joi.date(),
+          indicates_limited_availability: Joi.boolean(),
+          message: Joi.string(),
+          updated_at: Joi.date(),
+        }),
+        twitter_username: Joi.string(),
         updated_at: Joi.date(),
-      }),
-      twitter_username: Joi.string(),
-      updated_at: Joi.date(),
-      watching: Joi.number(),
-      website_url: Joi.string(),
-    });
+        watching: Joi.number(),
+        website_url: Joi.string(),
+      })
+      .custom((value) => new User(value));
   }
 }
 
@@ -128,21 +130,23 @@ export class Organization extends Actor {
   website_url?: string;
 
   public static get __schema(): Joi.ObjectSchema<Organization> {
-    return Actor.__schema.append<Organization>({
-      created_at: Joi.date(),
-      database_id: Joi.number(),
-      description: Joi.string(),
-      email: Joi.string(),
-      is_verified: Joi.boolean(),
-      location: Joi.string(),
-      members_with_role: Joi.number(),
-      name: Joi.string(),
-      repositories: Joi.number(),
-      teams: Joi.number(),
-      twitter_username: Joi.string(),
-      updated_at: Joi.date(),
-      website_url: Joi.string(),
-    });
+    return super.__schema
+      .append<Organization>({
+        created_at: Joi.date(),
+        database_id: Joi.number(),
+        description: Joi.string(),
+        email: Joi.string(),
+        is_verified: Joi.boolean(),
+        location: Joi.string(),
+        members_with_role: Joi.number(),
+        name: Joi.string(),
+        repositories: Joi.number(),
+        teams: Joi.number(),
+        twitter_username: Joi.string(),
+        updated_at: Joi.date(),
+        website_url: Joi.string(),
+      })
+      .custom((value) => new Organization(value));
   }
 }
 
@@ -153,12 +157,14 @@ export class Mannequin extends Actor {
   updated_at?: Date;
 
   public static get __schema(): Joi.ObjectSchema<Mannequin> {
-    return Actor.__schema.append<Mannequin>({
-      created_at: Joi.date(),
-      database_id: Joi.number(),
-      email: Joi.string(),
-      updated_at: Joi.date(),
-    });
+    return super.__schema
+      .append<Mannequin>({
+        created_at: Joi.date(),
+        database_id: Joi.number(),
+        email: Joi.string(),
+        updated_at: Joi.date(),
+      })
+      .custom((value) => new Mannequin(value));
   }
 }
 
@@ -168,11 +174,13 @@ export class Bot extends Actor {
   updated_at?: Date;
 
   public static get __schema(): Joi.ObjectSchema<Bot> {
-    return Actor.__schema.append<Bot>({
-      created_at: Joi.date(),
-      database_id: Joi.number(),
-      updated_at: Joi.date(),
-    });
+    return super.__schema
+      .append<Bot>({
+        created_at: Joi.date(),
+        database_id: Joi.number(),
+        updated_at: Joi.date(),
+      })
+      .custom((value) => new Bot(value));
   }
 }
 
@@ -183,11 +191,13 @@ export class EnterpriseUserAccount extends Actor {
   user?: string;
 
   public static get __schema(): Joi.ObjectSchema<EnterpriseUserAccount> {
-    return Actor.__schema.append<EnterpriseUserAccount>({
-      created_at: Joi.date(),
-      name: Joi.string(),
-      updated_at: Joi.date(),
-      user: Joi.string(),
-    });
+    return super.__schema
+      .append<EnterpriseUserAccount>({
+        created_at: Joi.date(),
+        name: Joi.string(),
+        updated_at: Joi.date(),
+        user: Joi.string(),
+      })
+      .custom((value) => new EnterpriseUserAccount(value));
   }
 }

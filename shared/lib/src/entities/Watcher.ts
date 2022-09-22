@@ -10,10 +10,10 @@ export class Watcher extends RepositoryResource<{ user: string | User }> {
   user!: string | User;
 
   public static get __schema(): Joi.ObjectSchema<Watcher> {
-    return super.__schema.append<Watcher>({
-      user: Joi.alternatives(Joi.string(), User.__schema)
-        .custom((value) => (typeof value === 'string' ? value : new User(value)))
-        .required(),
-    });
+    return super.__schema
+      .append<Watcher>({
+        user: Joi.alternatives(Joi.string(), User.__schema).required(),
+      })
+      .custom((value) => new Watcher(value));
   }
 }

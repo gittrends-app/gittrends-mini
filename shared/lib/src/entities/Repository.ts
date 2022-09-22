@@ -1,7 +1,7 @@
 /* *  Author: Hudson S. Borges */
 import Joi from 'joi';
 
-import { Actor, Organization, User } from './Actor';
+import { Actor } from './Actor';
 import { Entity } from './Entity';
 
 export class Repository extends Entity {
@@ -113,13 +113,7 @@ export class Repository extends Entity {
       name: Joi.string(),
       name_with_owner: Joi.string().required(),
       open_graph_image_url: Joi.string(),
-      owner: Joi.alternatives(Joi.string(), User.__schema, Organization.__schema)
-        .custom((value) => {
-          if (typeof value === 'string') return value;
-          else if (value.type === 'User') return new User(value);
-          else if (value.type === 'Organization') return new User(value);
-        })
-        .required(),
+      owner: Joi.alternatives(Joi.string(), Actor.__schema).required(),
       parent: Joi.string(),
       primary_language: Joi.string(),
       pushed_at: Joi.date(),
@@ -136,18 +130,16 @@ export class Repository extends Entity {
       uses_custom_open_graph_image: Joi.boolean(),
       vulnerability_alerts: Joi.number(),
       watchers: Joi.number(),
-    });
+    }).custom((value) => new Repository(value));
   }
 }
 
-export class RepositoryResource<T = any> extends Entity<{ repository: string | Repository } & T> {
+export abstract class RepositoryResource<T = any> extends Entity<{ repository: string | Repository } & T> {
   repository!: string | Repository;
 
   public static get __schema(): Joi.ObjectSchema<RepositoryResource> {
     return Joi.object<RepositoryResource>({
-      repository: Joi.alternatives(Joi.string(), Repository.__schema)
-        .custom((value) => (typeof value === 'string' ? value : new Repository(value)))
-        .required(),
+      repository: Joi.alternatives(Joi.string(), Repository.__schema).required(),
     });
   }
 }

@@ -36,21 +36,21 @@ export class Release extends RepositoryResource<TRelease> {
   updated_at!: Date;
 
   public static get __schema(): Joi.ObjectSchema<Release> {
-    return super.__schema.append<Release>({
-      author: Joi.alternatives(Joi.string(), User.__schema)
-        .custom((value) => (typeof value === 'string' ? value : new User(value)))
-        .required(),
-      created_at: Joi.date().required(),
-      description: Joi.string(),
-      id: Joi.string().required(),
-      is_draft: Joi.boolean().default(false),
-      is_prerelease: Joi.boolean().default(false),
-      name: Joi.string(),
-      published_at: Joi.date().required(),
-      release_assets: Joi.number(),
-      tag: Joi.string().required(),
-      tag_name: Joi.string().required(),
-      updated_at: Joi.date().required(),
-    });
+    return super.__schema
+      .append<Release>({
+        author: Joi.alternatives(Joi.string(), User.__schema).required(),
+        created_at: Joi.date().required(),
+        description: Joi.string(),
+        id: Joi.string().required(),
+        is_draft: Joi.boolean().default(false),
+        is_prerelease: Joi.boolean().default(false),
+        name: Joi.string(),
+        published_at: Joi.date().required(),
+        release_assets: Joi.number(),
+        tag: Joi.string().required(),
+        tag_name: Joi.string().required(),
+        updated_at: Joi.date().required(),
+      })
+      .custom((value) => new Release(value));
   }
 }
