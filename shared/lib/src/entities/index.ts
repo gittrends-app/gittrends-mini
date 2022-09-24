@@ -1,9 +1,16 @@
+export * from './interfaces/Node';
+export * from './interfaces/Reactable';
+export * from './interfaces/RepositoryResource';
 export * from './Actor';
 export * from './Dependency';
-export { Entity } from './Entity';
+export * from './Entity';
+export * from './Issue';
 export * from './Metadata';
+export * from './PullRequest';
+export * from './Reaction';
 export * from './Release';
 export * from './Repository';
 export * from './Stargazer';
 export * from './Tag';
+export * from './TimelineEvent';
 export * from './Watcher';
