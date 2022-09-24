@@ -1,7 +1,7 @@
 import Joi from 'joi';
 
 import { Actor } from '../Actor';
-import { TimelineEvent } from './TimelineEvent';
+import { TimelineEvent } from '../TimelineEvent';
 
 export default class AutomaticBaseChangeSucceededEvent extends TimelineEvent {
   actor?: string | Actor;
@@ -17,6 +17,6 @@ export default class AutomaticBaseChangeSucceededEvent extends TimelineEvent {
         new_base: Joi.string().required(),
         old_base: Joi.string().required(),
       })
-      .custom((value) => new AutomaticBaseChangeSucceededEvent(value));
+      .custom((value) => Object.assign(new AutomaticBaseChangeSucceededEvent(), value));
   }
 }

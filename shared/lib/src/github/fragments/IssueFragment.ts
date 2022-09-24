@@ -3,7 +3,6 @@
  */
 import Fragment from '../Fragment';
 import { SimplifiedActorFragment } from './ActorFragment';
-import MilestoneFragment from './MilestoneFragment';
 import ReactableFragment from './ReactableFragment';
 
 export class IssueFragment extends Fragment {
@@ -17,7 +16,7 @@ export class IssueFragment extends Fragment {
   }
 
   get dependencies(): Fragment[] {
-    return [SimplifiedActorFragment, ...(this.full ? [ReactableFragment, MilestoneFragment] : [])];
+    return [SimplifiedActorFragment, ...(this.full ? [ReactableFragment] : [])];
   }
 
   get objectName(): string {
@@ -40,18 +39,22 @@ export class IssueFragment extends Fragment {
         closedAt
         createdAt
         createdViaEmail
-        databaseId
         editor { ...${SimplifiedActorFragment.code} }
         id
         ${Fragment.include(this.full, 'includesCreatedEdit')}
+        isPinned
         lastEditedAt
         locked
-        ${Fragment.include(this.full, `milestone { ...${MilestoneFragment.code} }`)}
+        ${Fragment.include(this.full, `milestone { id }`)}
         number
         publishedAt
         ${Fragment.include(this.full, `...${ReactableFragment.code}`)}
         state
+        stateReason
+        ${Fragment.include(this.full, 'timelineItems { totalCount }')}
         title
+        ${Fragment.include(this.full, 'trackedInIssues { totalCount }')}
+        ${Fragment.include(this.full, 'trackedIssues { totalCount }')}
         updatedAt
         ${this.additionalProperties}
       }

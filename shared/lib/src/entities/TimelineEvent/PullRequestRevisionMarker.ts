@@ -1,8 +1,8 @@
 import Joi from 'joi';
 
-import { RepositoryResource } from '../Repository';
+import { TimelineEvent } from '../TimelineEvent';
 
-export default class PullRequestRevisionMarker extends RepositoryResource {
+export default class PullRequestRevisionMarker extends TimelineEvent {
   created_at!: Date;
   last_seen_commit!: string;
 
@@ -12,6 +12,6 @@ export default class PullRequestRevisionMarker extends RepositoryResource {
         created_at: Joi.date().required(),
         last_seen_commit: Joi.string().required(),
       })
-      .custom((value) => new PullRequestRevisionMarker(value));
+      .custom((value) => Object.assign(new PullRequestRevisionMarker(), value));
   }
 }

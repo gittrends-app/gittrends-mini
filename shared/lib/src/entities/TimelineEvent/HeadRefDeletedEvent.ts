@@ -1,7 +1,7 @@
 import Joi from 'joi';
 
 import { Actor } from '../Actor';
-import { TimelineEvent } from './TimelineEvent';
+import { TimelineEvent } from '../TimelineEvent';
 
 export default class HeadRefDeletedEvent extends TimelineEvent {
   actor?: string | Actor;
@@ -17,6 +17,6 @@ export default class HeadRefDeletedEvent extends TimelineEvent {
         head_ref: Joi.object({ name: Joi.string(), target: Joi.string() }),
         head_ref_name: Joi.string().required(),
       })
-      .custom((value) => new HeadRefDeletedEvent(value));
+      .custom((value) => Object.assign(new HeadRefDeletedEvent(), value));
   }
 }

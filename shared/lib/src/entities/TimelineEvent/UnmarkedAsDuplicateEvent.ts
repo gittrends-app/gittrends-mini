@@ -3,7 +3,7 @@ import Joi from 'joi';
 import { Actor } from '../Actor';
 import { Issue } from '../Issue';
 import { PullRequest } from '../PullRequest';
-import { TimelineEvent } from './TimelineEvent';
+import { TimelineEvent } from '../TimelineEvent';
 
 export default class UnmarkedAsDuplicateEvent extends TimelineEvent {
   actor?: string | Actor;
@@ -21,6 +21,6 @@ export default class UnmarkedAsDuplicateEvent extends TimelineEvent {
         duplicate: Joi.alternatives(Joi.string(), PullRequest.__schema, Issue.__schema),
         is_cross_repository: Joi.boolean().required(),
       })
-      .custom((value) => new UnmarkedAsDuplicateEvent(value));
+      .custom((value) => Object.assign(new UnmarkedAsDuplicateEvent(), value));
   }
 }

@@ -1,7 +1,7 @@
 import Joi from 'joi';
 
 import { Actor } from '../Actor';
-import { TimelineEvent } from './TimelineEvent';
+import { TimelineEvent } from '../TimelineEvent';
 
 export default class UnlabeledEvent extends TimelineEvent {
   actor?: string | Actor;
@@ -15,6 +15,6 @@ export default class UnlabeledEvent extends TimelineEvent {
         created_at: Joi.date().required(),
         label: Joi.string().required(),
       })
-      .custom((value) => new UnlabeledEvent(value));
+      .custom((value) => Object.assign(new UnlabeledEvent(), value));
   }
 }

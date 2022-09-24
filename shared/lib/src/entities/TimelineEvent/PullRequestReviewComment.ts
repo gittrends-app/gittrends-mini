@@ -1,9 +1,8 @@
 import Joi from 'joi';
 
 import { CommitComment } from './CommitComment';
-import { Reactable } from './Reactable';
 
-export class PullRequestReviewComment extends CommitComment implements Reactable {
+export class PullRequestReviewComment extends CommitComment {
   diff_hunk!: string;
   drafted_at!: Date;
   is_minimized!: boolean;
@@ -27,6 +26,6 @@ export class PullRequestReviewComment extends CommitComment implements Reactable
         reply_to: Joi.alternatives(Joi.string(), PullRequestReviewComment.__schema),
         state: Joi.string().required(),
       })
-      .custom((value) => new PullRequestReviewComment(value));
+      .custom((value) => Object.assign(new PullRequestReviewComment(), value));
   }
 }

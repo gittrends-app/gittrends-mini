@@ -1,7 +1,7 @@
 import Joi from 'joi';
 
 import { Actor } from '../Actor';
-import { TimelineEvent } from './TimelineEvent';
+import { TimelineEvent } from '../TimelineEvent';
 
 export default class MovedColumnsInProjectEvent extends TimelineEvent {
   actor?: string | Actor;
@@ -21,6 +21,6 @@ export default class MovedColumnsInProjectEvent extends TimelineEvent {
         project_card: Joi.string(),
         project_column_name: Joi.string().required(),
       })
-      .custom((value) => new MovedColumnsInProjectEvent(value));
+      .custom((value) => Object.assign(new MovedColumnsInProjectEvent(), value));
   }
 }

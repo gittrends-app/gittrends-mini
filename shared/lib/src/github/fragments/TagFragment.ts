@@ -3,13 +3,12 @@
  */
 import Fragment from '../Fragment';
 import { SimplifiedActorFragment } from './ActorFragment';
-import CommitFragment from './CommitFragment';
 
 export class TagFragment extends Fragment {
   code = 'tag';
 
   get dependencies(): Fragment[] {
-    return [SimplifiedActorFragment, CommitFragment];
+    return [SimplifiedActorFragment];
   }
 
   toString(): string {
@@ -20,7 +19,7 @@ export class TagFragment extends Fragment {
       name
       oid
       tagger { date email name user { ...${SimplifiedActorFragment.code} } }
-      target { ...${CommitFragment.code} }
+      target { id:oid }
     }
     `;
   }

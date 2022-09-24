@@ -1,4 +1,5 @@
-import { Dependency, Release, Repository, RepositoryResource, Stargazer, Tag, Watcher } from '../../entities';
+import { Dependency, Release, Repository, Stargazer, Tag, Watcher } from '../../entities';
+import { RepositoryResource } from '../../entities/interfaces/RepositoryResource';
 import { IActorsRepository, IMetadataRepository, IRepositoriesRepository, IResourceRepository } from '../../repos';
 import { Constructor } from '../../types';
 import { Iterable, Service } from '../Service';
@@ -26,8 +27,11 @@ export class LocalService implements Service {
     return this.persistence.repositories.findByName(name, { resolve: ['owner'] });
   }
 
-  resources(repositoryId: string, resources: { resource: Constructor<RepositoryResource> }[]): Iterable {
-    const iterators: Iterable[] = resources.map((it) => {
+  resources(
+    repositoryId: string,
+    resources: { resource: Constructor<RepositoryResource> }[],
+  ): Iterable<RepositoryResource> {
+    const iterators: Iterable<RepositoryResource>[] = resources.map((it) => {
       let repository: IResourceRepository<RepositoryResource> | undefined = undefined;
       if (it.resource === Stargazer) repository = this.persistence.stargazers;
       else if (it.resource === Tag) repository = this.persistence.tags;
@@ -44,21 +48,21 @@ export class LocalService implements Service {
   }
 }
 
-class ResourcesIterator implements Iterable {
-  constructor(private iterables: Iterable[]) {}
+class ResourcesIterator implements Iterable<RepositoryResource> {
+  constructor(private iterables: Iterable<RepositoryResource>[]) {}
 
   [Symbol.asyncIterator]() {
     return this;
   }
 
-  async next(): Promise<IteratorResult<{ items: RepositoryResource[]; endCursor?: string; hasNextPage: boolean }[]>> {
+  async next(): Promise<IteratorResult<{ items: RepositoryResource[]; endCursor?: string; hasNextPage?: boolean }[]>> {
     if (this.iterables.length === 0) return Promise.resolve({ done: true, value: undefined });
 
     const results = await Promise.all(this.iterables.map((pi) => pi.next()));
 
     const finalResult = results.reduce(
-      (memo: { items: RepositoryResource[]; endCursor?: string; hasNextPage: boolean }[], result) =>
-        result.done ? memo : memo.concat([result.value[0]]),
+      (memo: { items: RepositoryResource[]; endCursor?: string; hasNextPage?: boolean }[], { done, value }) =>
+        done ? memo : memo.concat(value),
       [],
     );
 

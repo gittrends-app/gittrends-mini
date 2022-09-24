@@ -1,6 +1,6 @@
 import Joi from 'joi';
 
-import { TimelineEvent } from './TimelineEvent';
+import { TimelineEvent } from '../TimelineEvent';
 
 export default class PullRequestCommit extends TimelineEvent {
   commit!: string;
@@ -10,6 +10,6 @@ export default class PullRequestCommit extends TimelineEvent {
       .append<PullRequestCommit>({
         commit: Joi.string().required(),
       })
-      .custom((value) => new PullRequestCommit(value));
+      .custom((value) => Object.assign(new PullRequestCommit(), value));
   }
 }

@@ -1,10 +1,10 @@
 import Joi from 'joi';
 
 import { Actor } from '../Actor';
-import { RepositoryResource } from '../Repository';
+import { TimelineEvent } from '../TimelineEvent';
 import { PullRequestReviewComment } from './PullRequestReviewComment';
 
-export default class PullRequestReviewThread extends RepositoryResource {
+export default class PullRequestReviewThread extends TimelineEvent {
   comments!: PullRequestReviewComment[];
   diff_side!: string;
   is_collapsed!: boolean;
@@ -34,6 +34,6 @@ export default class PullRequestReviewThread extends RepositoryResource {
         start_diff_side: Joi.string(),
         start_line: Joi.number(),
       })
-      .custom((value) => new PullRequestReviewThread(value));
+      .custom((value) => Object.assign(new PullRequestReviewThread(), value));
   }
 }

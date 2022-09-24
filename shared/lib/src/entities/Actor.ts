@@ -4,21 +4,20 @@
 import Joi from 'joi';
 
 import { Entity } from './Entity';
+import { Node } from './interfaces/Node';
 
-export abstract class Actor extends Entity {
+export abstract class Actor extends Entity<Actor | any> implements Node {
   id!: string;
   type!: 'User' | 'Organization' | 'Mannequin' | 'Bot' | 'EnterpriseUserAccount';
   login!: string;
   avatar_url?: string;
 
-  public static get __schema(): Joi.ObjectSchema<Actor> {
-    return Joi.object<Actor>({
-      id: Joi.string().required(),
-      type: Joi.string().valid('User', 'Organization', 'Mannequin', 'Bot', 'EnterpriseUserAccount').required(),
-      login: Joi.string().required(),
-      avatar_url: Joi.string(),
-    });
-  }
+  static readonly __schema = Joi.object<Actor>({
+    id: Joi.string().required(),
+    type: Joi.string().valid('User', 'Organization', 'Mannequin', 'Bot', 'EnterpriseUserAccount').required(),
+    login: Joi.string().required(),
+    avatar_url: Joi.string(),
+  });
 
   public static from(object: Record<string, unknown>): Actor {
     switch (object.type) {
@@ -110,7 +109,7 @@ export class User extends Actor {
         watching: Joi.number(),
         website_url: Joi.string(),
       })
-      .custom((value) => new User(value));
+      .custom((value) => Object.assign(new User(), value));
   }
 }
 
@@ -146,7 +145,7 @@ export class Organization extends Actor {
         updated_at: Joi.date(),
         website_url: Joi.string(),
       })
-      .custom((value) => new Organization(value));
+      .custom((value) => Object.assign(new Organization(), value));
   }
 }
 
@@ -164,7 +163,7 @@ export class Mannequin extends Actor {
         email: Joi.string(),
         updated_at: Joi.date(),
       })
-      .custom((value) => new Mannequin(value));
+      .custom((value) => Object.assign(new Mannequin(), value));
   }
 }
 
@@ -180,7 +179,7 @@ export class Bot extends Actor {
         database_id: Joi.number(),
         updated_at: Joi.date(),
       })
-      .custom((value) => new Bot(value));
+      .custom((value) => Object.assign(new Bot(), value));
   }
 }
 
@@ -198,6 +197,6 @@ export class EnterpriseUserAccount extends Actor {
         updated_at: Joi.date(),
         user: Joi.string(),
       })
-      .custom((value) => new EnterpriseUserAccount(value));
+      .custom((value) => Object.assign(new EnterpriseUserAccount(), value));
   }
 }

@@ -1,7 +1,7 @@
 import Joi from 'joi';
 
 import { Actor } from '../Actor';
-import { TimelineEvent } from './TimelineEvent';
+import { TimelineEvent } from '../TimelineEvent';
 
 export default class RenamedTitleEvent extends TimelineEvent {
   actor?: string | Actor;
@@ -17,6 +17,6 @@ export default class RenamedTitleEvent extends TimelineEvent {
         current_title: Joi.string().required(),
         previous_title: Joi.string().required(),
       })
-      .custom((value) => new RenamedTitleEvent(value));
+      .custom((value) => Object.assign(new RenamedTitleEvent(), value));
   }
 }

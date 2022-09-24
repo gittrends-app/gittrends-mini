@@ -37,10 +37,7 @@ export class PullRequest extends Issue {
       .append<PullRequest>({
         suggested_reviewers: Joi.array().items(Joi.string()),
         additions: Joi.number(),
-        base_ref: Joi.object({
-          name: Joi.string(),
-          target: Joi.string(),
-        }),
+        base_ref: Joi.object({ name: Joi.string(), target: Joi.string() }),
         base_ref_name: Joi.string(),
         base_ref_oid: Joi.string(),
         base_repository: Joi.string(),
@@ -64,6 +61,6 @@ export class PullRequest extends Issue {
         permalink: Joi.string(),
         potential_merge_commit: Joi.string(),
       })
-      .custom((value) => new PullRequest(value));
+      .custom((value) => Object.assign(new PullRequest(), value));
   }
 }

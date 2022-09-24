@@ -1,7 +1,7 @@
 import Joi from 'joi';
 
 import { Actor } from '../Actor';
-import { TimelineEvent } from './TimelineEvent';
+import { TimelineEvent } from '../TimelineEvent';
 
 export default class TransferredEvent extends TimelineEvent {
   actor?: string | Actor;
@@ -15,6 +15,6 @@ export default class TransferredEvent extends TimelineEvent {
         created_at: Joi.date().required(),
         from_repository: Joi.object({ id: Joi.string(), name_with_owner: Joi.string() }),
       })
-      .custom((value) => new TransferredEvent(value));
+      .custom((value) => Object.assign(new TransferredEvent(), value));
   }
 }

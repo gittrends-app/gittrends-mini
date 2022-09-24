@@ -1,7 +1,7 @@
 import Joi from 'joi';
 
 import { Actor } from '../Actor';
-import { TimelineEvent } from './TimelineEvent';
+import { TimelineEvent } from '../TimelineEvent';
 
 export default class AutoMergeDisabledEvent extends TimelineEvent {
   actor?: string | Actor;
@@ -19,6 +19,6 @@ export default class AutoMergeDisabledEvent extends TimelineEvent {
         reason: Joi.string(),
         reason_code: Joi.string(),
       })
-      .custom((value) => new AutoMergeDisabledEvent(value));
+      .custom((value) => Object.assign(new AutoMergeDisabledEvent(), value));
   }
 }

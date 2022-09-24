@@ -1,8 +1,8 @@
-import { RepositoryResource } from '../../entities';
+import { RepositoryResource } from '../../entities/interfaces/RepositoryResource';
 import { IResourceRepository } from '../../repos';
 import { Iterable } from '../Service';
 
-export class ResourceIterator<T extends RepositoryResource> implements Iterable {
+export class ResourceIterator<T extends RepositoryResource> implements Iterable<T> {
   private repository: IResourceRepository<T>;
 
   private hasNext = true;
@@ -15,11 +15,11 @@ export class ResourceIterator<T extends RepositoryResource> implements Iterable 
     this.skip = opts.skip || 0;
   }
 
-  [Symbol.asyncIterator](): AsyncIterableIterator<[{ items: T[]; endCursor?: string; hasNextPage: boolean }]> {
+  [Symbol.asyncIterator]() {
     return this;
   }
 
-  async next(): Promise<IteratorResult<[{ items: T[]; endCursor?: string; hasNextPage: boolean }], any>> {
+  async next(): Promise<IteratorResult<[{ items: T[]; endCursor?: string; hasNextPage: boolean }]>> {
     if (!this.hasNext) return Promise.resolve({ done: true, value: undefined });
 
     const releases = await this.repository.findByRepository(this.repositoryId, {

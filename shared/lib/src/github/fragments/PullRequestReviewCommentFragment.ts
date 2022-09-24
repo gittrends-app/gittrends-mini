@@ -3,14 +3,13 @@
  */
 import Fragment from '../Fragment';
 import CommentFragment from './CommentFragment';
-import CommitFragment from './CommitFragment';
 import ReactableFragment from './ReactableFragment';
 
 export class PullRequestReviewCommentFragment extends Fragment {
   code = 'pullRequestReviewComment';
 
   get dependencies(): Fragment[] {
-    return [CommitFragment, CommentFragment, ReactableFragment];
+    return [CommentFragment, ReactableFragment];
   }
 
   toString(): string {
@@ -19,13 +18,13 @@ export class PullRequestReviewCommentFragment extends Fragment {
         id
         type:__typename
         ... on Comment { ...${CommentFragment.code} }
-        commit { ...${CommitFragment.code} }
+        commit { id:oid }
         databaseId
         diffHunk
         draftedAt
         isMinimized
         minimizedReason
-        originalCommit { ...${CommitFragment.code} }
+        originalCommit { id:oid }
         originalPosition
         outdated
         path
@@ -33,7 +32,6 @@ export class PullRequestReviewCommentFragment extends Fragment {
         ...${ReactableFragment.code}
         replyTo { id }
         state
-        url
       }
     `;
   }

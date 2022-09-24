@@ -5,7 +5,7 @@ import { isArray, isNil, isPlainObject, mapValues, negate, pickBy, size } from '
 
 export function canBeRemoved(value: any): boolean {
   if (isNil(value)) return true;
-  else if (value === false || value === 0 || value === '') return true;
+  else if (value === '') return true;
   else if ((isArray(value) || isPlainObject(value)) && size(value) === 0) return true;
   return false;
 }

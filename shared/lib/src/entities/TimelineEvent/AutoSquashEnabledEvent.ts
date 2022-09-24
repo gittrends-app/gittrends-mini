@@ -1,7 +1,7 @@
 import Joi from 'joi';
 
 import { Actor } from '../Actor';
-import { TimelineEvent } from './TimelineEvent';
+import { TimelineEvent } from '../TimelineEvent';
 
 export default class AutoSquashEnabledEvent extends TimelineEvent {
   actor?: string | Actor;
@@ -15,6 +15,6 @@ export default class AutoSquashEnabledEvent extends TimelineEvent {
         created_at: Joi.date().required(),
         enabler: Joi.alternatives(Joi.string(), Actor.__schema),
       })
-      .custom((value) => new AutoSquashEnabledEvent(value));
+      .custom((value) => Object.assign(new AutoSquashEnabledEvent(), value));
   }
 }

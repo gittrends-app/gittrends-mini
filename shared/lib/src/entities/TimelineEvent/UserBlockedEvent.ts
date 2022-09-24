@@ -1,7 +1,7 @@
 import Joi from 'joi';
 
 import { Actor } from '../Actor';
-import { TimelineEvent } from './TimelineEvent';
+import { TimelineEvent } from '../TimelineEvent';
 
 export default class UserBlockedEvent extends TimelineEvent {
   actor?: string | Actor;
@@ -17,6 +17,6 @@ export default class UserBlockedEvent extends TimelineEvent {
         created_at: Joi.date().required(),
         subject: Joi.alternatives(Joi.string(), Actor.__schema),
       })
-      .custom((value) => new UserBlockedEvent(value));
+      .custom((value) => Object.assign(new UserBlockedEvent(), value));
   }
 }

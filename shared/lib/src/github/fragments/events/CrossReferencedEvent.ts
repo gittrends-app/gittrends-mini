@@ -20,7 +20,6 @@ export class CrossReferencedEvent extends Fragment {
         referencedAt
         source { type:__typename ... on Node { id } }
         target { type:__typename ... on Node { id } }
-        url
         willCloseTarget
       }
     `;

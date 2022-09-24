@@ -17,12 +17,10 @@ export class ReviewDismissedEvent extends Fragment {
       fragment ${this.code} on ReviewDismissedEvent {
         actor { ...${SimplifiedActorFragment.code} }
         createdAt
-        databaseId
         dismissalMessage
         previousReviewState
         pullRequestCommit { ...${PullRequestCommitFragment.code} }
         review { id }
-        url
       }
     `;
   }

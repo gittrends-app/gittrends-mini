@@ -3,19 +3,18 @@
  */
 import Fragment from '../Fragment';
 import { SimplifiedActorFragment } from './ActorFragment';
-import CommitFragment from './CommitFragment';
 
 export class DeploymentFragment extends Fragment {
   code = 'deployment';
 
   get dependencies(): Fragment[] {
-    return [CommitFragment, SimplifiedActorFragment];
+    return [SimplifiedActorFragment];
   }
 
   toString(): string {
     return `
       fragment ${this.code} on Deployment {
-        commit { ...${CommitFragment.code} }
+        commit { id:oid }
         createdAt
         creator { ...${SimplifiedActorFragment.code} }
         databaseId

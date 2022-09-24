@@ -1,7 +1,7 @@
 import Joi from 'joi';
 
 import { Actor } from '../Actor';
-import { TimelineEvent } from './TimelineEvent';
+import { TimelineEvent } from '../TimelineEvent';
 
 export default class BaseRefChangedEvent extends TimelineEvent {
   actor?: string | Actor;
@@ -17,6 +17,6 @@ export default class BaseRefChangedEvent extends TimelineEvent {
         current_ref_name: Joi.string().required(),
         previous_ref_name: Joi.string().required(),
       })
-      .custom((value) => new BaseRefChangedEvent(value));
+      .custom((value) => Object.assign(new BaseRefChangedEvent(), value));
   }
 }

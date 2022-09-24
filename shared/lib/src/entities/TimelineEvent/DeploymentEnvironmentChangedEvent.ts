@@ -1,7 +1,7 @@
 import Joi from 'joi';
 
 import { Actor } from '../Actor';
-import { TimelineEvent } from './TimelineEvent';
+import { TimelineEvent } from '../TimelineEvent';
 
 export default class DeploymentEnvironmentChangedEvent extends TimelineEvent {
   actor?: string | Actor;
@@ -15,6 +15,6 @@ export default class DeploymentEnvironmentChangedEvent extends TimelineEvent {
         created_at: Joi.date().required(),
         deployment_status: Joi.string().required(),
       })
-      .custom((value) => new DeploymentEnvironmentChangedEvent(value));
+      .custom((value) => Object.assign(new DeploymentEnvironmentChangedEvent(), value));
   }
 }

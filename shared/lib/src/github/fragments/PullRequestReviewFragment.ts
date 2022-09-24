@@ -3,7 +3,6 @@
  */
 import Fragment from '../Fragment';
 import { SimplifiedActorFragment } from './ActorFragment';
-import CommitFragment from './CommitFragment';
 import PullRequestReviewCommentFragment from './PullRequestReviewCommentFragment';
 import ReactableFragment from './ReactableFragment';
 
@@ -11,7 +10,7 @@ export class PullRequestReviewFragment extends Fragment {
   code = 'pullRequestReview';
 
   get dependencies(): Fragment[] {
-    return [SimplifiedActorFragment, CommitFragment, ReactableFragment, PullRequestReviewCommentFragment];
+    return [SimplifiedActorFragment, ReactableFragment, PullRequestReviewCommentFragment];
   }
 
   toString(): string {
@@ -23,7 +22,7 @@ export class PullRequestReviewFragment extends Fragment {
         authorCanPushToRepository
         body
         comments(first: 100) { nodes { ...${PullRequestReviewCommentFragment.code} } }
-        commit { ...${CommitFragment.code} }
+        commit { id:oid }
         createdAt
         createdViaEmail
         databaseId
@@ -34,7 +33,6 @@ export class PullRequestReviewFragment extends Fragment {
         state
         submittedAt
         updatedAt
-        url
       }
     `;
   }

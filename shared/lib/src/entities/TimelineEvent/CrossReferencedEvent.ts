@@ -1,7 +1,7 @@
 import Joi from 'joi';
 
 import { Actor } from '../Actor';
-import { TimelineEvent } from './TimelineEvent';
+import { TimelineEvent } from '../TimelineEvent';
 
 export default class CrossReferencedEvent extends TimelineEvent {
   actor?: string | Actor;
@@ -10,7 +10,6 @@ export default class CrossReferencedEvent extends TimelineEvent {
   referenced_at!: Date;
   source!: { type: string; id: string };
   target!: { type: string; id: string };
-  url!: string;
   will_close_target!: boolean;
 
   public static get __schema(): Joi.ObjectSchema<CrossReferencedEvent> {
@@ -22,9 +21,8 @@ export default class CrossReferencedEvent extends TimelineEvent {
         referenced_at: Joi.date().required(),
         source: Joi.object({ type: Joi.string(), id: Joi.string() }).required(),
         target: Joi.object({ type: Joi.string(), id: Joi.string() }).required(),
-        url: Joi.string().required(),
         will_close_target: Joi.boolean().required(),
       })
-      .custom((value) => new CrossReferencedEvent(value));
+      .custom((value) => Object.assign(new CrossReferencedEvent(), value));
   }
 }

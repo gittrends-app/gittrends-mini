@@ -1,7 +1,7 @@
 import Joi from 'joi';
 
+import { TimelineEvent } from '../TimelineEvent';
 import { CommitComment } from './CommitComment';
-import { TimelineEvent } from './TimelineEvent';
 
 export default class PullRequestCommitCommentThread extends TimelineEvent {
   comments!: CommitComment[];
@@ -17,6 +17,6 @@ export default class PullRequestCommitCommentThread extends TimelineEvent {
         path: Joi.string(),
         position: Joi.number(),
       })
-      .custom((value) => new PullRequestCommitCommentThread(value));
+      .custom((value) => Object.assign(new PullRequestCommitCommentThread(), value));
   }
 }

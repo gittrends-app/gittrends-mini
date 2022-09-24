@@ -1,9 +1,9 @@
 import Joi from 'joi';
 
 import { Actor } from '../Actor';
-import { PullRequestCommit } from './PullRequestCommit';
-import { PullRequestReview } from './PullRequestReview';
-import { TimelineEvent } from './TimelineEvent';
+import { TimelineEvent } from '../TimelineEvent';
+import PullRequestCommit from './PullRequestCommit';
+import PullRequestReview from './PullRequestReview';
 
 export default class ReviewDismissedEvent extends TimelineEvent {
   actor?: string | Actor;
@@ -23,6 +23,6 @@ export default class ReviewDismissedEvent extends TimelineEvent {
         pull_request_commit: Joi.alternatives(Joi.string(), PullRequestCommit.__schema),
         review: Joi.alternatives(Joi.string(), PullRequestReview.__schema),
       })
-      .custom((value) => new ReviewDismissedEvent(value));
+      .custom((value) => Object.assign(new ReviewDismissedEvent(), value));
   }
 }

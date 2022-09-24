@@ -3,19 +3,12 @@
  */
 import Joi from 'joi';
 
-import { RepositoryResource } from './Repository';
+import { Entity } from './Entity';
+import { Repository } from './Repository';
+import { RepositoryResource } from './interfaces/RepositoryResource';
 
-type TDependency = {
-  manifest: string;
-  package_name: string;
-  filename?: string;
-  has_dependencies?: boolean;
-  package_manager?: string;
-  target_repository?: { id: string; database_id: number; name_with_owner: string } | string;
-  requirements?: string;
-};
-
-export class Dependency extends RepositoryResource<TDependency> {
+export class Dependency extends Entity<Dependency> implements RepositoryResource {
+  repository!: string | Repository;
   manifest!: string;
   package_name!: string;
   filename?: string;
@@ -25,23 +18,22 @@ export class Dependency extends RepositoryResource<TDependency> {
   requirements?: string;
 
   public static get __schema(): Joi.ObjectSchema<Dependency> {
-    return super.__schema
-      .append<Dependency>({
-        manifest: Joi.string().required(),
-        package_name: Joi.string().required(),
-        filename: Joi.string(),
-        has_dependencies: Joi.boolean(),
-        package_manager: Joi.string(),
-        target_repository: Joi.alternatives(
-          Joi.object({
-            id: Joi.string().required(),
-            database_id: Joi.number().required(),
-            name_with_owner: Joi.string().required(),
-          }),
-          Joi.string(),
-        ),
-        requirements: Joi.string(),
-      })
-      .custom((value) => new Dependency(value));
+    return Joi.object<Dependency>({
+      repository: Joi.alternatives(Joi.string(), Repository.__schema).required(),
+      manifest: Joi.string().required(),
+      package_name: Joi.string().required(),
+      filename: Joi.string(),
+      has_dependencies: Joi.boolean(),
+      package_manager: Joi.string(),
+      target_repository: Joi.alternatives(
+        Joi.object({
+          id: Joi.string().required(),
+          database_id: Joi.number().required(),
+          name_with_owner: Joi.string().required(),
+        }),
+        Joi.string(),
+      ),
+      requirements: Joi.string(),
+    }).custom((value) => Object.assign(new Dependency(), value));
   }
 }

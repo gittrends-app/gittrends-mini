@@ -3,13 +3,12 @@
  */
 import Fragment from '../../Fragment';
 import { SimplifiedActorFragment } from '../ActorFragment';
-import DeploymentFragment from '../DeploymentFragment';
 
 export class DeployedEvent extends Fragment {
   code = 'deployedEvent';
 
   get dependencies(): Fragment[] {
-    return [SimplifiedActorFragment, DeploymentFragment];
+    return [SimplifiedActorFragment];
   }
 
   toString(): string {
@@ -17,8 +16,7 @@ export class DeployedEvent extends Fragment {
       fragment ${this.code} on DeployedEvent {
         actor { ...${SimplifiedActorFragment.code} }
         createdAt
-        databaseId
-        deployment { ...${DeploymentFragment.code} }
+        deployment { id }
         ref { name target { id } }
       }
     `;

@@ -1,7 +1,7 @@
 import Joi from 'joi';
 
 import { Actor } from '../Actor';
-import { TimelineEvent } from './TimelineEvent';
+import { TimelineEvent } from '../TimelineEvent';
 
 export default class ConvertedNoteToIssueEvent extends TimelineEvent {
   actor?: string | Actor;
@@ -19,6 +19,6 @@ export default class ConvertedNoteToIssueEvent extends TimelineEvent {
         project_card: Joi.string(),
         project_column_name: Joi.string().required(),
       })
-      .custom((value) => new ConvertedNoteToIssueEvent(value));
+      .custom((value) => Object.assign(new ConvertedNoteToIssueEvent(), value));
   }
 }

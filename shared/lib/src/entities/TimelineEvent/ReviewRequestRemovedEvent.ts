@@ -1,7 +1,7 @@
 import Joi from 'joi';
 
 import { Actor } from '../Actor';
-import { TimelineEvent } from './TimelineEvent';
+import { TimelineEvent } from '../TimelineEvent';
 
 export default class ReviewRequestRemovedEvent extends TimelineEvent {
   actor?: string | Actor;
@@ -15,6 +15,6 @@ export default class ReviewRequestRemovedEvent extends TimelineEvent {
         created_at: Joi.date().required(),
         requested_reviewer: Joi.alternatives(Joi.string(), Actor.__schema),
       })
-      .custom((value) => new ReviewRequestRemovedEvent(value));
+      .custom((value) => Object.assign(new ReviewRequestRemovedEvent(), value));
   }
 }

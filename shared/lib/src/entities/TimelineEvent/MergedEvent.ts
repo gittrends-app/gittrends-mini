@@ -1,7 +1,7 @@
 import Joi from 'joi';
 
 import { Actor } from '../Actor';
-import { TimelineEvent } from './TimelineEvent';
+import { TimelineEvent } from '../TimelineEvent';
 
 export default class MergedEvent extends TimelineEvent {
   actor?: string | Actor;
@@ -19,6 +19,6 @@ export default class MergedEvent extends TimelineEvent {
         merge_ref: Joi.object({ name: Joi.string(), target: Joi.string() }),
         merge_ref_name: Joi.string().required(),
       })
-      .custom((value) => new MergedEvent(value));
+      .custom((value) => Object.assign(new MergedEvent(), value));
   }
 }

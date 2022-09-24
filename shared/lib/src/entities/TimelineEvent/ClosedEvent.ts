@@ -1,7 +1,7 @@
 import Joi from 'joi';
 
 import { Actor } from '../Actor';
-import { TimelineEvent } from './TimelineEvent';
+import { TimelineEvent } from '../TimelineEvent';
 
 export default class ClosedEvent extends TimelineEvent {
   actor?: string | Actor;
@@ -17,6 +17,6 @@ export default class ClosedEvent extends TimelineEvent {
         created_at: Joi.date().required(),
         state_reason: Joi.string(),
       })
-      .custom((value) => new ClosedEvent(value));
+      .custom((value) => Object.assign(new ClosedEvent(), value));
   }
 }

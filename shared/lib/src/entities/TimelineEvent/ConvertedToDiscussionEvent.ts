@@ -1,7 +1,7 @@
 import Joi from 'joi';
 
 import { Actor } from '../Actor';
-import { TimelineEvent } from './TimelineEvent';
+import { TimelineEvent } from '../TimelineEvent';
 
 export default class ConvertedToDiscussionEvent extends TimelineEvent {
   actor?: string | Actor;
@@ -15,6 +15,6 @@ export default class ConvertedToDiscussionEvent extends TimelineEvent {
         created_at: Joi.date().required(),
         discussion: Joi.string(),
       })
-      .custom((value) => new ConvertedToDiscussionEvent(value));
+      .custom((value) => Object.assign(new ConvertedToDiscussionEvent(), value));
   }
 }

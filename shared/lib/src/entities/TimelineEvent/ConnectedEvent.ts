@@ -1,7 +1,7 @@
 import Joi from 'joi';
 
 import { Actor } from '../Actor';
-import { TimelineEvent } from './TimelineEvent';
+import { TimelineEvent } from '../TimelineEvent';
 
 export default class ConnectedEvent extends TimelineEvent {
   actor?: string | Actor;
@@ -19,6 +19,6 @@ export default class ConnectedEvent extends TimelineEvent {
         source: Joi.object({ id: Joi.string(), type: Joi.string() }).required(),
         subject: Joi.object({ id: Joi.string(), type: Joi.string() }).required(),
       })
-      .custom((value) => new ConnectedEvent(value));
+      .custom((value) => Object.assign(new ConnectedEvent(), value));
   }
 }

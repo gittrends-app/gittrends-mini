@@ -3,8 +3,9 @@ import Joi from 'joi';
 
 import { Actor } from './Actor';
 import { Entity } from './Entity';
+import { Node } from './interfaces/Node';
 
-export class Repository extends Entity {
+export class Repository extends Entity<Repository> implements Node {
   id!: string;
   assignable_users?: number;
   code_of_conduct?: string;
@@ -74,12 +75,7 @@ export class Repository extends Entity {
       description: Joi.string(),
       disk_usage: Joi.number(),
       forks: Joi.number(),
-      funding_links: Joi.array().items(
-        Joi.object({
-          url: Joi.string().required(),
-          platform: Joi.string(),
-        }),
-      ),
+      funding_links: Joi.array().items(Joi.object({ url: Joi.string().required(), platform: Joi.string() })),
       has_issues_enabled: Joi.boolean(),
       has_projects_enabled: Joi.boolean(),
       has_wiki_enabled: Joi.boolean(),
@@ -98,12 +94,7 @@ export class Repository extends Entity {
       is_user_configuration_repository: Joi.boolean(),
       issues: Joi.number(),
       labels: Joi.number(),
-      languages: Joi.array().items(
-        Joi.object({
-          language: Joi.string().required(),
-          size: Joi.number().required(),
-        }),
-      ),
+      languages: Joi.array().items(Joi.object({ language: Joi.string().required(), size: Joi.number().required() })),
       license_info: Joi.string(),
       lock_reason: Joi.string(),
       mentionable_users: Joi.number(),
@@ -130,16 +121,6 @@ export class Repository extends Entity {
       uses_custom_open_graph_image: Joi.boolean(),
       vulnerability_alerts: Joi.number(),
       watchers: Joi.number(),
-    }).custom((value) => new Repository(value));
-  }
-}
-
-export abstract class RepositoryResource<T = any> extends Entity<{ repository: string | Repository } & T> {
-  repository!: string | Repository;
-
-  public static get __schema(): Joi.ObjectSchema<RepositoryResource> {
-    return Joi.object<RepositoryResource>({
-      repository: Joi.alternatives(Joi.string(), Repository.__schema).required(),
-    });
+    }).custom((value) => Object.assign(new Repository(), value));
   }
 }

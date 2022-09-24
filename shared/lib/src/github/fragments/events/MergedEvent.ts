@@ -3,24 +3,22 @@
  */
 import Fragment from '../../Fragment';
 import { SimplifiedActorFragment } from '../ActorFragment';
-import CommitFragment from '../CommitFragment';
 
 export class MergedEvent extends Fragment {
   code = 'mergedEvent';
 
   get dependencies(): Fragment[] {
-    return [SimplifiedActorFragment, CommitFragment];
+    return [SimplifiedActorFragment];
   }
 
   toString(): string {
     return `
       fragment ${this.code} on MergedEvent {
         actor { ...${SimplifiedActorFragment.code} }
-        commit { ...${CommitFragment.code} }
+        commit { id:oid }
         createdAt
         mergeRef { name target { id } }
         mergeRefName
-        url
       }
     `;
   }

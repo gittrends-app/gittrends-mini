@@ -3,14 +3,13 @@
  */
 import Fragment from '../Fragment';
 import CommentFragment from './CommentFragment';
-import CommitFragment from './CommitFragment';
 import ReactableFragment from './ReactableFragment';
 
 export class CommitCommentFragment extends Fragment {
   code = 'commitComment';
 
   get dependencies(): Fragment[] {
-    return [ReactableFragment, CommentFragment, CommitFragment];
+    return [ReactableFragment, CommentFragment];
   }
 
   toString(): string {
@@ -19,7 +18,7 @@ export class CommitCommentFragment extends Fragment {
         type:__typename
         id
         ... on Comment { ...${CommentFragment.code} }
-        commit { ...${CommitFragment.code} }
+        commit { id:oid }
         databaseId
         path
         position

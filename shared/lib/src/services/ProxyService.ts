@@ -1,4 +1,5 @@
-import { Metadata, Repository, RepositoryResource } from '../entities';
+import { Metadata, Repository } from '../entities';
+import { RepositoryResource } from '../entities/interfaces/RepositoryResource';
 import HttpClient from '../github/HttpClient';
 import { IResourceRepository } from '../repos';
 import { Constructor } from '../types';
@@ -18,9 +19,9 @@ export class ProxyService implements Service {
 
   resources(
     repositoryId: string,
-    resources: { resource: Constructor<RepositoryResource>; endCursor?: string | undefined }[],
+    resources: { resource: Constructor<RepositoryResource>; endCursor?: string; hasNextPage?: boolean }[],
     opts?: { persistenceBatchSize?: number },
-  ): Iterable {
+  ): Iterable<RepositoryResource> {
     return new ProxiedIterator(repositoryId, resources, {
       github: this.githubService,
       local: this.cacheService,
@@ -50,15 +51,15 @@ export class ProxyService implements Service {
   }
 }
 
-class ProxiedIterator implements Iterable {
-  private localIterables?: Iterable;
-  private githubIterables?: Iterable;
+class ProxiedIterator implements Iterable<RepositoryResource> {
+  private localIterables?: Iterable<RepositoryResource>;
+  private githubIterables?: Iterable<RepositoryResource>;
   private done = false;
   private resourcesBatch: { items: RepositoryResource[]; endCursor?: string }[];
 
   constructor(
     private repositoryId: string,
-    private resources: { resource: Constructor<RepositoryResource>; endCursor?: string | undefined }[],
+    private resources: { resource: Constructor<RepositoryResource>; endCursor?: string; hasNextPage?: boolean }[],
     private opts: { local: LocalService; github: GitHubService; repos: ServiceOpts; persistenceBatchSize?: number },
   ) {
     this.resourcesBatch = resources.map(() => ({ items: [] }));
@@ -68,7 +69,7 @@ class ProxiedIterator implements Iterable {
     return this;
   }
 
-  async next(): Promise<IteratorResult<{ items: RepositoryResource[]; endCursor?: string; hasNextPage: boolean }[]>> {
+  async next(): Promise<IteratorResult<{ items: RepositoryResource[]; endCursor?: string; hasNextPage?: boolean }[]>> {
     if (this.done) return Promise.resolve({ done: true, value: undefined });
 
     const cachedResourcesIndexes = this.resources

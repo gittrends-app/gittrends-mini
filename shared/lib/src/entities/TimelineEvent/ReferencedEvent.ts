@@ -1,7 +1,7 @@
 import Joi from 'joi';
 
 import { Actor } from '../Actor';
-import { TimelineEvent } from './TimelineEvent';
+import { TimelineEvent } from '../TimelineEvent';
 
 export default class ReferencedEvent extends TimelineEvent {
   actor?: string | Actor;
@@ -21,6 +21,6 @@ export default class ReferencedEvent extends TimelineEvent {
         is_cross_repository: Joi.boolean().required(),
         is_direct_reference: Joi.boolean().required(),
       })
-      .custom((value) => new ReferencedEvent(value));
+      .custom((value) => Object.assign(new ReferencedEvent(), value));
   }
 }

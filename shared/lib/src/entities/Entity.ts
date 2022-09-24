@@ -5,16 +5,8 @@ import Joi from 'joi';
 import { cloneDeep, mapValues, omit, snakeCase } from 'lodash';
 import { plural } from 'pluralize';
 
-export class EntityValidationError extends Error {
-  public readonly errors!: string[];
-
-  constructor(errors: string[], source?: any) {
-    super(`Entity validation error.\n${JSON.stringify(errors)}\n${JSON.stringify(source)}`);
-    this.errors = errors;
-  }
-}
-
 export abstract class Entity<T = any> {
+  static readonly __schema: Joi.ObjectSchema<Entity>;
   static readonly __strip_unknown: boolean = true;
   static readonly __convert: boolean = true;
 
@@ -22,8 +14,8 @@ export abstract class Entity<T = any> {
     return plural(snakeCase(this.name).toLowerCase());
   }
 
-  constructor(object?: T & Record<string, unknown>) {
-    if (object) Object.assign(this, (this.constructor as unknown as typeof Entity).transform(object));
+  constructor(object?: Omit<T, 'toJSON'> & Record<string, unknown>) {
+    if (object) Object.assign(this, (this.constructor as unknown as typeof Entity).validate(object));
   }
 
   public toJSON(schema?: 'sqlite'): Record<any, unknown> {
@@ -32,11 +24,7 @@ export abstract class Entity<T = any> {
     );
   }
 
-  public static get __schema(): Joi.ObjectSchema<Entity> {
-    throw new Error('Subclasses of Entity must implement __schema()!');
-  }
-
-  public static transform(object: Record<string, unknown>): Entity {
+  public static validate<T extends Entity>(object: Record<string, unknown>): Omit<T, 'toJSON'> {
     const { error, value } = this.__schema.validate(object, {
       convert: this.__convert,
       abortEarly: false,
@@ -44,13 +32,7 @@ export abstract class Entity<T = any> {
       allowUnknown: !this.__strip_unknown,
     });
 
-    if (error)
-      throw new EntityValidationError(
-        error.details.map((e) => e.message),
-        object,
-      );
-    if (!value) throw new EntityValidationError([`Unknown error when parsing ${JSON.stringify(object)}`]);
-
-    return value;
+    if (error) throw error;
+    else return value as any;
   }
 }

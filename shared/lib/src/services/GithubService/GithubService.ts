@@ -1,6 +1,9 @@
 import { flatten, get, mapKeys, min, pick } from 'lodash';
 
-import { Dependency, Release, Repository, RepositoryResource, Stargazer, Tag, Watcher } from '../../entities';
+import { Dependency, Release, Repository, Stargazer, Tag, Watcher } from '../../entities';
+import { Issue } from '../../entities/Issue';
+import { PullRequest } from '../../entities/PullRequest';
+import { RepositoryResource } from '../../entities/interfaces/RepositoryResource';
 import HttpClient from '../../github/HttpClient';
 import Query from '../../github/Query';
 import { RepositoryComponent, SearchComponent, SearchComponentQuery } from '../../github/components';
@@ -9,6 +12,7 @@ import { Constructor } from '../../types';
 import { Iterable, Service } from '../Service';
 import { ComponentBuilder } from './components/ComponentBuilder';
 import { DependenciesComponentBuilder } from './components/DependenciesComponentBuilder';
+import { IssuesComponentBuilder, PullRequestsComponentBuilder } from './components/IssuesComponentBuilder';
 import { ReleasesComponentBuilder } from './components/ReleasesComponentBuilder';
 import { StargazersComponentBuilder } from './components/StargazersComponentBuilder';
 import { TagsComponentBuilder } from './components/TagsComponentBuilder';
@@ -49,10 +53,12 @@ function getComponentBuilder(Target: Constructor<RepositoryResource>) {
   else if (Target === Release) return ReleasesComponentBuilder;
   else if (Target === Watcher) return WatchersComponentBuilder;
   else if (Target === Dependency) return DependenciesComponentBuilder;
+  else if (Target === Issue) return IssuesComponentBuilder;
+  else if (Target === PullRequest) return PullRequestsComponentBuilder;
   throw new Error('No ComponentBuilder found for ' + Target.name);
 }
 
-class ResourceIterator implements Iterable {
+class ResourceIterator implements Iterable<RepositoryResource> {
   private readonly resourcesStatus: { hasMore: boolean; builder: ComponentBuilder; endCursor?: string }[];
 
   constructor(components: ComponentBuilder[], private httpClient: HttpClient) {
@@ -182,10 +188,7 @@ export class GitHubService implements Service {
     };
   }
 
-  resources(
-    repositoryId: string,
-    resources: { resource: Constructor<RepositoryResource>; endCursor?: string }[],
-  ): Iterable {
+  resources(repositoryId: string, resources: { resource: Constructor<RepositoryResource>; endCursor?: string }[]) {
     return new ResourceIterator(
       resources.map((res) => new (getComponentBuilder(res.resource))(repositoryId, res.endCursor)),
       this.httpClient,

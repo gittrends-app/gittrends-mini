@@ -1,7 +1,7 @@
 import Joi from 'joi';
 
 import { Actor } from '../Actor';
-import { TimelineEvent } from './TimelineEvent';
+import { TimelineEvent } from '../TimelineEvent';
 
 export default class DeployedEvent extends TimelineEvent {
   actor?: string | Actor;
@@ -17,6 +17,6 @@ export default class DeployedEvent extends TimelineEvent {
         deployment: Joi.string().required(),
         ref: Joi.object({ name: Joi.string(), target: Joi.string() }),
       })
-      .custom((value) => new DeployedEvent(value));
+      .custom((value) => Object.assign(new DeployedEvent(), value));
   }
 }

@@ -3,13 +3,12 @@
  */
 import Fragment from '../../Fragment';
 import { SimplifiedActorFragment } from '../ActorFragment';
-import CommitFragment from '../CommitFragment';
 
 export class ClosedEvent extends Fragment {
   code = 'closedEvent';
 
   get dependencies(): Fragment[] {
-    return [SimplifiedActorFragment, CommitFragment];
+    return [SimplifiedActorFragment];
   }
 
   toString(): string {
@@ -19,7 +18,7 @@ export class ClosedEvent extends Fragment {
         closer {
           type:__typename
           ... on Node { id }
-          ... on Commit { ...${CommitFragment.code} }
+          ... on Commit { commit:oid }
         }
         createdAt
         stateReason
