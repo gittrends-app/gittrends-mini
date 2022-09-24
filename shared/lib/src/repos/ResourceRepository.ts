@@ -1,4 +1,4 @@
-import { RepositoryResource } from '../entities';
+import { RepositoryResource } from '../entities/interfaces/RepositoryResource';
 
 export interface IResourceRepository<T extends RepositoryResource> {
   countByRepository(repository: string): Promise<number>;

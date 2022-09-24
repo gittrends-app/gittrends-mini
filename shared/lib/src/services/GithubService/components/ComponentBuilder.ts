@@ -1,4 +1,4 @@
-import { RepositoryResource } from '../../../entities';
+import { RepositoryResource } from '../../../entities/interfaces/RepositoryResource';
 import Component from '../../../github/Component';
 
 export interface ComponentBuilder<
