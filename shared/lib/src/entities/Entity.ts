@@ -19,9 +19,14 @@ export abstract class Entity<T = any> {
   }
 
   public toJSON(schema?: 'sqlite'): Record<any, unknown> {
-    return mapValues(omit(cloneDeep(this), ['toJSON']), (value) =>
-      schema === 'sqlite' && typeof value === 'boolean' ? value.toString().toUpperCase() : value,
-    );
+    return mapValues(omit(cloneDeep(this), ['toJSON']), (value) => {
+      if (schema === 'sqlite') {
+        if (typeof value === 'boolean') return value.toString().toUpperCase();
+        else if (value instanceof Date) return value.toISOString();
+        else if (typeof value === 'object' || Array.isArray(value)) return JSON.stringify(value);
+      }
+      return value;
+    });
   }
 
   public static validate<T extends Entity>(object: Record<string, unknown>): Omit<T, 'toJSON'> {

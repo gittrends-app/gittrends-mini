@@ -1,9 +1,10 @@
-import { each } from 'bluebird';
+import { all, each } from 'bluebird';
 import { Knex } from 'knex';
 import { uniqBy } from 'lodash';
 
 import { Actor, IRepositoriesRepository, Repository } from '@gittrends/lib';
 
+import { extractEntityInstances } from '../helpers/findInstances';
 import { ActorsRepository } from './ActorRepository';
 import { MetadataRepository } from './MetadataRepository';
 
@@ -48,25 +49,21 @@ export class RepositoriesRepository implements IRepositoriesRepository {
   }
 
   async save(repo: Repository | Repository[], trx?: Knex.Transaction): Promise<void> {
-    const repos = uniqBy(Array.isArray(repo) ? repo : [repo], 'id').map((r) => r.toJSON('sqlite'));
+    const repos = uniqBy(Array.isArray(repo) ? repo : [repo], 'id');
+    const actors = extractEntityInstances<Actor>(repos, Actor as any);
 
     const transaction = trx || (await this.db.transaction());
 
     await each(repos, async (repo) => {
-      if (repo.owner instanceof Actor) await this.actorRepo.save(repo.owner, transaction);
-
-      await this.db
-        .table(Repository.__collection_name)
-        .insert({
-          ...repo,
-          funding_links: repo.funding_links && JSON.stringify(repo.funding_links),
-          languages: repo.languages && JSON.stringify(repo.languages),
-          owner: repo.owner instanceof Actor ? repo.owner.id : repo.owner,
-          repository_topics: repo.repository_topics && JSON.stringify(repo.repository_topics),
-        })
-        .onConflict('id')
-        .merge()
-        .transacting(transaction);
+      return all([
+        this.actorRepo.save(actors, transaction),
+        this.db
+          .table(Repository.__collection_name)
+          .insert(repo.toJSON('sqlite'))
+          .onConflict('id')
+          .merge()
+          .transacting(transaction),
+      ]);
     });
 
     if (!trx) await transaction.commit();

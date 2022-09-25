@@ -4,11 +4,10 @@
 import Joi from 'joi';
 
 import { Entity } from './Entity';
-import { Repository } from './Repository';
 import { RepositoryResource } from './interfaces/RepositoryResource';
 
 export class Dependency extends Entity<Dependency> implements RepositoryResource {
-  repository!: string | Repository;
+  repository!: string;
   manifest!: string;
   package_name!: string;
   filename?: string;
@@ -19,7 +18,7 @@ export class Dependency extends Entity<Dependency> implements RepositoryResource
 
   public static get __schema(): Joi.ObjectSchema<Dependency> {
     return Joi.object<Dependency>({
-      repository: Joi.alternatives(Joi.string(), Repository.__schema).required(),
+      repository: Joi.string().required(),
       manifest: Joi.string().required(),
       package_name: Joi.string().required(),
       filename: Joi.string(),

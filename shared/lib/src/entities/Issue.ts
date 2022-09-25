@@ -6,7 +6,6 @@ import Joi from 'joi';
 import { Actor } from './Actor';
 import { Entity } from './Entity';
 import { Reaction } from './Reaction';
-import { Repository } from './Repository';
 import { TimelineEvent } from './TimelineEvent';
 import { Node } from './interfaces/Node';
 import { Reactable } from './interfaces/Reactable';
@@ -14,7 +13,7 @@ import { RepositoryResource } from './interfaces/RepositoryResource';
 
 export abstract class IssueOrPull extends Entity<IssueOrPull> implements Node, RepositoryResource, Reactable {
   id!: string;
-  repository!: string | Repository;
+  repository!: string;
   type!: 'Issue' | 'PullRequest';
   active_lock_reason?: string;
   assignees?: string[] | Actor[];
@@ -44,7 +43,7 @@ export abstract class IssueOrPull extends Entity<IssueOrPull> implements Node, R
   public static get __schema(): Joi.ObjectSchema<IssueOrPull> {
     return Joi.object<IssueOrPull>({
       id: Joi.string().required(),
-      repository: Joi.alternatives(Joi.string(), Repository.__schema).required(),
+      repository: Joi.string().required(),
       reaction_groups: Joi.object().pattern(Joi.string(), Joi.number()).required(),
       reactions: Joi.alternatives(Joi.number(), Joi.array().items(Reaction.__schema)).required(),
       type: Joi.string().valid('Issue', 'PullRequest').required(),
@@ -67,16 +66,15 @@ export abstract class IssueOrPull extends Entity<IssueOrPull> implements Node, R
       participants: Joi.alternatives(Joi.array().items(Joi.string()), Joi.array().items(Actor.__schema)),
       published_at: Joi.date(),
       state: Joi.string().required(),
-
       timeline_items: Joi.alternatives(Joi.number(), Joi.array().items(TimelineEvent.__schema)).required(),
       title: Joi.string(),
-
       updated_at: Joi.date().required(),
     });
   }
 }
 
 export class Issue extends IssueOrPull {
+  type!: 'Issue';
   is_pinned?: boolean;
   state_reason?: string;
   tracked_in_issues!: number;
@@ -85,6 +83,7 @@ export class Issue extends IssueOrPull {
   public static get __schema(): Joi.ObjectSchema<Issue> {
     return super.__schema
       .append<Issue>({
+        type: Joi.string().valid('Issue').required(),
         is_pinned: Joi.boolean(),
         state_reason: Joi.string(),
         tracked_in_issues: Joi.number().required(),

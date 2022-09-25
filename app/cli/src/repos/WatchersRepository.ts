@@ -1,8 +1,9 @@
 import { all, each } from 'bluebird';
 import { Knex } from 'knex';
 
-import { IResourceRepository, Repository, User, Watcher } from '@gittrends/lib';
+import { Actor, IResourceRepository, Watcher } from '@gittrends/lib';
 
+import { extractEntityInstances } from '../helpers/findInstances';
 import { ActorsRepository } from './ActorRepository';
 
 export class WatchersRepository implements IResourceRepository<Watcher> {
@@ -32,25 +33,17 @@ export class WatchersRepository implements IResourceRepository<Watcher> {
   }
 
   async save(watcher: Watcher | Watcher[], trx?: Knex.Transaction): Promise<void> {
-    const watchers = (Array.isArray(watcher) ? watcher : [watcher]).map((w) => w.toJSON('sqlite'));
+    const watchers = Array.isArray(watcher) ? watcher : [watcher];
+    const actors = extractEntityInstances<Actor>(watchers, Actor as any);
 
     const transaction = trx || (await this.db.transaction());
 
     await all([
-      this.actorsRepo.save(
-        watchers.reduce(
-          (memo, user) => (user.user instanceof User ? memo.concat([user.user]) : memo),
-          new Array<User>(),
-        ),
-        transaction,
-      ),
-      each(watchers, (star) =>
+      this.actorsRepo.save(actors, transaction),
+      each(watchers, (watcher) =>
         this.db
           .table(Watcher.__collection_name)
-          .insert({
-            repository: star.repository instanceof Repository ? star.repository.id : star.repository,
-            user: star.user instanceof User ? star.user.id : star.user,
-          })
+          .insert(watcher.toJSON('sqlite'))
           .onConflict(['repository', 'user'])
           .ignore()
           .transacting(transaction),

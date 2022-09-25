@@ -36,7 +36,7 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
   private reactablesMeta: (TMeta & { reactable: Reactable })[] = [];
 
   private get pendingReactables() {
-    return this.reactablesMeta.filter((rm) => rm.hasNextPage).slice(this.meta.first);
+    return this.reactablesMeta.filter((rm) => rm.hasNextPage).slice(0, this.meta.first);
   }
 
   constructor(private repositoryId: string, endCursor?: string, Class?: new (...args: any[]) => T) {
@@ -58,7 +58,7 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
         });
       }
 
-      case Stages.GET_ISSUES_DETAILS:
+      case Stages.GET_ISSUES_DETAILS: {
         return this.issuesMeta.map((iMeta, index) =>
           new this.EntityComponent(iMeta.issue.id, `issue_${index}`)
             .includeDetails(true)
@@ -66,21 +66,24 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
             .includeLabels(true, { first: 100, alias: '_labels' })
             .includeParticipants(true, { first: 100, alias: '_participants' }),
         );
+      }
 
-      case Stages.GET_TIMELINE_EVENTS:
+      case Stages.GET_TIMELINE_EVENTS: {
         return this.issuesMeta.map((iMeta, index) =>
           new this.EntityComponent(iMeta.issue.id, `issue_${index}`)
             .includeDetails(false)
             .includeTimeline(true, { first: 100, after: iMeta.endCursor, alias: 'tl' }),
         );
+      }
 
-      case Stages.GET_REACTIONS:
+      case Stages.GET_REACTIONS: {
         return this.pendingReactables.map((pr, index) =>
           new ReactionComponent((pr.reactable as any).id, `reactable_${index}`).includeReactions(true, {
             first: pr.first,
             after: pr.endCursor,
           }),
         );
+      }
 
       default:
         throw new Error(`Unknown stage "${this.currentStage}"`);

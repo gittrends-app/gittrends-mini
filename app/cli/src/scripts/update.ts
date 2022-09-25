@@ -6,7 +6,17 @@ import { get, truncate } from 'lodash';
 import { URL } from 'node:url';
 import prettyjson from 'prettyjson';
 
-import { Dependency, HttpClient, ProxyService, Release, Stargazer, Tag, Watcher } from '@gittrends/lib';
+import {
+  Dependency,
+  HttpClient,
+  Issue,
+  ProxyService,
+  PullRequest,
+  Release,
+  Stargazer,
+  Tag,
+  Watcher,
+} from '@gittrends/lib';
 
 import { withBullQueue } from '../helpers/withBullQueue';
 import { withDatabase } from '../helpers/withDatabase';
@@ -40,6 +50,10 @@ export async function updater(name: string, opts: UpdaterOpts) {
       resources.push({ resource: Watcher, repository: localRepos.watchers });
     if (includesAll || opts.resources.includes(Dependency.__collection_name))
       resources.push({ resource: Dependency, repository: localRepos.dependencies });
+    if (includesAll || opts.resources.includes(Issue.__collection_name))
+      resources.push({ resource: Issue, repository: localRepos.dependencies });
+    if (includesAll || opts.resources.includes(PullRequest.__collection_name))
+      resources.push({ resource: PullRequest, repository: localRepos.dependencies });
 
     const resourcesInfo = await Promise.all(
       resources.map(async (info) => {
@@ -64,6 +78,8 @@ export async function updater(name: string, opts: UpdaterOpts) {
       // eslint-disable-next-line no-constant-condition
       while (true) {
         const { done, value } = await iterator.next();
+        console.log('done:', done);
+
         if (done) break;
 
         resourcesInfo.forEach((_, index) => {
@@ -133,7 +149,11 @@ async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void
     .addOption(new Option('--api-url [string]', 'URL of the target API').env('API_URL').conflicts('token'))
     .addOption(
       new Option('-r, --resources [string...]', 'Resources to update')
-        .choices([Stargazer, Tag, Release, Watcher, Dependency].map((r) => r.__collection_name).concat(['all']))
+        .choices(
+          [Stargazer, Tag, Release, Watcher, Dependency, Issue, PullRequest]
+            .map((r) => r.__collection_name)
+            .concat(['all']),
+        )
         .default(['all']),
     )
     .addOption(new Option('--no-progress', 'Disable progress bars'))

@@ -5,13 +5,12 @@ import Joi from 'joi';
 
 import { Actor, User } from './Actor';
 import { Entity } from './Entity';
-import { Repository } from './Repository';
 import { Node } from './interfaces/Node';
 import { RepositoryResource } from './interfaces/RepositoryResource';
 
 export class Release extends Entity<Release> implements Node, RepositoryResource {
   id!: string;
-  repository!: string | Repository;
+  repository!: string;
   author!: string | Actor;
   created_at!: Date;
   description?: string;
@@ -27,7 +26,7 @@ export class Release extends Entity<Release> implements Node, RepositoryResource
   public static get __schema(): Joi.ObjectSchema<Release> {
     return Joi.object<Release>({
       id: Joi.string().required(),
-      repository: Joi.alternatives(Joi.string(), Repository.__schema).required(),
+      repository: Joi.string().required(),
       author: Joi.alternatives(Joi.string(), User.__schema).required(),
       created_at: Joi.date().required(),
       description: Joi.string(),

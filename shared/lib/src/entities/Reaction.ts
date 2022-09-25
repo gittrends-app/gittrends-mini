@@ -5,13 +5,12 @@ import Joi from 'joi';
 
 import { Actor } from './Actor';
 import { Entity } from './Entity';
-import { Repository } from './Repository';
 import { Node } from './interfaces/Node';
 import { RepositoryResource } from './interfaces/RepositoryResource';
 
 export class Reaction extends Entity implements Node, RepositoryResource {
   id!: string;
-  repository!: string | Repository;
+  repository!: string;
   reactable!: string;
   content!: string;
   created_at!: Date;
@@ -20,7 +19,7 @@ export class Reaction extends Entity implements Node, RepositoryResource {
   public static get __schema(): Joi.ObjectSchema<Reaction> {
     return Joi.object<Reaction>({
       id: Joi.string().required(),
-      repository: Joi.alternatives(Joi.string(), Repository.__schema).required(),
+      repository: Joi.string().required(),
       reactable: Joi.string().required(),
       content: Joi.string().required(),
       created_at: Joi.date().required(),

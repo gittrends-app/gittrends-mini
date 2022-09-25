@@ -1,6 +1,6 @@
 import { each } from 'bluebird';
 import { Knex } from 'knex';
-import { omit, pick, size } from 'lodash';
+import { omit } from 'lodash';
 
 import { IMetadataRepository, Metadata } from '@gittrends/lib';
 
@@ -21,14 +21,13 @@ export class MetadataRepository implements IMetadataRepository {
   async save(metadata: Metadata | Metadata[], trx?: Knex.Transaction): Promise<void> {
     const transaction = trx || (await this.db.transaction());
 
-    const metas = (Array.isArray(metadata) ? metadata : [metadata]).map((m) => m.toJSON('sqlite'));
+    const metas = Array.isArray(metadata) ? metadata : [metadata];
 
     await each(metas, (meta) => {
-      const fields = ['repository', 'resource', 'end_cursor', 'updated_at'];
-      const payload = omit(meta, fields);
+      const { repository, resource, end_cursor, updated_at, ...payload } = meta;
       return this.db
         .table(Metadata.__collection_name)
-        .insert({ ...pick(meta, fields), payload: size(payload) > 0 ? JSON.stringify(payload) : undefined })
+        .insert({ repository, resource, end_cursor, updated_at, payload: payload && JSON.stringify(payload) })
         .onConflict(['repository', 'resource'])
         .merge()
         .transacting(transaction);

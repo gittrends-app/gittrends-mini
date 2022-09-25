@@ -1,8 +1,9 @@
 import { all, each } from 'bluebird';
 import { Knex } from 'knex';
 
-import { Actor, IResourceRepository, Repository, Tag, User } from '@gittrends/lib';
+import { Actor, IResourceRepository, Tag } from '@gittrends/lib';
 
+import { extractEntityInstances } from '../helpers/findInstances';
 import { ActorsRepository } from './ActorRepository';
 
 export class TagsRepository implements IResourceRepository<Tag> {
@@ -34,38 +35,19 @@ export class TagsRepository implements IResourceRepository<Tag> {
 
   async save(tag: Tag | Tag[], trx?: Knex.Transaction): Promise<void> {
     const tags = Array.isArray(tag) ? tag : [tag];
+    const actors = extractEntityInstances<Actor>(tags, Actor as any);
 
     const transaction = trx || (await this.db.transaction());
 
-    const { users: _users, tags: _tags } = tags.reduce(
-      (memo, tag) =>
-        tag.tagger.user instanceof User
-          ? {
-              users: memo.users.concat([tag.tagger.user]),
-              tags: memo.tags.concat(new Tag({ ...tag, tagger: { ...tag.tagger, user: tag.tagger.user.id } })),
-            }
-          : {
-              ...memo,
-              tags: memo.tags.concat(tag),
-            },
-      { users: [] as Actor[], tags: [] as Tag[] },
-    );
-
     await all([
-      this.actorsRepo.save(_users, transaction),
-      each(
-        _tags.map((t) => t.toJSON('sqlite')),
-        (tag) =>
-          this.db
-            .table(Tag.__collection_name)
-            .insert({
-              ...tag,
-              repository: tag.repository instanceof Repository ? tag.repository.id : tag.repository,
-              tagger: tag.tagger && JSON.stringify(tag.tagger),
-            })
-            .onConflict(['id'])
-            .ignore()
-            .transacting(transaction),
+      this.actorsRepo.save(actors, transaction),
+      each(tags, (tag) =>
+        this.db
+          .table(Tag.__collection_name)
+          .insert(tag.toJSON('sqlite'))
+          .onConflict(['id'])
+          .ignore()
+          .transacting(transaction),
       ),
     ]);
 

@@ -5,13 +5,12 @@ import Joi from 'joi';
 
 import { Actor, User } from './Actor';
 import { Entity } from './Entity';
-import { Repository } from './Repository';
 import { Node } from './interfaces/Node';
 import { RepositoryResource } from './interfaces/RepositoryResource';
 
 export class Tag extends Entity<Tag> implements Node, RepositoryResource {
   id!: string;
-  repository!: string | Repository;
+  repository!: string;
   message?: string;
   name!: string;
   oid!: string;
@@ -21,7 +20,7 @@ export class Tag extends Entity<Tag> implements Node, RepositoryResource {
   public static get __schema(): Joi.ObjectSchema<Tag> {
     return Joi.object<Tag>({
       id: Joi.string().required(),
-      repository: Joi.alternatives(Joi.string(), Repository.__schema).required(),
+      repository: Joi.string().required(),
       message: Joi.string(),
       name: Joi.string().required(),
       oid: Joi.string().required(),

@@ -17,6 +17,21 @@ export abstract class Actor extends Entity<Actor | any> implements Node {
     type: Joi.string().valid('User', 'Organization', 'Mannequin', 'Bot', 'EnterpriseUserAccount').required(),
     login: Joi.string().required(),
     avatar_url: Joi.string(),
+  }).custom((value) => {
+    switch (value.type) {
+      case 'User':
+        return Object.assign(new User(), value);
+      case 'Organization':
+        return Object.assign(new Organization(), value);
+      case 'Mannequin':
+        return Object.assign(new Mannequin(), value);
+      case 'Bot':
+        return Object.assign(new Bot(), value);
+      case 'EnterpriseUserAccount':
+        return Object.assign(new EnterpriseUserAccount(), value);
+      default:
+        return value;
+    }
   });
 
   public static from(object: Record<string, unknown>): Actor {

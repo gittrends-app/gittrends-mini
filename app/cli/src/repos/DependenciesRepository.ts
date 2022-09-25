@@ -1,7 +1,7 @@
 import { each } from 'bluebird';
 import { Knex } from 'knex';
 
-import { Dependency, IResourceRepository, Repository } from '@gittrends/lib';
+import { Dependency, IResourceRepository } from '@gittrends/lib';
 
 export class DependenciesRepository implements IResourceRepository<Dependency> {
   constructor(private db: Knex) {}
@@ -34,18 +34,14 @@ export class DependenciesRepository implements IResourceRepository<Dependency> {
   }
 
   async save(dependency: Dependency | Dependency[], trx?: Knex.Transaction): Promise<void> {
-    const dependencies = (Array.isArray(dependency) ? dependency : [dependency]).map((d) => d.toJSON('sqlite'));
+    const dependencies = Array.isArray(dependency) ? dependency : [dependency];
 
     const transaction = trx || (await this.db.transaction());
 
     await each(dependencies, (dep) =>
       this.db
         .table(Dependency.__collection_name)
-        .insert({
-          ...dep,
-          repository: dep.repository instanceof Repository ? dep.repository.id : dep.repository,
-          target_repository: JSON.stringify(dep.target_repository),
-        })
+        .insert(dep.toJSON('sqlite'))
         .onConflict(['repository', 'manifest', 'package_name', 'requirements'])
         .ignore()
         .transacting(transaction),

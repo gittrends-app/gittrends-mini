@@ -20,12 +20,12 @@ export class ActorsRepository implements IActorsRepository {
   async save<T extends Actor>(user: T | T[], trx?: Knex.Transaction): Promise<void> {
     const transaction = trx || (await this.db.transaction());
 
-    const actors = uniqBy(Array.isArray(user) ? user : [user], 'id').map((a) => a.toJSON('sqlite'));
+    const actors = uniqBy(Array.isArray(user) ? user : [user], 'id');
 
     await each(actors, async (actor) =>
       this.db
         .table(Actor.__collection_name)
-        .insert({ ...actor, status: actor.status && JSON.stringify(actor.status) })
+        .insert(actor.toJSON('sqlite'))
         .onConflict('id')
         .merge()
         .transacting(transaction),

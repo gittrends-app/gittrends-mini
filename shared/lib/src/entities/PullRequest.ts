@@ -5,14 +5,14 @@ import Joi from 'joi';
 
 import { Actor } from './Actor';
 import { IssueOrPull } from './Issue';
-import { Repository } from './Repository';
 
 export class PullRequest extends IssueOrPull {
+  type!: 'PullRequest';
   additions!: number;
   base_ref?: { name?: string; target?: string };
   base_ref_name!: string;
   base_ref_oid!: string;
-  base_repository?: string | Repository;
+  base_repository?: string;
   can_be_rebased!: boolean;
   changed_files!: number;
   closing_issues_references!: number;
@@ -26,7 +26,6 @@ export class PullRequest extends IssueOrPull {
   head_repository?: string | Actor;
   is_cross_repository!: boolean;
   is_draft!: boolean;
-  locked!: boolean;
   maintainer_can_modify!: boolean;
   merge_commit?: string;
   merge_state_status!: string;
@@ -34,7 +33,6 @@ export class PullRequest extends IssueOrPull {
   merged!: boolean;
   merged_at?: Date;
   merged_by?: string | Actor;
-  milestone?: string;
   permalink?: string;
   potential_merge_commit?: string;
   review_decision?: string;
@@ -45,6 +43,7 @@ export class PullRequest extends IssueOrPull {
   public static get __schema(): Joi.ObjectSchema<PullRequest> {
     return super.__schema
       .append<PullRequest>({
+        type: Joi.string().valid('PullRequest').required(),
         additions: Joi.number().required(),
         base_ref: Joi.object({ name: Joi.string(), target: Joi.string() }),
         base_ref_name: Joi.string().required(),
@@ -62,7 +61,6 @@ export class PullRequest extends IssueOrPull {
         head_repository: Joi.string(),
         is_cross_repository: Joi.boolean().required(),
         is_draft: Joi.boolean().required(),
-        locked: Joi.boolean().required(),
         maintainer_can_modify: Joi.boolean().required(),
         merge_commit: Joi.string(),
         merge_state_status: Joi.string().required(),
@@ -70,7 +68,6 @@ export class PullRequest extends IssueOrPull {
         merged: Joi.boolean().required(),
         merged_at: Joi.date(),
         merged_by: Joi.alternatives(Joi.string(), Joi.object({ name: Joi.string(), target: Joi.string() })),
-        milestone: Joi.string(),
         permalink: Joi.string(),
         potential_merge_commit: Joi.string(),
         review_decision: Joi.string(),

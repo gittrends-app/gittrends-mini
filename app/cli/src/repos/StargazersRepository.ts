@@ -1,8 +1,9 @@
 import { all, each } from 'bluebird';
 import { Knex } from 'knex';
 
-import { IResourceRepository, Repository, Stargazer, User } from '@gittrends/lib';
+import { Actor, IResourceRepository, Stargazer } from '@gittrends/lib';
 
+import { extractEntityInstances } from '../helpers/findInstances';
 import { ActorsRepository } from './ActorRepository';
 
 export class StargazersRepository implements IResourceRepository<Stargazer> {
@@ -33,23 +34,17 @@ export class StargazersRepository implements IResourceRepository<Stargazer> {
   }
 
   async save(stargazer: Stargazer | Stargazer[], trx?: Knex.Transaction): Promise<void> {
-    const stars = (Array.isArray(stargazer) ? stargazer : [stargazer]).map((s) => s.toJSON('sqlite'));
+    const stars = Array.isArray(stargazer) ? stargazer : [stargazer];
+    const actors = extractEntityInstances<Actor>(stars, Actor as any);
 
     const transaction = trx || (await this.db.transaction());
 
     await all([
-      this.actorsRepo.save(
-        stars.reduce((memo, user) => (user.user instanceof User ? memo.concat([user.user]) : memo), new Array<User>()),
-        transaction,
-      ),
+      this.actorsRepo.save(actors, transaction),
       each(stars, (star) =>
         this.db
           .table(Stargazer.__collection_name)
-          .insert({
-            repository: star.repository instanceof Repository ? star.repository.id : star.repository,
-            user: star.user instanceof User ? star.user.id : star.user,
-            starred_at: star.starred_at,
-          })
+          .insert(star.toJSON('sqlite'))
           .onConflict(['repository', 'user', 'starred_at'])
           .ignore()
           .transacting(transaction),
