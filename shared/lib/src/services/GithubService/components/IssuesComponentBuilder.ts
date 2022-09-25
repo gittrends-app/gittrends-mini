@@ -1,7 +1,7 @@
 import { compact, flatten, get, isObjectLike } from 'lodash';
 
 import { Actor } from '../../../entities';
-import { Issue } from '../../../entities/Issue';
+import { Issue, IssueOrPull } from '../../../entities/Issue';
 import { PullRequest } from '../../../entities/PullRequest';
 import { Reaction } from '../../../entities/Reaction';
 import { TimelineEvent } from '../../../entities/TimelineEvent';
@@ -24,7 +24,7 @@ enum Stages {
 
 type TMeta = { first: number; endCursor?: string; hasNextPage?: boolean };
 
-class GenericBuilder<T extends Issue> implements ComponentBuilder<Component, T[]> {
+class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Component, T[]> {
   private Entity;
   private EntityComponent: typeof IssueComponent;
 
@@ -49,11 +49,14 @@ class GenericBuilder<T extends Issue> implements ComponentBuilder<Component, T[]
     if (error) throw error;
 
     switch (this.currentStage) {
-      case Stages.GET_ISSUES_LIST:
-        return new RepositoryComponent(this.repositoryId)
-          .setAlias('repo')
-          .includeDetails(false)
-          .includeIssues(true, { after: this.meta.endCursor, first: this.meta.first, alias: 'issues' });
+      case Stages.GET_ISSUES_LIST: {
+        const iFunc = this.Entity === Issue ? 'includeIssues' : 'includePullRequests';
+        return new RepositoryComponent(this.repositoryId).setAlias('repo').includeDetails(false)[iFunc](true, {
+          after: this.meta.endCursor,
+          first: this.meta.first,
+          alias: 'issues',
+        });
+      }
 
       case Stages.GET_ISSUES_DETAILS:
         return this.issuesMeta.map((iMeta, index) =>
@@ -85,8 +88,6 @@ class GenericBuilder<T extends Issue> implements ComponentBuilder<Component, T[]
   }
 
   parse(data: any): { hasNextPage: boolean; endCursor?: string; data: T[] } {
-    console.log(Stages[this.currentStage]);
-
     switch (this.currentStage) {
       case Stages.GET_ISSUES_LIST: {
         const nodes = get<any[]>(data, 'repo.issues.nodes', []);
@@ -105,11 +106,13 @@ class GenericBuilder<T extends Issue> implements ComponentBuilder<Component, T[]
       case Stages.GET_ISSUES_DETAILS: {
         this.issuesMeta.forEach((iMeta, index) => {
           const { _assignees, _labels, _participants, ...iData } = data?.[`issue_${index}`] || {};
+
           const assignees = get<any[]>(_assignees, 'nodes', []).map((a) => Actor.from(a));
           const labels = get<any[]>(_labels, 'nodes', []);
           const participants = get<any[]>(_participants, 'nodes', []).map((p) => Actor.from(p));
 
           iMeta.issue = new this.Entity({
+            suggested_reviewers: [],
             ...iData,
             repository: this.repositoryId,
             reactions: [],

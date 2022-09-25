@@ -49,6 +49,7 @@ export default class HttpClient {
         Accept: [
           'application/vnd.github.hawkgirl-preview+json', // Dependency graph preview
           'application/vnd.github.starfox-preview+json', // Project event details preview
+          'application/vnd.github.merge-info-preview+json', // Merge info preview
         ].join(', '),
       },
       timeout: this.timeout,

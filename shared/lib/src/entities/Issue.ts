@@ -12,7 +12,7 @@ import { Node } from './interfaces/Node';
 import { Reactable } from './interfaces/Reactable';
 import { RepositoryResource } from './interfaces/RepositoryResource';
 
-export class Issue extends Entity<Issue> implements Node, RepositoryResource, Reactable {
+export abstract class IssueOrPull extends Entity<IssueOrPull> implements Node, RepositoryResource, Reactable {
   id!: string;
   repository!: string | Repository;
   type!: 'Issue' | 'PullRequest';
@@ -27,7 +27,6 @@ export class Issue extends Entity<Issue> implements Node, RepositoryResource, Re
   created_via_email!: boolean;
   editor?: string | Actor;
   includes_created_edit!: boolean;
-  is_pinned?: boolean;
   labels?: string[];
   last_edited_at?: Date;
   locked!: boolean;
@@ -38,15 +37,12 @@ export class Issue extends Entity<Issue> implements Node, RepositoryResource, Re
   reaction_groups!: Record<string, number>;
   reactions!: number | Reaction[];
   state!: string;
-  state_reason?: string;
   timeline_items!: number | TimelineEvent[];
   title!: string;
-  tracked_in_issues!: number;
-  tracked_issues!: number;
   updated_at!: Date;
 
-  public static get __schema(): Joi.ObjectSchema<Issue> {
-    return Joi.object<Issue>({
+  public static get __schema(): Joi.ObjectSchema<IssueOrPull> {
+    return Joi.object<IssueOrPull>({
       id: Joi.string().required(),
       repository: Joi.alternatives(Joi.string(), Repository.__schema).required(),
       reaction_groups: Joi.object().pattern(Joi.string(), Joi.number()).required(),
@@ -63,7 +59,6 @@ export class Issue extends Entity<Issue> implements Node, RepositoryResource, Re
       created_via_email: Joi.boolean().required(),
       editor: Joi.alternatives(Joi.string(), Actor.__schema),
       includes_created_edit: Joi.boolean().required(),
-      is_pinned: Joi.boolean(),
       labels: Joi.array().items(Joi.string()),
       last_edited_at: Joi.date(),
       locked: Joi.boolean().required(),
@@ -72,12 +67,29 @@ export class Issue extends Entity<Issue> implements Node, RepositoryResource, Re
       participants: Joi.alternatives(Joi.array().items(Joi.string()), Joi.array().items(Actor.__schema)),
       published_at: Joi.date(),
       state: Joi.string().required(),
-      state_reason: Joi.string(),
+
       timeline_items: Joi.alternatives(Joi.number(), Joi.array().items(TimelineEvent.__schema)).required(),
       title: Joi.string(),
-      tracked_in_issues: Joi.number().required(),
-      tracked_issues: Joi.number().required(),
+
       updated_at: Joi.date().required(),
-    }).custom((value) => Object.assign(new Issue(), value));
+    });
+  }
+}
+
+export class Issue extends IssueOrPull {
+  is_pinned?: boolean;
+  state_reason?: string;
+  tracked_in_issues!: number;
+  tracked_issues!: number;
+
+  public static get __schema(): Joi.ObjectSchema<Issue> {
+    return super.__schema
+      .append<Issue>({
+        is_pinned: Joi.boolean(),
+        state_reason: Joi.string(),
+        tracked_in_issues: Joi.number().required(),
+        tracked_issues: Joi.number().required(),
+      })
+      .custom((value) => Object.assign(new Issue(), value));
   }
 }

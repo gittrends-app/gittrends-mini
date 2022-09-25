@@ -42,7 +42,7 @@ export class IssueFragment extends Fragment {
         editor { ...${SimplifiedActorFragment.code} }
         id
         ${Fragment.include(this.full, 'includesCreatedEdit')}
-        isPinned
+        ${this.objectName === 'Issue' ? 'isPinned' : ''}
         lastEditedAt
         locked
         ${Fragment.include(this.full, `milestone { id }`)}
@@ -50,11 +50,11 @@ export class IssueFragment extends Fragment {
         publishedAt
         ${Fragment.include(this.full, `...${ReactableFragment.code}`)}
         state
-        stateReason
+        ${this.objectName === 'Issue' ? 'stateReason' : ''}
         ${Fragment.include(this.full, 'timelineItems { totalCount }')}
         title
-        ${Fragment.include(this.full, 'trackedInIssues { totalCount }')}
-        ${Fragment.include(this.full, 'trackedIssues { totalCount }')}
+        ${Fragment.include(this.full && this.objectName === 'Issue', 'trackedInIssues { totalCount }')}
+        ${Fragment.include(this.full && this.objectName === 'Issue', 'trackedIssues { totalCount }')}
         updatedAt
         ${this.additionalProperties}
       }
