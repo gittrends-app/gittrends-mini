@@ -51,9 +51,9 @@ export async function updater(name: string, opts: UpdaterOpts) {
     if (includesAll || opts.resources.includes(Dependency.__collection_name))
       resources.push({ resource: Dependency, repository: localRepos.dependencies });
     if (includesAll || opts.resources.includes(Issue.__collection_name))
-      resources.push({ resource: Issue, repository: localRepos.dependencies });
+      resources.push({ resource: Issue, repository: localRepos.issues });
     if (includesAll || opts.resources.includes(PullRequest.__collection_name))
-      resources.push({ resource: PullRequest, repository: localRepos.dependencies });
+      resources.push({ resource: PullRequest, repository: localRepos.pull_requests });
 
     const resourcesInfo = await Promise.all(
       resources.map(async (info) => {
@@ -78,8 +78,6 @@ export async function updater(name: string, opts: UpdaterOpts) {
       // eslint-disable-next-line no-constant-condition
       while (true) {
         const { done, value } = await iterator.next();
-        console.log('done:', done);
-
         if (done) break;
 
         resourcesInfo.forEach((_, index) => {

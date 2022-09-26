@@ -3,7 +3,7 @@ import { Knex } from 'knex';
 import { createOrConnectDatabase } from '../config/knex.config';
 import { ActorsRepository } from '../repos/ActorRepository';
 import { DependenciesRepository } from '../repos/DependenciesRepository';
-import { IssuesRepository } from '../repos/IssuesRepository';
+import { IssuesRepository, PullRequestsRepository } from '../repos/IssuesRepository';
 import { MetadataRepository } from '../repos/MetadataRepository';
 import { ReleasesRepository } from '../repos/ReleasesRepository';
 import { RepositoriesRepository } from '../repos/RepositoriesRepository';
@@ -22,6 +22,7 @@ type Repositories = {
   dependencies: DependenciesRepository;
   metadata: MetadataRepository;
   issues: IssuesRepository;
+  pull_requests: PullRequestsRepository;
 };
 
 export async function withDatabase<T>(db: string, context: (repos: Repositories) => Promise<T>): Promise<T> {
@@ -38,7 +39,10 @@ export async function withDatabase<T>(db: string, context: (repos: Repositories)
     dependencies: new DependenciesRepository(knex),
     metadata: new MetadataRepository(knex),
     issues: new IssuesRepository(knex),
+    pull_requests: new PullRequestsRepository(knex),
   };
 
-  return context(repos).finally(() => knex.destroy());
+  return context(repos).finally(() => {
+    knex.destroy();
+  });
 }

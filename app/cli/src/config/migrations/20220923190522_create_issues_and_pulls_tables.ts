@@ -10,7 +10,7 @@ function issueOrPullBuilder(table: Knex.CreateTableBuilder) {
   table.json('assignees');
   table.string('author');
   table.string('author_association').notNullable();
-  table.string('body').notNullable();
+  table.string('body').defaultTo('');
   table.boolean('closed').notNullable();
   table.timestamp('closed_at');
   table.timestamp('created_at').notNullable();

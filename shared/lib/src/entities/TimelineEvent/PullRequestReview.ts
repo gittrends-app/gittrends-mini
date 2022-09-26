@@ -11,7 +11,7 @@ export default class PullRequestReview extends TimelineEvent implements Comment,
   author_association!: string;
   author_can_push_to_repository!: boolean;
   author?: string | Actor;
-  body!: string;
+  body?: string;
   comments!: PullRequestReviewComment[];
   commit?: string;
   created_at!: Date;
@@ -32,7 +32,7 @@ export default class PullRequestReview extends TimelineEvent implements Comment,
         author_association: Joi.string().required(),
         author_can_push_to_repository: Joi.boolean().required(),
         author: Joi.alternatives(Joi.string(), Actor.__schema),
-        body: Joi.string().required(),
+        body: Joi.string(),
         comments: Joi.array().items(PullRequestReviewComment.__schema).required(),
         commit: Joi.string(),
         created_at: Joi.date().required(),

@@ -10,7 +10,7 @@ export class PullRequestReviewComment extends CommitComment {
   original_commit?: string;
   original_position!: number;
   outdated!: boolean;
-  reply_to?: string | PullRequestReviewComment;
+  reply_to?: string;
   state!: string;
 
   public static get __schema(): Joi.ObjectSchema<PullRequestReviewComment> {
@@ -23,7 +23,7 @@ export class PullRequestReviewComment extends CommitComment {
         original_commit: Joi.string(),
         original_position: Joi.number().required(),
         outdated: Joi.boolean().required(),
-        reply_to: Joi.alternatives(Joi.string(), PullRequestReviewComment.__schema),
+        reply_to: Joi.string(),
         state: Joi.string().required(),
       })
       .custom((value) => Object.assign(new PullRequestReviewComment(), value));

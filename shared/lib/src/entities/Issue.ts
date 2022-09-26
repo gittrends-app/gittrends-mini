@@ -19,7 +19,7 @@ export abstract class IssueOrPull extends Entity<IssueOrPull> implements Node, R
   assignees?: string[] | Actor[];
   author?: string | Actor;
   author_association!: string;
-  body!: string;
+  body?: string;
   closed!: boolean;
   closed_at?: Date;
   created_at!: Date;
@@ -51,7 +51,7 @@ export abstract class IssueOrPull extends Entity<IssueOrPull> implements Node, R
       assignees: Joi.alternatives(Joi.array().items(Joi.string()), Joi.array().items(Actor.__schema)),
       author: Joi.alternatives(Joi.string(), Actor.__schema),
       author_association: Joi.string().required(),
-      body: Joi.string().required(),
+      body: Joi.string(),
       closed: Joi.boolean().required(),
       closed_at: Joi.date(),
       created_at: Joi.date().required(),

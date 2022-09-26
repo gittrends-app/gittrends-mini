@@ -3,7 +3,7 @@ import { Actor } from '../Actor';
 export interface Comment {
   author?: string | Actor;
   author_association: string;
-  body: string;
+  body?: string;
   created_at: Date;
   created_via_email: boolean;
   editor?: string | Actor;

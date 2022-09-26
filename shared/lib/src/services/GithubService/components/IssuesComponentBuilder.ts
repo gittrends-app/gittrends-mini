@@ -1,4 +1,4 @@
-import { compact, flatten, get, isObjectLike } from 'lodash';
+import { compact, flatten, get, isObjectLike, size } from 'lodash';
 
 import { Actor } from '../../../entities';
 import { Issue, IssueOrPull } from '../../../entities/Issue';
@@ -133,7 +133,7 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
       case Stages.GET_TIMELINE_EVENTS: {
         const hasMoreTimelineEvents = this.issuesMeta.reduce((hasMore, iMeta, index) => {
           const nodes = get<any[]>(data, `issue_${index}.tl.nodes`, [])
-            .map((node) => transformTimelineEvent(node))
+            .map((node) => transformTimelineEvent(node, { repository: this.repositoryId, issue: iMeta.issue.id }))
             .map((node) => TimelineEvent.from({ ...node, repository: this.repositoryId, issue: iMeta.issue.id }));
 
           const pageInfo = get(data, `issue_${index}.tl.page_info`, {});
@@ -200,7 +200,7 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
   }
 }
 
-function transformTimelineEvent(data: any): any {
+function transformTimelineEvent(data: any, opts: { repository: string; issue: string }): any {
   if (data.reaction_groups) {
     data.reactions = Object.values(data.reaction_groups).reduce((sum: number, v: any) => sum + v, 0);
   }
@@ -210,8 +210,11 @@ function transformTimelineEvent(data: any): any {
     data.type === 'PullRequestReview' ||
     data.type === 'PullRequestReviewThread'
   ) {
-    data.comments = data.comments?.nodes;
+    data.comments = data.comments ? data.comments.nodes.map((comment: any) => ({ ...opts, ...comment })) : [];
   }
+
+  if (data.pull_request_commit && size(data.pull_request_commit) === 1)
+    data.pull_request_commit = data.pull_request_commit.commit;
 
   if (data.type === 'Deployment') {
     data.statuses = data.statuses?.nodes;

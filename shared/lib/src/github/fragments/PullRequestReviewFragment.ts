@@ -27,6 +27,7 @@ export class PullRequestReviewFragment extends Fragment {
         createdViaEmail
         databaseId
         editor { ...${SimplifiedActorFragment.code} }
+        includesCreatedEdit
         lastEditedAt
         publishedAt
         ...${ReactableFragment.code}

@@ -11,5 +11,7 @@ export async function withMultibar<T>(context: (multibar: MultiBar) => Promise<T
     Presets.rect,
   );
 
-  return context(multibar).finally(() => multibar.stop());
+  return context(multibar).finally(() => {
+    multibar.stop();
+  });
 }
