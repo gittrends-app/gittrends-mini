@@ -29,7 +29,8 @@
     "lodash": "^4.17.21",
     "pg": "^8.8.0",
     "prettyjson": "^1.2.5",
-    "sqlite3": "^5.1.1"
+    "sqlite3": "^5.1.1",
+    "winston": "^3.8.2"
   },
   "devDependencies": {
     "@gittrends-app/github-proxy-server": "gittrends-app/github-proxy-server",

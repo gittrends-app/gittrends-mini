@@ -1,10 +1,12 @@
 import { queue } from 'async';
 import { MultiBar } from 'cli-progress';
 import { Argument, Option, program } from 'commander';
-import consola from 'consola';
+import consola, { LogLevel, WinstonReporter } from 'consola';
 import { get, truncate } from 'lodash';
 import { URL } from 'node:url';
 import prettyjson from 'prettyjson';
+import { LoggerOptions } from 'winston';
+import { File } from 'winston/lib/winston/transports';
 
 import {
   Dependency,
@@ -23,6 +25,16 @@ import { withDatabase } from '../helpers/withDatabase';
 import { withMultibar } from '../helpers/withMultibar';
 import { version } from '../package.json';
 import { schedule } from './schedule';
+
+const errorLogger = consola.create({
+  level: LogLevel.Error,
+  reporters: [
+    new WinstonReporter({
+      level: LogLevel[LogLevel.Error],
+      transports: [new File({ filename: 'update-error.log' })],
+    } as LoggerOptions),
+  ],
+});
 
 type UpdaterOpts = {
   httpClient: HttpClient;
@@ -68,7 +80,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
       ? undefined
       : opts.multibar.create(
           resourcesInfo.reduce((acc, p) => acc + p.total, 0),
-          resourcesInfo.reduce((acc, p) => acc + p.cachedCount, 0),
+          resourcesInfo.reduce((acc, p) => acc + (p.total && p.cachedCount), 0),
           { resource: truncate(repo.name_with_owner, { length: 28, omission: '..' }).padStart(30, ' ') },
         );
 
@@ -84,6 +96,9 @@ export async function updater(name: string, opts: UpdaterOpts) {
           progressBar?.increment(value[index].items.length);
         });
       }
+    } catch (error) {
+      errorLogger.error(error);
+      throw error;
     } finally {
       if (progressBar) opts.multibar?.remove(progressBar);
     }
@@ -96,8 +111,10 @@ async function asyncQueue(
 ) {
   consola.info('Preparing processing queue ....');
   const queueRef = queue(
-    (name: string) =>
-      updater(name, { httpClient: opts.httpClient, resources: opts.resources, multibar: opts.multibar }),
+    (name: string, callback) =>
+      updater(name, { httpClient: opts.httpClient, resources: opts.resources, multibar: opts.multibar })
+        .then(() => callback())
+        .catch((error) => callback(error)),
     opts.concurrency,
   );
 
@@ -177,20 +194,24 @@ async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void
           retries: 2,
         });
 
-        if (names.length) {
-          return asyncQueue(names, { ...opts, httpClient });
-        } else {
-          consola.info('Scheduling repositories ...');
-          await schedule(24);
-          consola.info('Processing repositories ...\n');
-          return withMultibar(async (multibar) =>
-            redisQueue({
+        await withMultibar(async (multibar) => {
+          if (names.length) {
+            return asyncQueue(names, {
+              ...opts,
+              httpClient,
+              multibar: opts.progress ? multibar : undefined,
+            });
+          } else {
+            consola.info('Scheduling repositories ...');
+            await schedule(24);
+            consola.info('Processing repositories ...\n');
+            return redisQueue({
               httpClient,
               concurrency: opts.concurrency,
               multibar: opts.progress ? multibar : undefined,
-            }),
-          );
-        }
+            });
+          }
+        });
       },
     )
     .helpOption(true)

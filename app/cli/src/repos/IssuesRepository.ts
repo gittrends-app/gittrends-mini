@@ -21,7 +21,7 @@ class IssueOrPullRepository<T extends IssueOrPull> implements IResourceRepositor
 
   async countByRepository(repository: string): Promise<number> {
     const [{ count }] = await this.db
-      .table(Issue.__collection_name)
+      .table((this.IssueOrPullClass as any).__collection_name)
       .where('repository', repository)
       .count('id', { as: 'count' });
     return parseInt(count);
