@@ -4,7 +4,7 @@ import { uniqBy } from 'lodash';
 
 import { Actor, IRepositoriesRepository, Repository } from '@gittrends/lib';
 
-import { extractEntityInstances } from '../helpers/findInstances';
+import { extractEntityInstances } from '../helpers/extract';
 import { ActorsRepository } from './ActorRepository';
 import { MetadataRepository } from './MetadataRepository';
 

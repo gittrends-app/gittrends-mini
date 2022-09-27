@@ -11,8 +11,8 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
   await program
     .addOption(new Option('-l, --limit [number]', 'Max number of repositories').default(1000))
     .addOption(new Option('--language [string]', 'Search for repositories with programming language'))
-    .addOption(new Option('--token [string]', 'Github access token').env('TOKEN').conflicts('api-url'))
-    .addOption(new Option('--api-url [string]', 'URL of the target API').env('API_URL').conflicts('token'))
+    .addOption(new Option('--token [string]', 'Github access token').env('CLI_ACCESS_TOKEN').conflicts('api-url'))
+    .addOption(new Option('--api-url [string]', 'URL of the target API').env('CLI_API_URL').conflicts('token'))
     .action(async (opts: { limit: number; language: string; token?: string; apiUrl?: string }) => {
       if (!opts.apiUrl && !opts.token) program.error('--token or --api-url is mandatory!');
 

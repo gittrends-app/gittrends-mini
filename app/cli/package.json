@@ -10,9 +10,9 @@
     "schedule": "node dist/scripts/schedule.js",
     "update": "node dist/scripts/update.js",
     "clinic:update": "clinic bubbleprof -- node dist/scripts/update.js",
-    "dev:add-repositories": "ts-node -T src/scripts/add-repositories.ts",
-    "dev:schedule": "ts-node -T src/scripts/schedule.ts",
-    "dev:update": "ts-node -T src/scripts/update.ts",
+    "dev:add-repositories": "ts-node -r dotenv/config -T src/scripts/add-repositories.ts",
+    "dev:schedule": "ts-node -r dotenv/config -T src/scripts/schedule.ts",
+    "dev:update": "ts-node -r dotenv/config -T src/scripts/update.ts",
     "migrate:make": "knex migrate:make --migrations-directory src/config/migrations -x ts"
   },
   "dependencies": {
@@ -24,6 +24,7 @@
     "cli-progress": "^3.11.2",
     "commander": "^9.4.0",
     "consola": "^2.15.3",
+    "dotenv": "^16.0.2",
     "glob": "^8.0.3",
     "knex": "^2.3.0",
     "lodash": "^4.17.21",
@@ -39,6 +40,7 @@
     "@types/cli-progress": "^3.11.0",
     "@types/glob": "^8.0.0",
     "@types/prettyjson": "^0.0.30",
-    "clinic": "^12.0.0"
+    "clinic": "^12.0.0",
+    "sync-dotenv": "^2.7.0"
   }
 }

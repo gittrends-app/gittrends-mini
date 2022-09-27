@@ -4,7 +4,7 @@ import { size } from 'lodash';
 
 import { Actor, IResourceRepository, Reaction, TimelineEvent } from '@gittrends/lib';
 
-import { extractEntityInstances } from '../helpers/findInstances';
+import { extractEntityInstances } from '../helpers/extract';
 import { ActorsRepository } from './ActorRepository';
 import { ReactionsRepository } from './ReactionsRepository';
 

@@ -160,8 +160,8 @@ async function redisQueue(opts: { httpClient: HttpClient; concurrency: number; m
 async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void> {
   await program
     .addArgument(new Argument('[repo...]', 'Repository name with format <owner/name>'))
-    .addOption(new Option('--token [string]', 'Github access token').env('TOKEN').conflicts('api-url'))
-    .addOption(new Option('--api-url [string]', 'URL of the target API').env('API_URL').conflicts('token'))
+    .addOption(new Option('--token [string]', 'Github access token').env('CLI_ACCESS_TOKEN').conflicts('api-url'))
+    .addOption(new Option('--api-url [string]', 'URL of the target API').env('CLI_API_URL').conflicts('token'))
     .addOption(
       new Option('-r, --resources [string...]', 'Resources to update')
         .choices(

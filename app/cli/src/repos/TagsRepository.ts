@@ -3,7 +3,7 @@ import { Knex } from 'knex';
 
 import { Actor, IResourceRepository, Tag } from '@gittrends/lib';
 
-import { extractEntityInstances } from '../helpers/findInstances';
+import { extractEntityInstances } from '../helpers/extract';
 import { ActorsRepository } from './ActorRepository';
 
 export class TagsRepository implements IResourceRepository<Tag> {

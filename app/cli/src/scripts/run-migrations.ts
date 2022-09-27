@@ -10,9 +10,11 @@ import { BASE_DIR, migrate } from '../config/knex.config';
   const matches = new GlobSync('**/*.sqlite', { cwd: BASE_DIR });
 
   consola.info('Preparing processing queue ...');
-  const q = queue(async (db: string) => {
+  const q = queue(function (db: string, callback) {
     consola.log(`-> migrating ${db}`);
-    await migrate(resolve(BASE_DIR, db));
+    return migrate(resolve(BASE_DIR, db))
+      .then(() => callback())
+      .catch((error) => callback(error));
   }, 10);
 
   q.push(matches.found);

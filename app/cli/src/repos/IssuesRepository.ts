@@ -3,7 +3,7 @@ import { Knex } from 'knex';
 
 import { Actor, IResourceRepository, Issue, IssueOrPull, PullRequest } from '@gittrends/lib';
 
-import { extractEntityInstances } from '../helpers/findInstances';
+import { extractEntityInstances } from '../helpers/extract';
 import { ActorsRepository } from './ActorRepository';
 import { ReactionsRepository } from './ReactionsRepository';
 import { TimelineEventsRepository } from './TimelineEventsRepository';
