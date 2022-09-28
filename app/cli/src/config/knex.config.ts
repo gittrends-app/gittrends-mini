@@ -16,7 +16,7 @@ function knexResponseParser(result: any) {
   });
 }
 
-export async function createOrConnectDatabase(repo: string) {
+export async function createOrConnectDatabase(repo: string, _migrate = true) {
   const databaseFile = resolve(BASE_DIR, ...repo.split('/')) + '.sqlite';
 
   mkdirSync(dirname(databaseFile), { recursive: true });
@@ -37,7 +37,9 @@ export async function createOrConnectDatabase(repo: string) {
     },
   });
 
-  return migrate(conn).then(() => conn);
+  if (_migrate) await conn.migrate.latest();
+
+  return conn;
 }
 
 export async function migrate(db: string | Knex): Promise<void> {

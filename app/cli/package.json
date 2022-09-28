@@ -9,10 +9,12 @@
     "add-repositories": "node -r dotenv/config dist/scripts/add-repositories.js",
     "schedule": "node -r dotenv/config dist/scripts/schedule.js",
     "update": "node -r dotenv/config dist/scripts/update.js",
+    "migrations": "node -r dotenv/config dist/scripts/migrations.js",
     "clinic:update": "clinic bubbleprof -- node dist/scripts/update.js",
     "dev:add-repositories": "ts-node -r dotenv/config -T src/scripts/add-repositories.ts",
     "dev:schedule": "ts-node -r dotenv/config -T src/scripts/schedule.ts",
     "dev:update": "ts-node -r dotenv/config -T src/scripts/update.ts",
+    "dev:migrations": "ts-node -r dotenv/config -T src/scripts/migrations.ts",
     "migrate:make": "knex migrate:make --migrations-directory src/config/migrations -x ts"
   },
   "dependencies": {
