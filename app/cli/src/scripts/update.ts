@@ -1,11 +1,11 @@
 import { queue } from 'async';
 import { MultiBar } from 'cli-progress';
 import { Argument, Option, program } from 'commander';
-import consola, { LogLevel, WinstonReporter } from 'consola';
+import consola, { WinstonReporter } from 'consola';
 import { get, truncate } from 'lodash';
 import { URL } from 'node:url';
 import prettyjson from 'prettyjson';
-import { LoggerOptions } from 'winston';
+import { LoggerOptions, format } from 'winston';
 import { File } from 'winston/lib/winston/transports';
 
 import {
@@ -27,10 +27,15 @@ import { version } from '../package.json';
 import { schedule } from './schedule';
 
 const errorLogger = consola.create({
-  level: LogLevel.Error,
   reporters: [
     new WinstonReporter({
-      level: LogLevel[LogLevel.Error],
+      format: format.combine(
+        format.errors({ stack: true }),
+        format.printf((info) => {
+          const log = `${info.level}: ${info.message}`;
+          return info.stack ? `${log}\n${info.stack}` : log;
+        }),
+      ),
       transports: [new File({ filename: 'update-error.log' })],
     } as LoggerOptions),
   ],
