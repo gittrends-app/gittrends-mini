@@ -1,4 +1,4 @@
-import { all, each } from 'bluebird';
+import { each } from 'bluebird';
 import { Knex } from 'knex';
 
 import { Actor, IResourceRepository, Stargazer } from '@gittrends/lib';
@@ -38,19 +38,20 @@ export class StargazersRepository implements IResourceRepository<Stargazer> {
     const actors = extractEntityInstances<Actor>(stars, Actor as any);
 
     const transaction = trx || (await this.db.transaction());
-
-    await all([
-      this.actorsRepo.save(actors, transaction),
-      each(stars, (star) =>
+    try {
+      await this.actorsRepo.save(actors, transaction);
+      await each(stars, (star) =>
         this.db
           .table(Stargazer.__collection_name)
           .insert(star.toJSON('sqlite'))
           .onConflict(['repository', 'user', 'starred_at'])
           .ignore()
           .transacting(transaction),
-      ),
-    ]);
-
-    if (!trx) await transaction.commit();
+      );
+      if (!trx) await transaction.commit();
+    } catch (error) {
+      if (!trx) await transaction.rollback(error);
+      throw error;
+    }
   }
 }

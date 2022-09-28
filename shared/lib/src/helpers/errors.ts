@@ -1,47 +1,34 @@
 /*
  *  Author: Hudson S. Borges
  */
-import { compact, isNil, truncate, uniq } from 'lodash';
+import { compact, isNil, uniq } from 'lodash';
 
 import Component from '../github/Component';
 import { HttpClientResponse } from '../github/HttpClient';
 
-class BaseError extends Error {
-  constructor(message: string) {
-    super(message);
+// abstract class BaseError extends Error {
+//   constructor(message: string) {
+//     super(message);
+//     this.name = this.constructor.name;
+//     this.message = message;
+//     if (typeof Error.captureStackTrace === 'function') {
+//       Error.captureStackTrace(this, this.constructor);
+//     } else {
+//       this.stack = new Error(message).stack;
+//     }
+//   }
+// }
+
+export abstract class ExtendedError extends Error {
+  public readonly cause?: Error;
+
+  constructor(message?: string, cause?: Error) {
+    super(message || cause?.message);
     this.name = this.constructor.name;
-    this.message = message;
-    if (typeof Error.captureStackTrace === 'function') {
-      Error.captureStackTrace(this, this.constructor);
-    } else {
-      this.stack = new Error(message).stack;
+    if (cause) {
+      this.cause = cause;
+      if (cause.stack) this.stack += `\nFrom previous: ${cause.stack.replace(/\n/g, '\n\t\t')}`;
     }
-  }
-}
-
-class ExtendedError extends BaseError {
-  constructor(error: Error) {
-    super(error.message);
-    this.stack += `\nFrom previous: ${error.stack?.replace(/\n/g, '\n    ')}`;
-  }
-}
-
-export class RepositoryCrawlerError extends BaseError {
-  readonly errors: Error[];
-
-  constructor(errors: Error | Error[]) {
-    const errorsArray = Array.isArray(errors) ? errors : [errors];
-    const messageFragment = errorsArray
-      .map(
-        (error) =>
-          `[${error.constructor.name}]: ${truncate(error.message, {
-            length: 100,
-          })}`,
-      )
-      .join(' & ');
-
-    super(`Errors occurred when updating (see "errors" field) @ ${messageFragment}`);
-    this.errors = errorsArray;
   }
 }
 
@@ -55,27 +42,21 @@ export class RequestError extends ExtendedError {
   readonly response?: { message: string; status?: number; data?: any };
   readonly components?: any[];
 
-  static create(error: Error, opts?: RequestErrorOptions): RequestError;
-  static create(error: Error & HttpClientResponse, opts?: RequestErrorOptions): RequestError {
-    const status = `${error.status || opts?.status}`;
+  static create(message: string, cause: Error, opts?: RequestErrorOptions): RequestError;
+  static create(message: string, cause: Error & HttpClientResponse, opts?: RequestErrorOptions): RequestError {
+    const status = `${cause.status || opts?.status}`;
     if (status) {
-      if (/[24]\d{2}/.test(status)) return new GithubRequestError(error, opts);
-      else return new ServerRequestError(error, opts);
+      if (/[24]\d{2}/.test(status)) return new GithubRequestError(message, cause, opts);
+      else return new ServerRequestError(message, cause, opts);
     } else {
-      return new RequestError(error, opts);
+      return new RequestError(message, cause, opts);
     }
   }
 
-  constructor(error: Error, opts?: RequestErrorOptions);
-  constructor(error: Error & HttpClientResponse, opts?: RequestErrorOptions) {
-    super(error);
-
-    this.response = {
-      message: error.message,
-      status: error.status || opts?.status,
-      data: error.data || opts?.data,
-    };
-
+  constructor(message: string, cause: Error, opts?: RequestErrorOptions);
+  constructor(message: string, cause: Error & HttpClientResponse, opts?: RequestErrorOptions) {
+    super(message, cause);
+    this.response = { message: cause.message, status: cause.status || opts?.status, data: cause.data || opts?.data };
     if (opts?.components) {
       const componentArray = Array.isArray(opts?.components) ? opts?.components : [opts?.components];
       this.components = componentArray.map((component) => component.toJSON());
@@ -86,9 +67,9 @@ export class RequestError extends ExtendedError {
 export class ServerRequestError extends RequestError {
   readonly type: 'BAD_GATEWAY' | 'INTERNAL_SERVER' | 'UNKNOWN';
 
-  constructor(error: Error, opts?: RequestErrorOptions);
-  constructor(error: Error & HttpClientResponse, opts?: RequestErrorOptions) {
-    super(error, opts);
+  constructor(message: string, cause: Error, opts?: RequestErrorOptions);
+  constructor(message: string, cause: Error & HttpClientResponse, opts?: RequestErrorOptions) {
+    super(message, cause, opts);
     if (this.response?.status == 500) this.type = 'INTERNAL_SERVER';
     else if (this.response?.status == 502) this.type = 'BAD_GATEWAY';
     else this.type = 'UNKNOWN';
@@ -111,9 +92,9 @@ type GithubRequestErrorType =
 export class GithubRequestError extends RequestError {
   readonly type: GithubRequestErrorType[] = [];
 
-  constructor(error: Error, opts?: RequestErrorOptions);
-  constructor(error: Error & HttpClientResponse, opts?: RequestErrorOptions) {
-    super(error, opts);
+  constructor(message: string, cause: Error, opts?: RequestErrorOptions);
+  constructor(message: string, cause: Error & HttpClientResponse, opts?: RequestErrorOptions) {
+    super(message, cause, opts);
 
     if (this.response?.data?.errors) {
       this.type = (

@@ -14,6 +14,7 @@ export class DependenciesComponentBuilder implements ComponentBuilder<Component,
   private previousEndCursor: string | undefined;
   private currentStage: Stages = Stages.GET_MANIFESTS;
 
+  private manifestsBatchSize = 25;
   private manifestsMeta: { first: number; endCursor?: string; hasNextPage?: boolean } = { first: 25 };
 
   private dependenciesMeta: {
@@ -24,8 +25,6 @@ export class DependenciesComponentBuilder implements ComponentBuilder<Component,
     dependencies: Dependency[];
   }[] = [];
 
-  private manifestsBatchSize = 5;
-
   private get pendingManifests() {
     return this.dependenciesMeta.filter((dm) => dm.hasNextPage === true).slice(0, this.manifestsBatchSize);
   }
@@ -33,6 +32,16 @@ export class DependenciesComponentBuilder implements ComponentBuilder<Component,
   constructor(private repositoryId: string, endCursor?: string) {
     this.previousEndCursor = endCursor;
     this.manifestsMeta.endCursor = endCursor;
+  }
+
+  toJSON(): Record<string, unknown> {
+    return {
+      repository: this.repositoryId,
+      currentStage: this.currentStage,
+      ...(this.currentStage === Stages.GET_MANIFESTS
+        ? this.manifestsMeta
+        : this.dependenciesMeta.map(({ first, hasNextPage, endCursor }) => ({ first, hasNextPage, endCursor }))),
+    };
   }
 
   build(error?: Error): RepositoryComponent | DependencyGraphManifestComponent[] {

@@ -8,7 +8,7 @@ import compress from '../helpers/gql-compress';
 import normalize from '../helpers/normalize';
 import Component from './Component';
 import Fragment from './Fragment';
-import HttpClient, { HttpClientResponse } from './HttpClient';
+import HttpClient from './HttpClient';
 
 export default class Query {
   readonly components: Component[] = [];
@@ -56,19 +56,14 @@ export default class Query {
 
   async run(interceptor?: (args: string) => string): Promise<any> {
     return this.client
-      .request({
-        query: compress(interceptor ? interceptor(this.toString()) : this.toString()),
-      })
-      .catch((err: Error & HttpClientResponse) =>
-        Promise.reject(RequestError.create(err, { components: this.components })),
-      )
+      .request({ query: compress(interceptor ? interceptor(this.toString()) : this.toString()) })
       .then((response) => {
         const data = normalize(response.data, true);
 
         if (data?.errors?.length) {
           throw RequestError.create(
-            new Error(`Response errors (${data.errors.length}): ${JSON.stringify(data.errors)}`),
-            { components: this.components, status: response.status, data },
+            `Response errors (${data.errors.length}): ${JSON.stringify(data.errors)}`,
+            Object.assign(new Error('Response errors'), { components: this.components, status: response.status, data }),
           );
         }
 

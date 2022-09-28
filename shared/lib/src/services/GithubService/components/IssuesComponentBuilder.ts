@@ -13,6 +13,7 @@ import {
   ReactionComponent,
   RepositoryComponent,
 } from '../../../github/components';
+import { GithubRequestError } from '../../../helpers/errors';
 import { ComponentBuilder } from './ComponentBuilder';
 
 enum Stages {
@@ -31,9 +32,13 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
   private previousEndCursor: string | undefined;
   private currentStage: Stages = Stages.GET_ISSUES_LIST;
 
-  private meta: TMeta = { first: 10 };
+  private meta: TMeta = { first: 15 };
   private issuesMeta: (TMeta & { issue: T })[] = [];
   private reactablesMeta: (TMeta & { reactable: Reactable })[] = [];
+
+  private get pendingIssues() {
+    return this.issuesMeta.filter((rm) => rm.hasNextPage).slice(0, this.meta.first);
+  }
 
   private get pendingReactables() {
     return this.reactablesMeta.filter((rm) => rm.hasNextPage).slice(0, this.meta.first);
@@ -46,7 +51,11 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
   }
 
   build(error?: Error): RepositoryComponent | IssueComponent[] | ReactionComponent[] {
-    if (error) throw error;
+    if (error instanceof GithubRequestError) {
+      if (this.meta.first > 1) this.meta.first = Math.floor(this.meta.first / 2);
+    } else if (error) {
+      throw error;
+    }
 
     switch (this.currentStage) {
       case Stages.GET_ISSUES_LIST: {
@@ -69,7 +78,7 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
       }
 
       case Stages.GET_TIMELINE_EVENTS: {
-        return this.issuesMeta.map((iMeta, index) =>
+        return this.pendingIssues.map((iMeta, index) =>
           new this.EntityComponent(iMeta.issue.id, `issue_${index}`)
             .includeDetails(false)
             .includeTimeline(true, { first: 100, after: iMeta.endCursor, alias: 'tl' }),
@@ -91,6 +100,8 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
   }
 
   parse(data: any): { hasNextPage: boolean; endCursor?: string; data: T[] } {
+    this.meta.first = Math.min(15, this.meta.first * 2);
+
     switch (this.currentStage) {
       case Stages.GET_ISSUES_LIST: {
         const nodes = get<any[]>(data, 'repo.issues.nodes', []);
@@ -131,7 +142,7 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
       }
 
       case Stages.GET_TIMELINE_EVENTS: {
-        const hasMoreTimelineEvents = this.issuesMeta.reduce((hasMore, iMeta, index) => {
+        this.pendingIssues.forEach((iMeta, index) => {
           const nodes = get<any[]>(data, `issue_${index}.tl.nodes`, [])
             .map((node) => transformTimelineEvent(node, { repository: this.repositoryId, issue: iMeta.issue.id }))
             .map((node) => TimelineEvent.from({ ...node, repository: this.repositoryId, issue: iMeta.issue.id }));
@@ -141,11 +152,9 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
           iMeta.hasNextPage = pageInfo.has_next_page || false;
 
           (iMeta.issue.timeline_items as TimelineEvent[]).push(...nodes);
+        });
 
-          return iMeta.hasNextPage || hasMore;
-        }, false);
-
-        if (!hasMoreTimelineEvents) {
+        if (this.issuesMeta.every((iMeta) => !iMeta.hasNextPage)) {
           const reactables = findReactables(
             flatten(compact(this.issuesMeta.map((iMeta) => iMeta.issue.timeline_items as TimelineEvent[]))),
           ).map((reactable) => {
@@ -165,23 +174,28 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
           this.reactablesMeta = reactables.map((reactable) => ({ reactable, first: 100, hasNextPage: true }));
           this.currentStage = Stages.GET_REACTIONS;
         }
+
         break;
       }
 
       case Stages.GET_REACTIONS: {
-        const hasMoreReactions = this.pendingReactables.reduce((hasMore, pr, index) => {
+        this.pendingReactables.forEach((pr, index) => {
           const nodes = get<any[]>(data, `reactable_${index}.reactions.nodes`, []).map(
-            (data) => new Reaction({ ...data, repository: this.repositoryId, reactable: pr.reactable.id }),
+            (data) =>
+              new Reaction({
+                ...data,
+                repository: this.repositoryId,
+                reactable: pr.reactable.id,
+                reactable_type: pr.reactable.constructor.name,
+              }),
           );
 
           (pr.reactable.reactions as Reaction[]).push(...nodes);
           pr.hasNextPage = get<boolean>(data, `reactable_${index}.page_info.has_next_page`, false);
           pr.endCursor = get<string | undefined>(data, `reactable_${index}.page_info.end_cursor`, pr.endCursor);
+        });
 
-          return pr.hasNextPage || hasMore;
-        }, false);
-
-        if (!hasMoreReactions) {
+        if (this.reactablesMeta.every((rMeta) => !rMeta.hasNextPage)) {
           this.currentStage = Stages.GET_ISSUES_LIST;
           return {
             hasNextPage: true,
@@ -197,6 +211,24 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
     }
 
     return { hasNextPage: true, endCursor: this.previousEndCursor, data: [] };
+  }
+
+  toJSON(): Record<string, unknown> {
+    const data = { repository: this.repositoryId, currentStage: this.currentStage };
+
+    if (this.currentStage === Stages.GET_ISSUES_LIST) {
+      Object.assign(data, this.meta);
+    } else if (this.currentStage === Stages.GET_ISSUES_DETAILS || this.currentStage === Stages.GET_TIMELINE_EVENTS) {
+      Object.assign(data, {
+        meta: this.pendingIssues.map(({ first, endCursor, hasNextPage }) => ({ first, endCursor, hasNextPage })),
+      });
+    } else {
+      Object.assign(data, {
+        meta: this.pendingReactables.map(({ first, endCursor, hasNextPage }) => ({ first, endCursor, hasNextPage })),
+      });
+    }
+
+    return data;
   }
 }
 

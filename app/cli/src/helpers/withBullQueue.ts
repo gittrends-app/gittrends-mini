@@ -8,7 +8,7 @@ export async function withBullQueue<T>(callback: (queue: Queue.Queue) => Promise
   const queue = new Queue('@gittrends/cli', {
     redis: { host: REDIS_HOST, port: REDIS_PORT, db: REDIS_DB },
     settings: { maxStalledCount: Number.MAX_SAFE_INTEGER },
-    defaultJobOptions: { attempts: 1 },
+    defaultJobOptions: { attempts: 3 },
   });
 
   return callback(queue).finally(() => queue.close());

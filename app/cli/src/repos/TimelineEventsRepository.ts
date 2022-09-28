@@ -1,4 +1,4 @@
-import { all, each } from 'bluebird';
+import { each } from 'bluebird';
 import { Knex } from 'knex';
 import { size } from 'lodash';
 
@@ -49,11 +49,10 @@ export class TimelineEventsRepository implements IResourceRepository<TimelineEve
     const reactables = extractEntityInstances<Reaction>(events, Reaction);
 
     const transaction = trx || (await this.db.transaction());
-
-    await all([
-      this.actorsRepo.save(actors, transaction),
-      this.reactionsRepo.save(reactables, transaction),
-      each(events, (event) =>
+    try {
+      await this.actorsRepo.save(actors, transaction);
+      await this.reactionsRepo.save(reactables, transaction);
+      await each(events, (event) =>
         this.db
           .table(TimelineEvent.__collection_name)
           .insert({
@@ -63,9 +62,11 @@ export class TimelineEventsRepository implements IResourceRepository<TimelineEve
           .onConflict('id')
           .merge()
           .transacting(transaction),
-      ),
-    ]);
-
-    if (!trx) await transaction.commit();
+      );
+      if (!trx) await transaction.commit();
+    } catch (error) {
+      if (!trx) await transaction.rollback(error);
+      throw error;
+    }
   }
 }

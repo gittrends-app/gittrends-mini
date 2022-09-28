@@ -27,4 +27,8 @@ export class StargazersComponentBuilder implements ComponentBuilder<RepositoryCo
       ),
     };
   }
+
+  toJSON(): Record<string, unknown> {
+    return { repository: this.repositoryId, first: this.first, endCursor: this.endCursor };
+  }
 }

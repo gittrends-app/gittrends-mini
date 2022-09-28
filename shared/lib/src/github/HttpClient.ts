@@ -67,15 +67,14 @@ export default class HttpClient {
   async request(data: string | Record<string, unknown>): Promise<HttpClientResponse> {
     return this.client
       .post('/graphql', data)
-      .then(({ status, statusText, data, headers }) => ({
-        status,
-        statusText,
-        data,
-        headers,
-      }))
-      .catch((error: AxiosError) => {
-        const { status, statusText, data, headers } = error.response || {};
-        return Promise.reject(RequestError.create(Object.assign(new Error(), { status, statusText, data, headers })));
-      });
+      .then((response) => {
+        const { status, statusText, data, headers } = response;
+        return { status, statusText, data, headers };
+      })
+      .catch((err: AxiosError) =>
+        Promise.reject(
+          RequestError.create(err.message, err, { status: err.response?.status, data: err.response?.data }),
+        ),
+      );
   }
 }

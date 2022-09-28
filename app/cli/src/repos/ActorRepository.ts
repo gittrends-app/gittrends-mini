@@ -29,8 +29,13 @@ export class ActorsRepository implements IActorsRepository {
         .onConflict('id')
         .merge()
         .transacting(transaction),
-    );
-
-    if (!trx) await transaction.commit();
+    )
+      .then(async () => {
+        if (!trx) await transaction.commit();
+      })
+      .catch(async (error) => {
+        if (!trx) await transaction.rollback(error);
+        throw error;
+      });
   }
 }

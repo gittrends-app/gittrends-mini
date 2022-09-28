@@ -15,7 +15,7 @@ describe('Test request errors', () => {
 
     await expect(
       axios.get<string>(url).catch(async ({ response: { data, status } }) => {
-        const error = new RequestError(new Error(), { data, status: status });
+        const error = new RequestError('Request error', new Error(), { data, status: status });
         expect(error.response?.status).toBe(500);
         expect(error.response?.data).toBe('failed');
       }),
@@ -27,13 +27,15 @@ describe('Test request errors', () => {
 
     let error = await axios
       .get(url)
-      .catch(({ response }) => RequestError.create(new Error(), { status: response.status }));
+      .catch(({ response }) => RequestError.create('Request error', new Error(), { status: response.status }));
     expect(error).toBeInstanceOf(ServerRequestError);
     expect((error as ServerRequestError).type).toBe('INTERNAL_SERVER');
 
     nock(url).get('/').reply(502);
 
-    error = await axios.get(url).catch(({ response }) => RequestError.create(new Error(), { status: response.status }));
+    error = await axios
+      .get(url)
+      .catch(({ response }) => RequestError.create('Request error', new Error(), { status: response.status }));
     expect(error).toBeInstanceOf(ServerRequestError);
     expect((error as ServerRequestError).type).toBe('BAD_GATEWAY');
   });
@@ -55,7 +57,7 @@ describe('Test request errors', () => {
       });
 
     let response = await axios.get(`${url}/errors`);
-    let error = RequestError.create(new Error(), {
+    let error = RequestError.create('Request error', new Error(), {
       data: response.data,
       status: response.status,
     });
@@ -84,7 +86,7 @@ describe('Test request errors', () => {
       });
 
     response = await axios.get(`${url}/errors`);
-    error = RequestError.create(new Error(), {
+    error = RequestError.create('Request error', new Error(), {
       data: response.data,
       status: response.status,
     });

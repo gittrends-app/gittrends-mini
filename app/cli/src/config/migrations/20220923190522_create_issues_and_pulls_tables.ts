@@ -89,6 +89,7 @@ export async function up(knex: Knex): Promise<void> {
       table.string('id').primary();
       table.string('repository').notNullable();
       table.string('reactable').notNullable();
+      table.string('reactable_type').notNullable();
       table.string('content').notNullable();
       table.timestamp('created_at').notNullable();
       table.string('user');

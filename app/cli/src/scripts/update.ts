@@ -177,11 +177,19 @@ async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void
         .default(['all']),
     )
     .addOption(new Option('--no-progress', 'Disable progress bars'))
+    .addOption(new Option('--schedule', 'Schedule repositories before updating').default(false))
     .addOption(new Option('--concurrency [number]', 'Use paralled processing').default(1))
     .action(
       async (
         names: string[],
-        opts: { token?: string; apiUrl?: string; resources: string[]; progress: boolean; concurrency: number },
+        opts: {
+          token?: string;
+          apiUrl?: string;
+          resources: string[];
+          progress: boolean;
+          schedule: boolean;
+          concurrency: number;
+        },
       ) => {
         if (!opts.apiUrl && !opts.token) program.error('--token or --api-url is mandatory!');
 
@@ -207,8 +215,10 @@ async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void
               multibar: opts.progress ? multibar : undefined,
             });
           } else {
-            consola.info('Scheduling repositories ...');
-            await schedule(24);
+            if (opts.schedule) {
+              consola.info('Scheduling repositories ...');
+              await schedule(24);
+            }
             consola.info('Processing repositories ...\n');
             return redisQueue({
               httpClient,

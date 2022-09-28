@@ -3,12 +3,13 @@
  */
 import Fragment from '../Fragment';
 import { SimplifiedActorFragment } from './ActorFragment';
+import ReactableFragment from './ReactableFragment';
 
 export class ReleaseFragment extends Fragment {
   code = 'release';
 
   get dependencies(): Fragment[] {
-    return [SimplifiedActorFragment];
+    return [SimplifiedActorFragment, ReactableFragment];
   }
 
   toString(): string {
@@ -19,11 +20,15 @@ export class ReleaseFragment extends Fragment {
       description
       id
       isDraft
+      isLatest
       isPrerelease
+      mentions { totalCount }
       name
       publishedAt
+      ...${ReactableFragment.code}
       releaseAssets { totalCount }
       tag { id }
+      tagCommit { id:oid }
       tagName
       updatedAt
     }

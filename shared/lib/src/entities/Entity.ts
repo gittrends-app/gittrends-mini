@@ -5,6 +5,8 @@ import Joi from 'joi';
 import { cloneDeep, mapValues, omit, snakeCase } from 'lodash';
 import { plural } from 'pluralize';
 
+import { ExtendedError } from '../helpers/errors';
+
 export abstract class Entity<T = any> {
   static readonly __schema: Joi.ObjectSchema<Entity>;
   static readonly __strip_unknown: boolean = true;
@@ -37,7 +39,13 @@ export abstract class Entity<T = any> {
       allowUnknown: !this.__strip_unknown,
     });
 
-    if (error) throw error;
+    if (error) throw new EntityValidationError(error);
     else return value as any;
+  }
+}
+
+class EntityValidationError extends ExtendedError {
+  constructor(error: Joi.ValidationError) {
+    super(error.message, error);
   }
 }

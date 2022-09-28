@@ -1,4 +1,4 @@
-import { all, each } from 'bluebird';
+import { each } from 'bluebird';
 import { Knex } from 'knex';
 
 import { Actor, IResourceRepository, Tag } from '@gittrends/lib';
@@ -39,18 +39,20 @@ export class TagsRepository implements IResourceRepository<Tag> {
 
     const transaction = trx || (await this.db.transaction());
 
-    await all([
-      this.actorsRepo.save(actors, transaction),
-      each(tags, (tag) =>
+    try {
+      await this.actorsRepo.save(actors, transaction);
+      await each(tags, (tag) =>
         this.db
           .table(Tag.__collection_name)
           .insert(tag.toJSON('sqlite'))
           .onConflict(['id'])
           .ignore()
           .transacting(transaction),
-      ),
-    ]);
-
-    if (!trx) transaction.commit();
+      );
+      if (!trx) transaction.commit();
+    } catch (error) {
+      if (!trx) transaction.rollback(error);
+      throw error;
+    }
   }
 }

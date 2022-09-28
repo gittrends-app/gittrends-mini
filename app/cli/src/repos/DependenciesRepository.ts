@@ -45,8 +45,13 @@ export class DependenciesRepository implements IResourceRepository<Dependency> {
         .onConflict(['repository', 'manifest', 'package_name', 'requirements'])
         .ignore()
         .transacting(transaction),
-    );
-
-    if (!trx) await transaction.commit();
+    )
+      .then(async () => {
+        if (!trx) await transaction.commit();
+      })
+      .catch(async (error) => {
+        if (!trx) await transaction.rollback(error);
+        throw error;
+      });
   }
 }

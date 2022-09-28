@@ -6,9 +6,9 @@
   "scripts": {
     "build": "tsc",
     "eslint": "eslint --color",
-    "add-repositories": "node dist/scripts/add-repositories.js",
-    "schedule": "node dist/scripts/schedule.js",
-    "update": "node dist/scripts/update.js",
+    "add-repositories": "node -r dotenv/config dist/scripts/add-repositories.js",
+    "schedule": "node -r dotenv/config dist/scripts/schedule.js",
+    "update": "node -r dotenv/config dist/scripts/update.js",
     "clinic:update": "clinic bubbleprof -- node dist/scripts/update.js",
     "dev:add-repositories": "ts-node -r dotenv/config -T src/scripts/add-repositories.ts",
     "dev:schedule": "ts-node -r dotenv/config -T src/scripts/schedule.ts",

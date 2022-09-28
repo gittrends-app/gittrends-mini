@@ -1,3 +1,4 @@
+import { mapSeries } from 'bluebird';
 import { flatten, get, mapKeys, min, pick } from 'lodash';
 
 import { Dependency, Release, Repository, Stargazer, Tag, Watcher } from '../../entities';
@@ -7,7 +8,7 @@ import { RepositoryResource } from '../../entities/interfaces/RepositoryResource
 import HttpClient from '../../github/HttpClient';
 import Query from '../../github/Query';
 import { RepositoryComponent, SearchComponent, SearchComponentQuery } from '../../github/components';
-import { RequestError, ServerRequestError } from '../../helpers/errors';
+import { ExtendedError, RequestError, ServerRequestError } from '../../helpers/errors';
 import { Constructor } from '../../types';
 import { Iterable, Service } from '../Service';
 import { ComponentBuilder } from './components/ComponentBuilder';
@@ -18,17 +19,28 @@ import { StargazersComponentBuilder } from './components/StargazersComponentBuil
 import { TagsComponentBuilder } from './components/TagsComponentBuilder';
 import { WatchersComponentBuilder } from './components/WatchersComponentBuilder';
 
+class ServiceRequestError extends ExtendedError {
+  public readonly components: ComponentBuilder[];
+
+  constructor(cause: Error, component: ComponentBuilder | ComponentBuilder[]) {
+    const components = Array.isArray(component) ? component : [component];
+    const parameters = components.map((c) => [c.constructor.name, c.toJSON()]);
+    super(`${cause.message} <${JSON.stringify(parameters)}>`, cause);
+    this.components = components;
+  }
+}
+
 async function request(
   httpClient: HttpClient,
   builders: ComponentBuilder[],
-  error?: Error,
+  previousError?: Error,
 ): Promise<ReturnType<ComponentBuilder['parse']>[]> {
-  const components = builders.map((builder) => {
-    const _component = builder.build(error);
-    return Array.isArray(_component) ? _component : [_component];
-  });
-
   try {
+    const components = builders.map((builder) => {
+      const _component = builder.build(previousError);
+      return Array.isArray(_component) ? _component : [_component];
+    });
+
     const newAliases = components.map((ca, i) => ca.map((c, i2) => `${c.alias}__${i}_${i2}`));
     const componentsWithNewAliases = components.map((ca, i) => ca.map((c, i2) => c.setAlias(`${c.alias}__${i}_${i2}`)));
 
@@ -39,11 +51,30 @@ async function request(
 
     const results = newAliases.map((na) => mapKeys(pick(response, na), (_, key) => key.replace(/__\d+_\d+$/i, '')));
 
-    return builders.map((builder, i) => builder.parse(results[i]));
+    const parseResults = builders.map((builder, i) => builder.parse(results[i]));
+
+    const partialResultsIndexes = parseResults.reduce(
+      (indexes: number[], pr, index) =>
+        pr.hasNextPage && (!pr.data || !pr.data.length) ? indexes.concat([index]) : indexes,
+      [],
+    );
+
+    if (partialResultsIndexes.length > 0) {
+      const finalPartialResults = await request(
+        httpClient,
+        builders.filter((_, index) => partialResultsIndexes.includes(index)),
+      );
+      partialResultsIndexes.forEach((prIndex, index) => (parseResults[prIndex] = finalPartialResults[index]));
+    }
+
+    return parseResults;
   } catch (error) {
-    if (!(error instanceof RequestError)) throw error;
-    if (builders.length === 1) return request(httpClient, builders, error as Error);
-    return Promise.all(builders.map((builer) => request(httpClient, [builer]).then((res) => res[0])));
+    if (!(error instanceof RequestError)) throw new ServiceRequestError(error as any, builders);
+    if (builders.length === 1) {
+      if (previousError) throw new ServiceRequestError(error, builders);
+      return request(httpClient, builders, error as Error);
+    }
+    return mapSeries(builders, (builer) => request(httpClient, [builer]).then((res) => res[0]));
   }
 }
 
@@ -60,6 +91,7 @@ function getComponentBuilder(Target: Constructor<RepositoryResource>) {
 
 class ResourceIterator implements Iterable<RepositoryResource> {
   private readonly resourcesStatus: { hasMore: boolean; builder: ComponentBuilder; endCursor?: string }[];
+  private error?: ServiceRequestError;
 
   constructor(components: ComponentBuilder[], private httpClient: HttpClient) {
     this.resourcesStatus = components.map((component) => ({ hasMore: true, builder: component }));
@@ -72,28 +104,41 @@ class ResourceIterator implements Iterable<RepositoryResource> {
   async next(): Promise<IteratorResult<{ items: RepositoryResource[]; endCursor?: string; hasNextPage: boolean }[]>> {
     const done = this.resourcesStatus.reduce((done, rs) => done && !rs.hasMore, true);
 
-    if (done) return Promise.resolve({ done: true, value: undefined });
+    if (done) {
+      if (this.error) throw this.error;
+      else return Promise.resolve({ done: true, value: undefined });
+    }
 
     const pendingResources = this.resourcesStatus.filter((rs) => rs.hasMore);
 
-    const results = await request(
-      this.httpClient,
-      pendingResources.map((rs) => rs.builder),
-    );
+    try {
+      const results = await request(
+        this.httpClient,
+        pendingResources.map((rs) => rs.builder),
+      );
 
-    results.forEach((result, index) => {
-      pendingResources[index].hasMore = result?.hasNextPage;
-      pendingResources[index].endCursor = result?.endCursor;
-    });
+      results.forEach((result, index) => {
+        pendingResources[index].hasMore = result?.hasNextPage;
+        pendingResources[index].endCursor = result?.endCursor;
+      });
 
-    const value = this.resourcesStatus.map((rs) => {
-      const index = pendingResources.findIndex((pr) => pr.builder === rs.builder);
-      if (index < 0) return { items: [], endCursor: rs.endCursor, hasNextPage: rs.hasMore };
-      const result = results[index];
-      return { items: result.data, endCursor: result.endCursor, hasNextPage: result.hasNextPage };
-    });
+      const value = this.resourcesStatus.map((rs) => {
+        const index = pendingResources.findIndex((pr) => pr.builder === rs.builder);
+        if (index < 0) return { items: [], endCursor: rs.endCursor, hasNextPage: rs.hasMore };
+        const result = results[index];
+        return { items: result.data, endCursor: result.endCursor, hasNextPage: result.hasNextPage };
+      });
 
-    return { done: false, value };
+      return { done: false, value };
+    } catch (error) {
+      if (error instanceof ServiceRequestError) {
+        for (const pResource of pendingResources) {
+          if (error.components.includes(pResource.builder)) pResource.hasMore = false;
+        }
+        return this.next();
+      }
+      throw error;
+    }
   }
 }
 

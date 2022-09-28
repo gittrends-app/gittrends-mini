@@ -1,4 +1,4 @@
-import { all, each } from 'bluebird';
+import { each } from 'bluebird';
 import { Knex } from 'knex';
 
 import { Actor, IResourceRepository, Issue, IssueOrPull, PullRequest } from '@gittrends/lib';
@@ -65,24 +65,23 @@ class IssueOrPullRepository<T extends IssueOrPull> implements IResourceRepositor
     const transaction = trx || (await this.db.transaction());
 
     await each(data, async ({ issue, actors, reactions, timeline_items }) => {
-      return all([
-        this.actorsRepo.save(actors, transaction),
-        this.reactionsRepo.save(reactions, transaction),
-        this.eventsRepo.save(timeline_items, transaction),
-        this.db
-          .table((this.IssueOrPullClass as any).__collection_name)
-          .insert(issue.toJSON('sqlite'))
-          .onConflict('id')
-          .merge()
-          .transacting(transaction)
-          .catch((error) => {
-            console.error(error, issue);
-            throw error;
-          }),
-      ]);
-    });
-
-    if (!trx) await transaction.commit();
+      await this.actorsRepo.save(actors, transaction);
+      await this.reactionsRepo.save(reactions, transaction);
+      await this.eventsRepo.save(timeline_items, transaction);
+      return this.db
+        .table((this.IssueOrPullClass as any).__collection_name)
+        .insert(issue.toJSON('sqlite'))
+        .onConflict('id')
+        .merge()
+        .transacting(transaction);
+    })
+      .then(async () => {
+        if (!trx) await transaction.commit();
+      })
+      .catch(async (error) => {
+        if (!trx) await transaction.rollback(error);
+        throw error;
+      });
   }
 }
 

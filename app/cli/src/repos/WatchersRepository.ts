@@ -1,4 +1,4 @@
-import { all, each } from 'bluebird';
+import { each } from 'bluebird';
 import { Knex } from 'knex';
 
 import { Actor, IResourceRepository, Watcher } from '@gittrends/lib';
@@ -37,19 +37,20 @@ export class WatchersRepository implements IResourceRepository<Watcher> {
     const actors = extractEntityInstances<Actor>(watchers, Actor as any);
 
     const transaction = trx || (await this.db.transaction());
-
-    await all([
-      this.actorsRepo.save(actors, transaction),
-      each(watchers, (watcher) =>
+    try {
+      await this.actorsRepo.save(actors, transaction);
+      await each(watchers, (watcher) =>
         this.db
           .table(Watcher.__collection_name)
           .insert(watcher.toJSON('sqlite'))
           .onConflict(['repository', 'user'])
           .ignore()
           .transacting(transaction),
-      ),
-    ]);
-
-    if (!trx) await transaction.commit();
+      );
+      if (!trx) await transaction.commit();
+    } catch (error) {
+      if (!trx) await transaction.rollback(error);
+      throw error;
+    }
   }
 }

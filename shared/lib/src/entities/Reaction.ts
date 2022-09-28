@@ -12,6 +12,7 @@ export class Reaction extends Entity implements Node, RepositoryResource {
   id!: string;
   repository!: string;
   reactable!: string;
+  reactable_type!: string;
   content!: string;
   created_at!: Date;
   user?: string | Actor;
@@ -21,6 +22,7 @@ export class Reaction extends Entity implements Node, RepositoryResource {
       id: Joi.string().required(),
       repository: Joi.string().required(),
       reactable: Joi.string().required(),
+      reactable_type: Joi.string().required(),
       content: Joi.string().required(),
       created_at: Joi.date().required(),
       user: Joi.alternatives(Joi.string(), Actor.__schema),

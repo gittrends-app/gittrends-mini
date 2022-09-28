@@ -1,4 +1,4 @@
-import { all, each } from 'bluebird';
+import { each } from 'bluebird';
 import { Knex } from 'knex';
 import { uniqBy } from 'lodash';
 
@@ -55,17 +55,20 @@ export class RepositoriesRepository implements IRepositoriesRepository {
     const transaction = trx || (await this.db.transaction());
 
     await each(repos, async (repo) => {
-      return all([
-        this.actorRepo.save(actors, transaction),
-        this.db
-          .table(Repository.__collection_name)
-          .insert(repo.toJSON('sqlite'))
-          .onConflict('id')
-          .merge()
-          .transacting(transaction),
-      ]);
-    });
-
-    if (!trx) await transaction.commit();
+      await this.actorRepo.save(actors, transaction);
+      return this.db
+        .table(Repository.__collection_name)
+        .insert(repo.toJSON('sqlite'))
+        .onConflict('id')
+        .merge()
+        .transacting(transaction);
+    })
+      .then(async () => {
+        if (!trx) await transaction.commit();
+      })
+      .catch(async (error) => {
+        if (!trx) await transaction.rollback(error);
+        throw error;
+      });
   }
 }

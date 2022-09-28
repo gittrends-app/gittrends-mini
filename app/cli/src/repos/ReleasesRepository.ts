@@ -1,16 +1,19 @@
-import { all, each } from 'bluebird';
+import { each } from 'bluebird';
 import { Knex } from 'knex';
 
-import { Actor, IResourceRepository, Release } from '@gittrends/lib';
+import { Actor, IResourceRepository, Reaction, Release } from '@gittrends/lib';
 
 import { extractEntityInstances } from '../helpers/extract';
 import { ActorsRepository } from './ActorRepository';
+import { ReactionsRepository } from './ReactionsRepository';
 
 export class ReleasesRepository implements IResourceRepository<Release> {
   private actorsRepo: ActorsRepository;
+  private reactionsRepo: ReactionsRepository;
 
   constructor(private db: Knex) {
     this.actorsRepo = new ActorsRepository(db);
+    this.reactionsRepo = new ReactionsRepository(db);
   }
 
   async countByRepository(repository: string): Promise<number> {
@@ -35,22 +38,32 @@ export class ReleasesRepository implements IResourceRepository<Release> {
 
   async save(release: Release | Release[], trx?: Knex.Transaction): Promise<void> {
     const releases = Array.isArray(release) ? release : [release];
+
     const actors = extractEntityInstances<Actor>(releases, Actor as any);
+    const reactions = extractEntityInstances<Reaction>(releases, Reaction);
 
     const transaction = trx || (await this.db.transaction());
 
-    await all([
-      this.actorsRepo.save(actors, transaction),
-      each(releases, (rel) =>
-        this.db
-          .table(Release.__collection_name)
-          .insert(rel.toJSON('sqlite'))
-          .onConflict(['id'])
-          .ignore()
-          .transacting(transaction),
-      ),
-    ]);
-
-    if (!trx) await transaction.commit();
+    try {
+      await this.reactionsRepo.save(reactions, transaction);
+      await this.actorsRepo.save(actors, transaction);
+      await each(
+        releases.map((rel) => {
+          if (Array.isArray(rel.reactions)) rel.reactions = rel.reactions.length;
+          return rel;
+        }),
+        (rel) =>
+          this.db
+            .table(Release.__collection_name)
+            .insert(rel.toJSON('sqlite'))
+            .onConflict(['id'])
+            .ignore()
+            .transacting(transaction),
+      );
+      if (!trx) await transaction.commit();
+    } catch (error) {
+      if (!trx) await transaction.rollback(error);
+      throw error;
+    }
   }
 }

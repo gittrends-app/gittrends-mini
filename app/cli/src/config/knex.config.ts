@@ -7,6 +7,7 @@ import { dirname, extname, resolve } from 'path';
 export const BASE_DIR = resolve(homedir(), '.gittrends', process.env.NODE_ENV || 'development');
 
 function knexResponseParser(result: any) {
+  if (!result) return result;
   if (result.command && result.rows) return result;
   return mapValues(omitBy(result, isNil), (value) => {
     if (value === 'TRUE') return true;
@@ -24,6 +25,7 @@ export async function createOrConnectDatabase(repo: string) {
     client: 'better-sqlite3',
     useNullAsDefault: true,
     connection: { filename: databaseFile },
+    acquireConnectionTimeout: 60000,
     migrations: {
       directory: resolve(__dirname, 'migrations'),
       tableName: '_migrations',
@@ -44,5 +46,5 @@ export async function migrate(db: string | Knex): Promise<void> {
     return migrate(conn).finally(() => conn.destroy());
   }
 
-  return db.migrate.latest({ directory: resolve(__dirname, 'migrations') });
+  return db.migrate.latest();
 }

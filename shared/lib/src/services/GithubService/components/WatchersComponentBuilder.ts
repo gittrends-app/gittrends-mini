@@ -27,4 +27,8 @@ export class WatchersComponentBuilder implements ComponentBuilder<RepositoryComp
       ),
     };
   }
+
+  toJSON(): Record<string, unknown> {
+    return { repository: this.repositoryId, first: this.first, endCursor: this.endCursor };
+  }
 }
