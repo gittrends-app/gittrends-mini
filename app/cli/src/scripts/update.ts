@@ -89,7 +89,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
           { resource: truncate(repo.name_with_owner, { length: 28, omission: '..' }).padStart(30, ' ') },
         );
 
-    const iterator = localService.resources(repo.id, resourcesInfo, { persistenceBatchSize: 500 });
+    const iterator = localService.resources(repo.id, resourcesInfo);
 
     try {
       // eslint-disable-next-line no-constant-condition

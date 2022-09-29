@@ -1,3 +1,5 @@
+import { each } from 'bluebird';
+
 import { Metadata, Repository } from '../entities';
 import { RepositoryResource } from '../entities/interfaces/RepositoryResource';
 import HttpClient from '../github/HttpClient';
@@ -97,36 +99,35 @@ class ProxiedIterator implements Iterable<RepositoryResource> {
 
     const [cachedResults, githubResults] = await Promise.all([this.localIterables.next(), this.githubIterables.next()]);
 
-    await Promise.all(
-      ((githubResults.value || []) as { items: RepositoryResource[]; endCursor?: string; hasNextPage: boolean }[]).map(
-        async (result, index) => {
-          const repository: IResourceRepository<RepositoryResource> = (this.opts.repos as any)[
-            (this.resources[index].resource as any).__collection_name
-          ];
+    await each(
+      (githubResults.value || []) as { items: RepositoryResource[]; endCursor?: string; hasNextPage: boolean }[],
+      async (result, index) => {
+        const repository: IResourceRepository<RepositoryResource> = (this.opts.repos as any)[
+          (this.resources[index].resource as any).__collection_name
+        ];
 
-          const arrayRef = this.resourcesBatch[index];
-          arrayRef.items.push(...result.items);
-          arrayRef.endCursor = result.endCursor;
+        const arrayRef = this.resourcesBatch[index];
+        arrayRef.items.push(...result.items);
+        arrayRef.endCursor = result.endCursor;
 
-          if (
-            !this.opts.persistenceBatchSize ||
-            !result.hasNextPage ||
-            (!result.items.length && arrayRef.items.length > 0) ||
-            arrayRef.items.length >= this.opts.persistenceBatchSize
-          ) {
-            await repository.save(arrayRef.items.splice(0)).then(() =>
-              this.opts.repos.metadata.save(
-                new Metadata({
-                  repository: this.repositoryId,
-                  end_cursor: arrayRef.endCursor,
-                  resource: (this.resources[index].resource as any).__collection_name,
-                  updated_at: new Date(),
-                }),
-              ),
-            );
-          }
-        },
-      ),
+        if (
+          !this.opts.persistenceBatchSize ||
+          !result.hasNextPage ||
+          (!result.items.length && arrayRef.items.length > 0) ||
+          arrayRef.items.length >= this.opts.persistenceBatchSize
+        ) {
+          await repository.save(arrayRef.items.splice(0)).then(() =>
+            this.opts.repos.metadata.save(
+              new Metadata({
+                repository: this.repositoryId,
+                end_cursor: arrayRef.endCursor,
+                resource: (this.resources[index].resource as any).__collection_name,
+                updated_at: new Date(),
+              }),
+            ),
+          );
+        }
+      },
     );
 
     if (cachedResults.done && githubResults.done) return { done: (this.done = true), value: undefined };

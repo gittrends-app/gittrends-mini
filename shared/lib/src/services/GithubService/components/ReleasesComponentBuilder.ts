@@ -51,10 +51,11 @@ export class ReleasesComponentBuilder implements ComponentBuilder<RepositoryComp
     if (this.currentStage === Stages.GET_RELEASES) {
       this.releasesMeta = get<any[]>(data, 'repo.releases.nodes', []).map((node) => ({
         release: new Release({
+          reaction_groups: {},
+          reactions: [],
           ...node,
           repository: this.repositoryId,
           author: node.author && Actor.from(node.author),
-          reactions: [],
         }),
         hasNextPage: true,
       }));
