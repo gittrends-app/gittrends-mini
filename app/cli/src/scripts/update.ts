@@ -164,7 +164,9 @@ async function redisQueue(opts: {
           resources: opts.resources,
         }).catch((error: Error) => {
           opts.multibar?.log(error.message || JSON.stringify(error));
-          errorLogger.error('Metadata: ' + JSON.stringify({ repository: name, resources: opts.resources }));
+          errorLogger.error(
+            'Metadata: ' + JSON.stringify({ repository: job.id.toString(), resources: opts.resources }),
+          );
           errorLogger.error(error);
           throw error;
         }),
