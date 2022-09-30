@@ -22,12 +22,13 @@ export class ProxyService implements Service {
   resources(
     repositoryId: string,
     resources: { resource: Constructor<RepositoryResource>; endCursor?: string; hasNextPage?: boolean }[],
-    opts?: { persistenceBatchSize?: number },
+    opts?: { persistenceBatchSize?: number; ignoreCache?: boolean },
   ): Iterable<RepositoryResource> {
     return new ProxiedIterator(repositoryId, resources, {
       github: this.githubService,
       local: this.cacheService,
       repos: this.persistence,
+      ignoreCache: opts?.ignoreCache,
       persistenceBatchSize: opts?.persistenceBatchSize,
     });
   }
@@ -62,7 +63,13 @@ class ProxiedIterator implements Iterable<RepositoryResource> {
   constructor(
     private repositoryId: string,
     private resources: { resource: Constructor<RepositoryResource>; endCursor?: string; hasNextPage?: boolean }[],
-    private opts: { local: LocalService; github: GitHubService; repos: ServiceOpts; persistenceBatchSize?: number },
+    private opts: {
+      local: LocalService;
+      github: GitHubService;
+      repos: ServiceOpts;
+      persistenceBatchSize?: number;
+      ignoreCache?: boolean;
+    },
   ) {
     this.resourcesBatch = resources.map(() => ({ items: [] }));
   }
@@ -74,9 +81,11 @@ class ProxiedIterator implements Iterable<RepositoryResource> {
   async next(): Promise<IteratorResult<{ items: RepositoryResource[]; endCursor?: string; hasNextPage?: boolean }[]>> {
     if (this.done) return Promise.resolve({ done: true, value: undefined });
 
-    const cachedResourcesIndexes = this.resources
-      .reduce((memo: (number | null)[], res, index) => memo.concat([!res.endCursor ? index : null]), [])
-      .filter((v) => v !== null) as number[];
+    const cachedResourcesIndexes = this.opts.ignoreCache
+      ? []
+      : (this.resources
+          .reduce((memo: (number | null)[], res, index) => memo.concat([!res.endCursor ? index : null]), [])
+          .filter((v) => v !== null) as number[]);
 
     if (!this.localIterables && !this.githubIterables) {
       this.localIterables = this.opts.local.resources(

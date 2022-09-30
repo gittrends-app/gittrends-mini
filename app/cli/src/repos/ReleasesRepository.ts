@@ -33,7 +33,10 @@ export class ReleasesRepository implements IResourceRepository<Release> {
       .limit(opts?.limit || 1000)
       .offset(opts?.skip || 0);
 
-    return releases.map((release) => new Release(release));
+    return releases.map(
+      ({ reaction_groups, ...release }) =>
+        new Release({ ...release, reaction_groups: reaction_groups && JSON.parse(reaction_groups) }),
+    );
   }
 
   async save(release: Release | Release[], trx?: Knex.Transaction): Promise<void> {

@@ -89,7 +89,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
           { resource: truncate(repo.name_with_owner, { length: 28, omission: '..' }).padStart(30, ' ') },
         );
 
-    const iterator = localService.resources(repo.id, resourcesInfo);
+    const iterator = localService.resources(repo.id, resourcesInfo, { ignoreCache: true });
 
     try {
       // eslint-disable-next-line no-constant-condition
@@ -101,9 +101,6 @@ export async function updater(name: string, opts: UpdaterOpts) {
           progressBar?.increment(value[index].items.length);
         });
       }
-    } catch (error) {
-      errorLogger.error(error);
-      throw error;
     } finally {
       if (progressBar) opts.multibar?.remove(progressBar);
     }
@@ -119,7 +116,12 @@ async function asyncQueue(
     (name: string, callback) =>
       updater(name, { httpClient: opts.httpClient, resources: opts.resources, multibar: opts.multibar })
         .then(() => callback())
-        .catch((error) => callback(error)),
+        .catch((error) => {
+          opts.multibar?.log(error.message || JSON.stringify(error));
+          errorLogger.error('Metadata: ' + JSON.stringify({ repository: name, resources: opts.resources }));
+          errorLogger.error(error);
+          callback(error);
+        }),
     opts.concurrency,
   );
 
@@ -130,7 +132,12 @@ async function asyncQueue(
   return queueRef.drain();
 }
 
-async function redisQueue(opts: { httpClient: HttpClient; concurrency: number; multibar?: MultiBar }) {
+async function redisQueue(opts: {
+  resources: string[];
+  httpClient: HttpClient;
+  concurrency: number;
+  multibar?: MultiBar;
+}) {
   await withBullQueue(async (queue) => {
     const counts = await queue.getJobCounts();
     const total = Object.values(counts).reduce((acc, v) => acc + v, 0);
@@ -151,12 +158,16 @@ async function redisQueue(opts: { httpClient: HttpClient; concurrency: number; m
 
     return queue
       .process('repositories', opts.concurrency, async (job) =>
-        updater(job.id.toString(), { httpClient: opts.httpClient, multibar: opts.multibar, resources: ['all'] }).catch(
-          (error: Error) => {
-            opts.multibar?.log(error.message || JSON.stringify(error));
-            throw error;
-          },
-        ),
+        updater(job.id.toString(), {
+          httpClient: opts.httpClient,
+          multibar: opts.multibar,
+          resources: opts.resources,
+        }).catch((error: Error) => {
+          opts.multibar?.log(error.message || JSON.stringify(error));
+          errorLogger.error('Metadata: ' + JSON.stringify({ repository: name, resources: opts.resources }));
+          errorLogger.error(error);
+          throw error;
+        }),
       )
       .finally(() => generalProgress && opts.multibar?.remove(generalProgress));
   });
@@ -208,23 +219,16 @@ async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void
         });
 
         await withMultibar(async (multibar) => {
+          const processorOpts = { ...opts, httpClient, multibar: opts.progress ? multibar : undefined };
           if (names.length) {
-            return asyncQueue(names, {
-              ...opts,
-              httpClient,
-              multibar: opts.progress ? multibar : undefined,
-            });
+            return asyncQueue(names, processorOpts);
           } else {
             if (opts.schedule) {
               consola.info('Scheduling repositories ...');
               await schedule(24);
             }
             consola.info('Processing repositories ...\n');
-            return redisQueue({
-              httpClient,
-              concurrency: opts.concurrency,
-              multibar: opts.progress ? multibar : undefined,
-            });
+            return redisQueue(processorOpts);
           }
         });
       },
