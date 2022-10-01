@@ -1,29 +1,28 @@
-import { each } from 'bluebird';
+import { parallelLimit } from 'async';
 import { Option, program } from 'commander';
 import dayjs from 'dayjs';
-import { GlobSync } from 'glob';
 
-import { Dependency, Release, Repository, Stargazer, Tag, Watcher } from '@gittrends/lib';
+import { Dependency, EntityValidationError, Release, Repository, Stargazer, Tag, Watcher } from '@gittrends/lib';
 
-import { BASE_DIR } from '../config/knex.config';
+import { getRepositoriesList } from '../config/knex.config';
+import debug from '../helpers/debug';
 import { withBullQueue } from '../helpers/withBullQueue';
 import { withDatabase } from '../helpers/withDatabase';
 import { version } from '../package.json';
 
 const Resources = [Repository, Stargazer, Watcher, Tag, Release, Dependency].map((entity) => entity.__collection_name);
 
+const logger = debug('schedule');
+
 export async function schedule(hours = 24) {
-  const { found } = new GlobSync('**/*.sqlite', { cwd: BASE_DIR });
-
-  const repos = found.map((file) => file.replace(/\.sqlite$/i, ''));
-
-  await withBullQueue((queue) =>
-    each(repos, async (repo) => {
+  logger('Connecting to redis server...');
+  await withBullQueue(async (queue) => {
+    async function _schedule(repo: string) {
       const metadata = await withDatabase(repo, async ({ repositories, metadata }) => {
         const details = await repositories.findByName(repo);
-        if (!details) throw new Error('Database corrupted, repository details not found!');
+        if (!details) throw new Error(`Database corrupted, repository "${repo}" details not found!`);
         return metadata.findByRepository(details.id);
-      });
+      }).catch((error) => (error instanceof EntityValidationError ? [] : Promise.reject(error)));
 
       const priority = Resources.reduce((acc, resource) => {
         const meta = metadata.find((m) => m.resource === resource);
@@ -36,11 +35,29 @@ export async function schedule(hours = 24) {
         if (!(await job?.isActive())) await job?.remove();
         return queue.add('repositories', undefined, { priority, jobId: repo });
       });
-    }),
-  );
+    }
+
+    logger('Getting repositories list...');
+    const list = await getRepositoriesList();
+    logger(`Iterating over repositories list (total: ${list.length})...`);
+
+    return new Promise<void>((resolve, reject) => {
+      parallelLimit(
+        list.map((name, index) => (callback) => {
+          logger(`Scheduling ${name} (index: ${index})...`);
+          return _schedule(name)
+            .then(() => callback())
+            .catch(callback);
+        }),
+        25,
+        (error) => (error ? reject(error) : resolve()),
+      );
+    });
+  });
+  logger('Repositories scheduled.');
 }
 
-async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void> {
+export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void> {
   await program
     .addOption(new Option('-w, --wait [hours]', 'Number of hours before updating').default(24))
     .action((opts: { wait: number }) => schedule(opts.wait))

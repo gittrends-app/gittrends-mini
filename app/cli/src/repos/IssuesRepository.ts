@@ -1,4 +1,4 @@
-import { each } from 'bluebird';
+import { all, each } from 'bluebird';
 import { Knex } from 'knex';
 
 import { Actor, IResourceRepository, Issue, IssueOrPull, PullRequest } from '@gittrends/lib';
@@ -35,16 +35,7 @@ class IssueOrPullRepository<T extends IssueOrPull> implements IResourceRepositor
       .limit(opts?.limit || 1000)
       .offset(opts?.skip || 0);
 
-    return issues.map(
-      ({ assignees, participants, reaction_groups, labels, ...issue }) =>
-        new this.IssueOrPullClass({
-          ...issue,
-          assignees: assignees && JSON.parse(assignees),
-          participants: participants && JSON.parse(participants),
-          labels: labels && JSON.parse(labels),
-          reaction_groups: reaction_groups && JSON.parse(reaction_groups),
-        }),
-    );
+    return issues.map((issue) => new this.IssueOrPullClass(issue));
   }
 
   async save(issue: T | T[], trx?: Knex.Transaction): Promise<void> {
@@ -64,20 +55,20 @@ class IssueOrPullRepository<T extends IssueOrPull> implements IResourceRepositor
 
     const transaction = trx || (await this.db.transaction());
 
-    await each(data, async ({ issue, actors, reactions, timeline_items }) => {
-      await this.actorsRepo.save(actors, transaction);
-      await this.reactionsRepo.save(reactions, transaction);
-      await this.eventsRepo.save(timeline_items, transaction);
-      return this.db
-        .table((this.IssueOrPullClass as any).__collection_name)
-        .insert(issue.toJSON('sqlite'))
-        .onConflict('id')
-        .merge()
-        .transacting(transaction);
-    })
-      .then(async () => {
-        if (!trx) await transaction.commit();
-      })
+    await each(data, async ({ issue, actors, reactions, timeline_items }) =>
+      all([
+        this.actorsRepo.save(actors, transaction),
+        this.reactionsRepo.save(reactions, transaction),
+        this.eventsRepo.save(timeline_items, transaction),
+        this.db
+          .table((this.IssueOrPullClass as any).__collection_name)
+          .insertEntity(issue.toJSON())
+          .onConflict('id')
+          .merge()
+          .transacting(transaction),
+      ]),
+    )
+      .then(async () => (!trx ? transaction.commit() : null))
       .catch(async (error) => {
         if (!trx) await transaction.rollback(error);
         throw error;

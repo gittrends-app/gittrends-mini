@@ -107,6 +107,7 @@ export class DependenciesComponentBuilder implements ComponentBuilder<Component,
                 repository: this.repositoryId,
                 manifest: pendingManifest.manifest.id,
                 filename: pendingManifest.manifest.filename,
+                blob_path: pendingManifest.manifest.blob_path,
               }),
           ),
         );

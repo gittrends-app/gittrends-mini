@@ -4,22 +4,22 @@ import { Release } from '@gittrends/lib';
 
 export async function up(knex: Knex): Promise<void> {
   return knex.schema.createTable(Release.__collection_name, (table) => {
-    table.string('id').primary();
-    table.string('repository').notNullable();
-    table.string('author');
+    table.text('id').primary();
+    table.text('repository').notNullable();
+    table.text('author');
     table.timestamp('created_at').notNullable();
-    table.string('description');
+    table.text('description');
     table.boolean('is_draft').notNullable();
     table.boolean('is_prerelease').notNullable();
     table.integer('mentions').notNullable();
-    table.string('name');
+    table.text('name');
     table.timestamp('published_at');
-    table.json('reaction_groups').notNullable();
+    table.json('reaction_groups');
     table.integer('reactions').notNullable();
     table.integer('release_assets').notNullable();
-    table.string('tag');
-    table.string('tag_commit');
-    table.string('tag_name').notNullable();
+    table.text('tag');
+    table.text('tag_commit');
+    table.text('tag_name').notNullable();
     table.timestamp('updated_at').notNullable();
   });
 }

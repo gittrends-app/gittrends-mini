@@ -11,14 +11,13 @@
     "update": "node -r dotenv/config dist/scripts/update.js",
     "migrations": "node -r dotenv/config dist/scripts/migrations.js",
     "clinic:update": "clinic bubbleprof -- node dist/scripts/update.js",
-    "dev:add-repositories": "ts-node -r dotenv/config -T src/scripts/add-repositories.ts",
-    "dev:schedule": "ts-node -r dotenv/config -T src/scripts/schedule.ts",
-    "dev:update": "ts-node -r dotenv/config -T src/scripts/update.ts",
-    "dev:migrations": "ts-node -r dotenv/config -T src/scripts/migrations.ts",
-    "migrate:make": "knex migrate:make --migrations-directory src/config/migrations -x ts"
+    "dev": "node -r ts-node/register -r tsconfig-paths/register -r dotenv/config src/cli.ts",
+    "dev:add-repositories": "ts-node -r tsconfig-paths/register -r dotenv/config src/scripts/add-repositories.ts",
+    "dev:schedule": "ts-node -r tsconfig-paths/register -r dotenv/config src/scripts/schedule.ts",
+    "dev:update": "ts-node -r tsconfig-paths/register -r dotenv/config src/scripts/update.ts",
+    "dev:migrations": "ts-node -r tsconfig-paths/register -r dotenv/config src/scripts/migrations.ts"
   },
   "dependencies": {
-    "@gittrends/lib": "link:../../shared/lib",
     "async": "^3.2.4",
     "better-sqlite3": "^7.6.2",
     "bluebird": "^3.7.2",
@@ -26,9 +25,11 @@
     "cli-progress": "^3.11.2",
     "commander": "^9.4.0",
     "consola": "^2.15.3",
+    "debug": "^4.3.4",
     "dotenv": "^16.0.2",
     "glob": "^8.0.3",
     "knex": "^2.3.0",
+    "knex-hooks": "^0.0.9",
     "lodash": "^4.17.21",
     "pg": "^8.8.0",
     "prettyjson": "^1.2.5",
@@ -40,9 +41,11 @@
     "@types/async": "^3.2.15",
     "@types/bull": "^3.15.9",
     "@types/cli-progress": "^3.11.0",
+    "@types/debug": "^4.1.7",
     "@types/glob": "^8.0.0",
     "@types/prettyjson": "^0.0.30",
     "clinic": "^12.0.0",
-    "sync-dotenv": "^2.7.0"
+    "sync-dotenv": "^2.7.0",
+    "tsconfig-paths": "^4.1.0"
   }
 }

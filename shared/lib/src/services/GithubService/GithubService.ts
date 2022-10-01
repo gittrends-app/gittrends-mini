@@ -69,8 +69,8 @@ async function request(
 
     return parseResults;
   } catch (error) {
-    if (!(error instanceof RequestError)) throw new ServiceRequestError(error as any, builders);
     if (builders.length === 1) {
+      if (!(error instanceof RequestError)) throw new ServiceRequestError(error as any, builders);
       if (previousError) throw new ServiceRequestError(error, builders);
       return request(httpClient, builders, error as Error);
     }
@@ -91,7 +91,7 @@ function getComponentBuilder(Target: Constructor<RepositoryResource>) {
 
 class ResourceIterator implements Iterable<RepositoryResource> {
   private readonly resourcesStatus: { hasMore: boolean; builder: ComponentBuilder; endCursor?: string }[];
-  private error?: ServiceRequestError;
+  private errors?: ServiceRequestError[];
 
   constructor(components: ComponentBuilder[], private httpClient: HttpClient) {
     this.resourcesStatus = components.map((component) => ({ hasMore: true, builder: component }));
@@ -102,10 +102,10 @@ class ResourceIterator implements Iterable<RepositoryResource> {
   }
 
   async next(): Promise<IteratorResult<{ items: RepositoryResource[]; endCursor?: string; hasNextPage: boolean }[]>> {
-    const done = this.resourcesStatus.reduce((done, rs) => done && !rs.hasMore, true);
+    const done = this.resourcesStatus.every((rs) => !rs.hasMore);
 
     if (done) {
-      if (this.error) throw this.error;
+      if (this.errors) throw this.errors;
       else return Promise.resolve({ done: true, value: undefined });
     }
 
@@ -133,7 +133,10 @@ class ResourceIterator implements Iterable<RepositoryResource> {
     } catch (error) {
       if (error instanceof ServiceRequestError) {
         for (const pResource of pendingResources) {
-          if (error.components.includes(pResource.builder)) pResource.hasMore = false;
+          if (error.components.includes(pResource.builder)) {
+            pResource.hasMore = false;
+            this.errors = (this.errors || []).concat([error]);
+          }
         }
         return this.next();
       }

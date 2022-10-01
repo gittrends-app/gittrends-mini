@@ -22,17 +22,15 @@ export class ActorsRepository implements IActorsRepository {
 
     const actors = uniqBy(Array.isArray(user) ? user : [user], 'id');
 
-    await each(actors, async (actor) =>
+    await each(actors, (actor) =>
       this.db
         .table(Actor.__collection_name)
-        .insert(actor.toJSON('sqlite'))
+        .insertEntity(actor.toJSON())
         .onConflict('id')
-        .merge()
+        .ignore()
         .transacting(transaction),
     )
-      .then(async () => {
-        if (!trx) await transaction.commit();
-      })
+      .then(async () => (!trx ? transaction.commit() : null))
       .catch(async (error) => {
         if (!trx) await transaction.rollback(error);
         throw error;

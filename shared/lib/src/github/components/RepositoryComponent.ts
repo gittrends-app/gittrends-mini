@@ -140,7 +140,7 @@ export default class RepositoryComponent extends Component {
         first,
       })}) {
           pageInfo { hasNextPage endCursor }
-          nodes { dependenciesCount exceedsMaxSize filename id parseable }
+          nodes { blobPath dependenciesCount exceedsMaxSize filename id parseable }
         }
       `,
       first,

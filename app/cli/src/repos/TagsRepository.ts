@@ -1,4 +1,4 @@
-import { each } from 'bluebird';
+import { all, each } from 'bluebird';
 import { Knex } from 'knex';
 
 import { Actor, IResourceRepository, Tag } from '@gittrends/lib';
@@ -30,7 +30,7 @@ export class TagsRepository implements IResourceRepository<Tag> {
       .limit(opts?.limit || 1000)
       .offset(opts?.skip || 0);
 
-    return tags.map((star) => new Tag({ ...star, tagger: star.tagger && JSON.parse(star.tagger) }));
+    return tags.map((tag) => new Tag(tag));
   }
 
   async save(tag: Tag | Tag[], trx?: Knex.Transaction): Promise<void> {
@@ -39,20 +39,21 @@ export class TagsRepository implements IResourceRepository<Tag> {
 
     const transaction = trx || (await this.db.transaction());
 
-    try {
-      await this.actorsRepo.save(actors, transaction);
-      await each(tags, (tag) =>
+    await all([
+      this.actorsRepo.save(actors, transaction),
+      each(tags, (tag) =>
         this.db
           .table(Tag.__collection_name)
-          .insert(tag.toJSON('sqlite'))
+          .insertEntity(tag.toJSON())
           .onConflict(['id'])
           .ignore()
           .transacting(transaction),
-      );
-      if (!trx) transaction.commit();
-    } catch (error) {
-      if (!trx) transaction.rollback(error);
-      throw error;
-    }
+      ),
+    ])
+      .then(async () => (!trx ? transaction.commit() : null))
+      .catch(async (error) => {
+        if (!trx) await transaction.rollback(error);
+        throw error;
+      });
   }
 }

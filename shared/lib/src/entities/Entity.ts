@@ -2,7 +2,7 @@
  *  Author: Hudson S. Borges
  */
 import Joi from 'joi';
-import { cloneDeep, mapValues, omit, snakeCase } from 'lodash';
+import { cloneDeep, omit, snakeCase } from 'lodash';
 import { plural } from 'pluralize';
 
 import { ExtendedError } from '../helpers/errors';
@@ -20,15 +20,8 @@ export abstract class Entity<T = any> {
     if (object) Object.assign(this, (this.constructor as unknown as typeof Entity).validate(object));
   }
 
-  public toJSON(schema?: 'sqlite'): Record<any, unknown> {
-    return mapValues(omit(cloneDeep(this), ['toJSON']), (value) => {
-      if (schema === 'sqlite') {
-        if (typeof value === 'boolean') return value.toString().toUpperCase();
-        else if (value instanceof Date) return value.toISOString();
-        else if (typeof value === 'object' || Array.isArray(value)) return JSON.stringify(value);
-      }
-      return value;
-    });
+  public toJSON(): Record<any, unknown> {
+    return omit(cloneDeep(this), ['toJSON']);
   }
 
   public static validate<T extends Entity>(object: Record<string, unknown>): Omit<T, 'toJSON'> {
@@ -44,7 +37,7 @@ export abstract class Entity<T = any> {
   }
 }
 
-class EntityValidationError extends ExtendedError {
+export class EntityValidationError extends ExtendedError {
   constructor(error: Joi.ValidationError) {
     super(error.message, error);
   }

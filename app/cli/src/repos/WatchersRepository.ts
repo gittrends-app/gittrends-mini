@@ -1,4 +1,4 @@
-import { each } from 'bluebird';
+import { all, each } from 'bluebird';
 import { Knex } from 'knex';
 
 import { Actor, IResourceRepository, Watcher } from '@gittrends/lib';
@@ -29,7 +29,7 @@ export class WatchersRepository implements IResourceRepository<Watcher> {
       .limit(opts?.limit || 1000)
       .offset(opts?.skip || 0);
 
-    return watcher.map((star) => new Watcher(star));
+    return watcher.map((watcher) => new Watcher(watcher));
   }
 
   async save(watcher: Watcher | Watcher[], trx?: Knex.Transaction): Promise<void> {
@@ -37,20 +37,22 @@ export class WatchersRepository implements IResourceRepository<Watcher> {
     const actors = extractEntityInstances<Actor>(watchers, Actor as any);
 
     const transaction = trx || (await this.db.transaction());
-    try {
-      await this.actorsRepo.save(actors, transaction);
-      await each(watchers, (watcher) =>
+
+    await all([
+      this.actorsRepo.save(actors, transaction),
+      each(watchers, (watcher) =>
         this.db
           .table(Watcher.__collection_name)
-          .insert(watcher.toJSON('sqlite'))
+          .insertEntity(watcher.toJSON())
           .onConflict(['repository', 'user'])
           .ignore()
           .transacting(transaction),
-      );
-      if (!trx) await transaction.commit();
-    } catch (error) {
-      if (!trx) await transaction.rollback(error);
-      throw error;
-    }
+      ),
+    ])
+      .then(async () => (!trx ? transaction.commit() : null))
+      .catch(async (error) => {
+        if (!trx) await transaction.rollback(error);
+        throw error;
+      });
   }
 }

@@ -25,8 +25,12 @@ type Repositories = {
   pull_requests: PullRequestsRepository;
 };
 
-export async function withDatabase<T>(db: string, context: (repos: Repositories) => Promise<T>): Promise<T> {
-  const knex = await createOrConnectDatabase(db);
+export async function withDatabase<T>(
+  db: string | { name: string; migrate?: boolean },
+  context: (repos: Repositories) => Promise<T>,
+): Promise<T> {
+  const { name, migrate } = typeof db === 'string' ? { name: db, migrate: false } : db;
+  const knex = await createOrConnectDatabase(name, migrate);
 
   const repos: Repositories = {
     knex,

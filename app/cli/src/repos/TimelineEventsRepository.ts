@@ -1,4 +1,4 @@
-import { each } from 'bluebird';
+import { all, each } from 'bluebird';
 import { Knex } from 'knex';
 import { size } from 'lodash';
 
@@ -36,37 +36,36 @@ export class TimelineEventsRepository implements IResourceRepository<TimelineEve
       .limit(opts?.limit || 1000)
       .offset(opts?.skip || 0);
 
-    return events.map((reaction) => TimelineEvent.from(reaction));
+    return events.map((event) => TimelineEvent.from(event));
   }
 
   async save<T extends TimelineEvent>(event: T | T[], trx?: Knex.Transaction): Promise<void> {
     const events = (Array.isArray(event) ? event : [event]).map((event) => {
       const { id, repository, type, issue, ...payload } = event;
-      return { id, repository, type, issue, payload };
+      return { id, repository, type, issue, payload: size(payload) > 0 ? payload : undefined };
     });
 
     const actors = extractEntityInstances<Actor>(events, Actor as any);
     const reactables = extractEntityInstances<Reaction>(events, Reaction);
 
     const transaction = trx || (await this.db.transaction());
-    try {
-      await this.actorsRepo.save(actors, transaction);
-      await this.reactionsRepo.save(reactables, transaction);
-      await each(events, (event) =>
+
+    await all([
+      this.actorsRepo.save(actors, transaction),
+      this.reactionsRepo.save(reactables, transaction),
+      each(events, (event) =>
         this.db
           .table(TimelineEvent.__collection_name)
-          .insert({
-            ...event,
-            payload: event.payload && size(event.payload) ? JSON.stringify(event.payload) : undefined,
-          })
+          .insertEntity(event)
           .onConflict('id')
           .merge()
           .transacting(transaction),
-      );
-      if (!trx) await transaction.commit();
-    } catch (error) {
-      if (!trx) await transaction.rollback(error);
-      throw error;
-    }
+      ),
+    ])
+      .then(async () => (!trx ? transaction.commit() : null))
+      .catch(async (error) => {
+        if (!trx) await transaction.rollback(error);
+        throw error;
+      });
   }
 }

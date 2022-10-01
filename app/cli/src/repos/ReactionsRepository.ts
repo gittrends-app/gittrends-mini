@@ -1,4 +1,4 @@
-import { each } from 'bluebird';
+import { all, each } from 'bluebird';
 import { Knex } from 'knex';
 
 import { Actor, IResourceRepository, Reaction } from '@gittrends/lib';
@@ -38,20 +38,21 @@ export class ReactionsRepository implements IResourceRepository<Reaction> {
 
     const transaction = trx || (await this.db.transaction());
 
-    try {
-      await this.actorsRepo.save(actors, transaction);
-      await each(reactions, (reaction) => {
+    await all([
+      this.actorsRepo.save(actors, transaction),
+      each(reactions, (reaction) => {
         return this.db
           .table(Reaction.__collection_name)
-          .insert(reaction.toJSON('sqlite'))
+          .insertEntity(reaction.toJSON())
           .onConflict('id')
           .ignore()
           .transacting(transaction);
+      }),
+    ])
+      .then(async () => (!trx ? transaction.commit() : null))
+      .catch(async (error) => {
+        if (!trx) await transaction.rollback(error);
+        throw error;
       });
-      if (!trx) await transaction.commit();
-    } catch (error) {
-      if (!trx) await transaction.rollback(error);
-      throw error;
-    }
   }
 }

@@ -19,6 +19,7 @@ export default class DependencyGraphManifestComponent extends Component {
     this.includes.details = include && {
       textFragment: `
         ... on DependencyGraphManifest {
+          blobPath
           dependenciesCount
           exceedsMaxSize
           filename

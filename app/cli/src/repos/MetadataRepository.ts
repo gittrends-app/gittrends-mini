@@ -1,6 +1,5 @@
 import { each } from 'bluebird';
 import { Knex } from 'knex';
-import { omit } from 'lodash';
 
 import { IMetadataRepository, Metadata } from '@gittrends/lib';
 
@@ -13,9 +12,7 @@ export class MetadataRepository implements IMetadataRepository {
       .select('*')
       .where({ repository, ...(resource ? { resource } : {}) });
 
-    return metas.map(
-      (meta) => new Metadata(omit({ ...meta, ...(meta.payload && JSON.parse(meta.payload)) }, 'payload') as any),
-    );
+    return metas.map(({ payload, ...meta }) => new Metadata({ ...meta, ...payload }));
   }
 
   async save(metadata: Metadata | Metadata[], trx?: Knex.Transaction): Promise<void> {
@@ -27,14 +24,12 @@ export class MetadataRepository implements IMetadataRepository {
       const { repository, resource, end_cursor, updated_at, ...payload } = meta;
       return this.db
         .table(Metadata.__collection_name)
-        .insert({ repository, resource, end_cursor, updated_at, payload: payload && JSON.stringify(payload) })
+        .insertEntity({ repository, resource, end_cursor, updated_at, payload: payload })
         .onConflict(['repository', 'resource'])
         .merge()
         .transacting(transaction);
     })
-      .then(async () => {
-        if (!trx) await transaction.commit();
-      })
+      .then(async () => (!trx ? transaction.commit() : null))
       .catch(async (error) => {
         if (!trx) await transaction.rollback(error);
         throw error;

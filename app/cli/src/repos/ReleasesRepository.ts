@@ -1,4 +1,4 @@
-import { each } from 'bluebird';
+import { all, each } from 'bluebird';
 import { Knex } from 'knex';
 
 import { Actor, IResourceRepository, Reaction, Release } from '@gittrends/lib';
@@ -33,10 +33,7 @@ export class ReleasesRepository implements IResourceRepository<Release> {
       .limit(opts?.limit || 1000)
       .offset(opts?.skip || 0);
 
-    return releases.map(
-      ({ reaction_groups, ...release }) =>
-        new Release({ ...release, reaction_groups: reaction_groups && JSON.parse(reaction_groups) }),
-    );
+    return releases.map((release) => new Release(release));
   }
 
   async save(release: Release | Release[], trx?: Knex.Transaction): Promise<void> {
@@ -47,10 +44,10 @@ export class ReleasesRepository implements IResourceRepository<Release> {
 
     const transaction = trx || (await this.db.transaction());
 
-    try {
-      await this.reactionsRepo.save(reactions, transaction);
-      await this.actorsRepo.save(actors, transaction);
-      await each(
+    await all([
+      this.actorsRepo.save(actors, transaction),
+      this.reactionsRepo.save(reactions, transaction),
+      each(
         releases.map((rel) => {
           if (Array.isArray(rel.reactions)) rel.reactions = rel.reactions.length;
           return rel;
@@ -58,15 +55,16 @@ export class ReleasesRepository implements IResourceRepository<Release> {
         (rel) =>
           this.db
             .table(Release.__collection_name)
-            .insert(rel.toJSON('sqlite'))
+            .insertEntity(rel.toJSON())
             .onConflict(['id'])
             .ignore()
             .transacting(transaction),
-      );
-      if (!trx) await transaction.commit();
-    } catch (error) {
-      if (!trx) await transaction.rollback(error);
-      throw error;
-    }
+      ),
+    ])
+      .then(async () => (!trx ? transaction.commit() : null))
+      .catch(async (error) => {
+        if (!trx) await transaction.rollback(error);
+        throw error;
+      });
   }
 }

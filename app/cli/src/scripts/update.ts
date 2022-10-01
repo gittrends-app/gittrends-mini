@@ -117,6 +117,7 @@ async function asyncQueue(
       updater(name, { httpClient: opts.httpClient, resources: opts.resources, multibar: opts.multibar })
         .then(() => callback())
         .catch((error) => {
+          consola.error(error);
           opts.multibar?.log(error.message || JSON.stringify(error));
           errorLogger.error('Metadata: ' + JSON.stringify({ repository: name, resources: opts.resources }));
           errorLogger.error(error);
@@ -163,6 +164,7 @@ async function redisQueue(opts: {
           multibar: opts.multibar,
           resources: opts.resources,
         }).catch((error: Error) => {
+          consola.error(error);
           opts.multibar?.log(error.message || JSON.stringify(error));
           errorLogger.error(
             'Metadata: ' + JSON.stringify({ repository: job.id.toString(), resources: opts.resources }),
@@ -175,7 +177,7 @@ async function redisQueue(opts: {
   });
 }
 
-async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void> {
+export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void> {
   await program
     .addArgument(new Argument('[repo...]', 'Repository name with format <owner/name>'))
     .addOption(new Option('--token [string]', 'Github access token').env('CLI_ACCESS_TOKEN').conflicts('api-url'))

@@ -27,10 +27,7 @@ export class DependenciesRepository implements IResourceRepository<Dependency> {
       .limit(opts?.limit || 1000)
       .offset(opts?.skip || 0);
 
-    return dependencies.map(
-      (dep) =>
-        new Dependency({ ...dep, target_repository: dep.target_repository && JSON.parse(dep.target_repository) }),
-    );
+    return dependencies.map((dep) => new Dependency(dep));
   }
 
   async save(dependency: Dependency | Dependency[], trx?: Knex.Transaction): Promise<void> {
@@ -41,14 +38,12 @@ export class DependenciesRepository implements IResourceRepository<Dependency> {
     await each(dependencies, (dep) =>
       this.db
         .table(Dependency.__collection_name)
-        .insert(dep.toJSON('sqlite'))
+        .insertEntity(dep.toJSON())
         .onConflict(['repository', 'manifest', 'package_name', 'requirements'])
         .ignore()
         .transacting(transaction),
     )
-      .then(async () => {
-        if (!trx) await transaction.commit();
-      })
+      .then(async () => (!trx ? transaction.commit() : null))
       .catch(async (error) => {
         if (!trx) await transaction.rollback(error);
         throw error;

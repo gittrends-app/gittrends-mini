@@ -1,4 +1,4 @@
-import { each } from 'bluebird';
+import { all, each } from 'bluebird';
 import { Knex } from 'knex';
 import { uniqBy } from 'lodash';
 
@@ -21,12 +21,7 @@ export class RepositoriesRepository implements IRepositoriesRepository {
     const repo = await query.table(Repository.__collection_name).select('*');
 
     if (repo) {
-      const parsedRepo = new Repository({
-        ...repo,
-        funding_links: repo.funding_links && JSON.parse(repo.funding_links),
-        languages: repo.languages && JSON.parse(repo.languages),
-        repository_topics: repo.repository_topics && JSON.parse(repo.repository_topics),
-      });
+      const parsedRepo = new Repository(repo);
 
       if (resolve) {
         const owner = await this.actorRepo.findById(parsedRepo.owner as string);
@@ -54,18 +49,18 @@ export class RepositoriesRepository implements IRepositoriesRepository {
 
     const transaction = trx || (await this.db.transaction());
 
-    await each(repos, async (repo) => {
-      await this.actorRepo.save(actors, transaction);
-      return this.db
-        .table(Repository.__collection_name)
-        .insert(repo.toJSON('sqlite'))
-        .onConflict('id')
-        .merge()
-        .transacting(transaction);
-    })
-      .then(async () => {
-        if (!trx) await transaction.commit();
-      })
+    await all([
+      this.actorRepo.save(actors, transaction),
+      each(repos, (repo) =>
+        this.db
+          .table(Repository.__collection_name)
+          .insertEntity(repo.toJSON())
+          .onConflict('id')
+          .merge()
+          .transacting(transaction),
+      ),
+    ])
+      .then(async () => (!trx ? transaction.commit() : null))
       .catch(async (error) => {
         if (!trx) await transaction.rollback(error);
         throw error;

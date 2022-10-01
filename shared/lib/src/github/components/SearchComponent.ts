@@ -11,7 +11,6 @@ export type SearchComponentQuery = {
   minStargazers?: number;
   maxStargazers?: number;
   language?: string;
-  name?: string;
   sort?: 'stars' | 'created' | 'updated' | undefined;
   order?: 'asc' | 'desc' | undefined;
   repo?: string;
@@ -47,7 +46,6 @@ export default class SearchComponent extends Component {
     query += ' sort:stars-desc sort:forks-desc';
 
     if (searchQuery.language) query += ` language:${searchQuery.language}`;
-    if (searchQuery.name) query += ` repo:${searchQuery.name}`;
 
     const args = super.argsToString({
       first: get(this.includes, 'search.first', 100),
