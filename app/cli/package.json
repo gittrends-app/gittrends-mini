@@ -4,6 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
+    "cli": "node -r dotenv/config dist/cli.js",
     "build": "tsc",
     "eslint": "eslint --color",
     "add-repositories": "node -r dotenv/config dist/scripts/add-repositories.js",
