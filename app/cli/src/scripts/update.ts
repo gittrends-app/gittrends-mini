@@ -2,7 +2,7 @@ import { queue } from 'async';
 import { MultiBar } from 'cli-progress';
 import { Argument, Option, program } from 'commander';
 import consola, { WinstonReporter } from 'consola';
-import { get, truncate } from 'lodash';
+import { get } from 'lodash';
 import { URL } from 'node:url';
 import prettyjson from 'prettyjson';
 import { LoggerOptions, format } from 'winston';
@@ -20,13 +20,13 @@ import {
   Watcher,
 } from '@gittrends/lib';
 
-import { withBullQueue } from '../helpers/withBullQueue';
 import { withDatabase } from '../helpers/withDatabase';
 import { withMultibar } from '../helpers/withMultibar';
 import { version } from '../package.json';
 import { schedule } from './schedule';
+import { redisQueue } from './update-thread';
 
-const errorLogger = consola.create({
+export const errorLogger = consola.create({
   reporters: [
     new WinstonReporter({
       format: format.combine(
@@ -44,7 +44,7 @@ const errorLogger = consola.create({
 type UpdaterOpts = {
   httpClient: HttpClient;
   resources: string[];
-  multibar?: MultiBar;
+  onProgress?: (progress: { current: number; total?: number }) => void;
 };
 
 export async function updater(name: string, opts: UpdaterOpts) {
@@ -81,28 +81,18 @@ export async function updater(name: string, opts: UpdaterOpts) {
       }),
     );
 
-    const progressBar = !opts.multibar
-      ? undefined
-      : opts.multibar.create(
-          resourcesInfo.reduce((acc, p) => acc + p.total, 0),
-          resourcesInfo.reduce((acc, p) => acc + (p.total && p.cachedCount), 0),
-          { resource: truncate(repo.name_with_owner, { length: 28, omission: '..' }).padStart(30, ' ') },
-        );
+    let current = resourcesInfo.reduce((acc, p) => acc + (p.total && p.cachedCount), 0);
+
+    if (opts.onProgress) opts.onProgress({ current, total: resourcesInfo.reduce((acc, p) => acc + p.total, 0) });
 
     const iterator = localService.resources(repo.id, resourcesInfo, { ignoreCache: true });
 
-    try {
-      // eslint-disable-next-line no-constant-condition
-      while (true) {
-        const { done, value } = await iterator.next();
-        if (done) break;
-
-        resourcesInfo.forEach((_, index) => {
-          progressBar?.increment(value[index].items.length);
-        });
-      }
-    } finally {
-      if (progressBar) opts.multibar?.remove(progressBar);
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const { done, value } = await iterator.next();
+      if (done) break;
+      resourcesInfo.forEach((_, index) => (current += value[index].items.length));
+      if (opts.onProgress) opts.onProgress({ current: (current += value.length) });
     }
   });
 }
@@ -114,7 +104,7 @@ async function asyncQueue(
   consola.info('Preparing processing queue ....');
   const queueRef = queue(
     (name: string, callback) =>
-      updater(name, { httpClient: opts.httpClient, resources: opts.resources, multibar: opts.multibar })
+      updater(name, { httpClient: opts.httpClient, resources: opts.resources })
         .then(() => callback())
         .catch((error) => {
           consola.error(error);
@@ -133,50 +123,6 @@ async function asyncQueue(
   return queueRef.drain();
 }
 
-async function redisQueue(opts: {
-  resources: string[];
-  httpClient: HttpClient;
-  concurrency: number;
-  multibar?: MultiBar;
-}) {
-  await withBullQueue(async (queue) => {
-    const counts = await queue.getJobCounts();
-    const total = Object.values(counts).reduce((acc, v) => acc + v, 0);
-
-    const generalProgress = opts.multibar?.create(total, counts.completed + counts.failed, {
-      resource: truncate('[queue progress]', { length: 28, omission: '..' }).padStart(30, ' '),
-    });
-
-    const updateProgressBar = async () => {
-      const counts = await queue.getJobCounts();
-      generalProgress?.update(counts.completed + counts.failed);
-      generalProgress?.setTotal(Object.values(counts).reduce((acc, v) => acc + v, 0));
-    };
-
-    queue.on('completed', updateProgressBar);
-    queue.on('failed', updateProgressBar);
-    queue.on('stalled', updateProgressBar);
-
-    return queue
-      .process('repositories', opts.concurrency, async (job) =>
-        updater(job.id.toString(), {
-          httpClient: opts.httpClient,
-          multibar: opts.multibar,
-          resources: opts.resources,
-        }).catch((error: Error) => {
-          consola.error(error);
-          opts.multibar?.log(error.message || JSON.stringify(error));
-          errorLogger.error(
-            'Metadata: ' + JSON.stringify({ repository: job.id.toString(), resources: opts.resources }),
-          );
-          errorLogger.error(error);
-          throw error;
-        }),
-      )
-      .finally(() => generalProgress && opts.multibar?.remove(generalProgress));
-  });
-}
-
 export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void> {
   await program
     .addArgument(new Argument('[repo...]', 'Repository name with format <owner/name>'))
@@ -193,7 +139,8 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
     )
     .addOption(new Option('--no-progress', 'Disable progress bars'))
     .addOption(new Option('--schedule', 'Schedule repositories before updating').default(false))
-    .addOption(new Option('--concurrency [number]', 'Use paralled processing').default(1))
+    .addOption(new Option('--concurrency [number]', 'Use paralled processing').default(1).argParser(Number))
+    .addOption(new Option('--threads [number]', 'Use threads processing').default(1).argParser(Number))
     .action(
       async (
         names: string[],
@@ -204,6 +151,7 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
           progress: boolean;
           schedule: boolean;
           concurrency: number;
+          threads: number;
         },
       ) => {
         if (!opts.apiUrl && !opts.token) program.error('--token or --api-url is mandatory!');

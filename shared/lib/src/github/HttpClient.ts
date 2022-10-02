@@ -29,7 +29,7 @@ export default class HttpClient {
   readonly retries: number;
   readonly client: AxiosInstance;
 
-  constructor(opts: HttpClientOpts | string) {
+  constructor(private opts: HttpClientOpts | string) {
     if (typeof opts === 'string') {
       opts = {
         host: 'api.github.com',
@@ -76,5 +76,9 @@ export default class HttpClient {
           RequestError.create(err.message, err, { status: err.response?.status, data: err.response?.data }),
         ),
       );
+  }
+
+  toJSON(): HttpClientOpts | string {
+    return this.opts;
   }
 }
