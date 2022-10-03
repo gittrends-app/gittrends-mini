@@ -1,6 +1,5 @@
 import { all, map } from 'bluebird';
 import { MultiBar, SingleBar } from 'cli-progress';
-import consola from 'consola';
 import { truncate } from 'lodash';
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 
@@ -19,7 +18,6 @@ if (!isMainThread) {
         onProgress: (progress) => parentPort?.postMessage({ event: 'updated', name: job.id, ...progress }),
       })
         .catch((error: Error) => {
-          consola.error(error);
           errorLogger.error(
             'Metadata: ' + JSON.stringify({ repository: job.id.toString(), resources: workerData.resources }),
           );
