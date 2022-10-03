@@ -72,15 +72,16 @@ export async function redisQueue(opts: {
               total?: number;
             }) => {
               if (!opts.multibar || !progressBar) return;
-              const name = truncate(progress.name, { length: 25, omission: '..' }).padStart(40, ' ');
+              const name = truncate(progress.name, { length: 25, omission: '..' }).padEnd(32, ' ');
+              const label = `T${index + 1}. ${name}`;
               switch (progress.event) {
                 case 'started':
-                  progressBar.update(0, { resource: name });
+                  progressBar.update(0, { resource: label });
                   break;
                 case 'updated':
                   if (progress.total) totals[progress.name] = progress.total;
                   progressBar.setTotal(totals[progress.name]);
-                  progressBar.update(progress.current, { resource: `Thread ${index + 1} - ${name}` });
+                  progressBar.update(progress.current, { resource: label });
                   break;
                 case 'finished':
                   opts.multibar.remove(progressBar);
