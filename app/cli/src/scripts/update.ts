@@ -1,9 +1,14 @@
 import { queue } from 'async';
-import { MultiBar } from 'cli-progress';
+import { Queue, QueueEvents } from 'bullmq';
+import { MultiBar, SingleBar } from 'cli-progress';
 import { Argument, Option, program } from 'commander';
 import consola, { WinstonReporter } from 'consola';
-import { get } from 'lodash';
+import { get, pick, sum, truncate, values } from 'lodash';
+import path, { extname } from 'node:path';
+import readline from 'node:readline';
+import { clearInterval } from 'node:timers';
 import { URL } from 'node:url';
+import { Worker } from 'node:worker_threads';
 import prettyjson from 'prettyjson';
 import { LoggerOptions, format } from 'winston';
 import { File } from 'winston/lib/winston/transports';
@@ -20,11 +25,18 @@ import {
   Watcher,
 } from '@gittrends/lib';
 
+import { withBullEvents, withBullQueue } from '../helpers/withBullQueue';
 import { withDatabase } from '../helpers/withDatabase';
 import { withMultibar } from '../helpers/withMultibar';
 import { version } from '../package.json';
 import { schedule } from './schedule';
-import { redisQueue } from './update-thread';
+
+readline.emitKeypressEvents(process.stdin);
+if (process.stdin.isTTY) process.stdin.setRawMode(true);
+
+process.stdin.on('keypress', (chunk, key) => {
+  if (key && key.name === 'c' && key.ctrl === true) process.exit();
+});
 
 export const errorLogger = consola.create({
   reporters: [
@@ -99,7 +111,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
 
 async function asyncQueue(
   names: string[],
-  opts: { resources: string[]; concurrency: number; httpClient: HttpClient; multibar?: MultiBar },
+  opts: { resources: string[]; workers: number; httpClient: HttpClient; multibar?: MultiBar },
 ) {
   consola.info('Preparing processing queue ....');
   const queueRef = queue(
@@ -113,7 +125,7 @@ async function asyncQueue(
           errorLogger.error(error);
           callback(error);
         }),
-    opts.concurrency,
+    opts.workers,
   );
 
   consola.info('Pushing repositories to queue ....');
@@ -121,6 +133,104 @@ async function asyncQueue(
 
   consola.info('Waiting process to finish ....\n');
   return queueRef.drain();
+}
+
+export async function redisQueue(opts: {
+  resources: string[];
+  httpClient: HttpClient;
+  workers: number;
+  threads?: number;
+  multibar?: MultiBar;
+}) {
+  const threadsConcurrency: number[] = Array.from(Array(opts.threads || 1)).fill(opts.workers);
+
+  let queue: Queue | undefined;
+  let queueEvents: QueueEvents | undefined;
+
+  if (opts.multibar) {
+    const generalProgress = opts.multibar.create(Infinity, 0);
+
+    withBullQueue<void>(async (_queue) => {
+      queue = _queue;
+      await withBullEvents<void>(async (_eventsQueue) => {
+        queueEvents = _eventsQueue;
+
+        const updateGeneralProgress = async () => {
+          const counts = await queue?.getJobCounts();
+          generalProgress.setTotal(sum(values(counts)));
+          const failedPrefix = counts?.failed ? ` (${counts?.failed} failed)` : '';
+          generalProgress.update(sum(values(pick(counts, ['completed', 'failed']))), {
+            resource: `Finished jobs ${failedPrefix}`.padEnd(36, ' '),
+          });
+        };
+
+        queueEvents.on('completed', updateGeneralProgress);
+        queueEvents.on('error', updateGeneralProgress);
+
+        updateGeneralProgress();
+
+        return new Promise((resolve) => queue?.on('ioredis:close', resolve));
+      });
+    }).finally(() => opts.multibar?.remove(generalProgress));
+  }
+
+  const createWorker = (concurrency: number, index: number): Worker => {
+    const workerFile = path.resolve(__dirname, `update-thread${extname(__filename)}`);
+    const worker = new Worker(workerFile, {
+      workerData: {
+        concurrency: concurrency,
+        resources: opts.resources,
+        httpClientOpts: opts.httpClient.toJSON(),
+      },
+    });
+
+    const totals: Record<string, number> = {};
+    const progressBar: SingleBar | undefined = opts.multibar?.create(Infinity, 0);
+
+    worker.on(
+      'message',
+      (progress: { event: 'started' | 'updated' | 'finished'; name: string; current: number; total?: number }) => {
+        if (!opts.multibar || !progressBar) return;
+        const name = truncate(progress.name, { length: 25, omission: '..' }).padEnd(32, ' ');
+        const label = `T${index + 1}. ${name}`;
+        switch (progress.event) {
+          case 'started':
+            progressBar.update(0, { resource: label });
+            break;
+          case 'updated':
+            if (progress.total) totals[progress.name] = progress.total;
+            progressBar.setTotal(totals[progress.name]);
+            progressBar.update(progress.current, { resource: label });
+            break;
+        }
+      },
+    );
+
+    return worker;
+  };
+
+  const threads = threadsConcurrency.map((workers, index) => ({ worker: createWorker(workers, index), closed: false }));
+
+  process.stdin.on('keypress', (chunk, key) => {
+    if (!key) return;
+    if (key.sequence === '+') {
+      threads.push({ worker: createWorker(opts.workers, threads.length), closed: false });
+    } else if (key.sequence === '-') {
+      for (const thread of threads.reverse()) {
+        if (!thread.closed) {
+          thread.worker.terminate().finally(() => (thread.closed = true));
+          break;
+        }
+      }
+    }
+  });
+
+  let interval: ReturnType<typeof setInterval>;
+  await new Promise<void>((resolve) => {
+    interval = setInterval(() => (threads.every((t) => t.closed) ? resolve() : null), 500);
+  })
+    .finally(() => Promise.all([queue?.close(), queueEvents?.close()]))
+    .finally(() => clearInterval(interval));
 }
 
 export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void> {
@@ -139,7 +249,7 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
     )
     .addOption(new Option('--no-progress', 'Disable progress bars'))
     .addOption(new Option('--schedule', 'Schedule repositories before updating').default(false))
-    .addOption(new Option('--concurrency [number]', 'Use paralled processing').default(1).argParser(Number))
+    .addOption(new Option('--workers [number]', 'Number of workers per thread').default(1).argParser(Number))
     .addOption(new Option('--threads [number]', 'Use threads processing').default(1).argParser(Number))
     .action(
       async (
@@ -150,7 +260,7 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
           resources: string[];
           progress: boolean;
           schedule: boolean;
-          concurrency: number;
+          workers: number;
           threads: number;
         },
       ) => {
@@ -187,7 +297,9 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
     )
     .helpOption(true)
     .version(version)
-    .parseAsync(args, { from });
+    .parseAsync(args, { from })
+    .then(() => process.exit(0))
+    .catch(() => process.exit(1));
 }
 
 if (require.main === module) cli(process.argv);
