@@ -5,9 +5,7 @@ export async function withMultibar<T>(context: (multibar: MultiBar) => Promise<T
     {
       format: '{resource} [{bar}] {eta_formatted} | {value}/{total} ({percentage}%)',
       autopadding: true,
-      synchronousUpdate: true,
-      forceRedraw: true,
-      fps: 100,
+      hideCursor: true,
     },
     Presets.rect,
   );
