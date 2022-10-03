@@ -54,14 +54,15 @@ export async function redisQueue(opts: {
             },
           });
 
+          const totals: Record<string, number> = {};
+          const progressBar: SingleBar | undefined = opts.multibar?.create(Infinity, 0);
+
           worker.on('error', reject);
           worker.on('exit', (code) => {
+            if (opts.multibar && progressBar) opts.multibar.remove(progressBar);
             if (code !== 0) reject(new Error(`Worker stopped with exit code ${code}`));
             else resolve();
           });
-
-          const totals: Record<string, number> = {};
-          const progressBar: SingleBar | undefined = opts.multibar?.create(Infinity, 0);
 
           worker.on(
             'message',
@@ -82,9 +83,6 @@ export async function redisQueue(opts: {
                   if (progress.total) totals[progress.name] = progress.total;
                   progressBar.setTotal(totals[progress.name]);
                   progressBar.update(progress.current, { resource: label });
-                  break;
-                case 'finished':
-                  opts.multibar.remove(progressBar);
                   break;
               }
             },
