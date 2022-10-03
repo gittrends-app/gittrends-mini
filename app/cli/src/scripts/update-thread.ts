@@ -44,7 +44,7 @@ export async function redisQueue(opts: {
   await all(
     map(
       threadsConcurrency,
-      (concurrency) =>
+      (concurrency, index) =>
         new Promise<void>((resolve, reject) => {
           const worker = new Worker(__filename, {
             workerData: {
@@ -60,7 +60,8 @@ export async function redisQueue(opts: {
             else resolve();
           });
 
-          const progressBars: Record<string, SingleBar> = {};
+          const totals: Record<string, number> = {};
+          const progressBar: SingleBar | undefined = opts.multibar?.create(Infinity, 0);
 
           worker.on(
             'message',
@@ -70,19 +71,19 @@ export async function redisQueue(opts: {
               current: number;
               total?: number;
             }) => {
-              if (!opts.multibar) return;
+              if (!opts.multibar || !progressBar) return;
+              const name = truncate(progress.name, { length: 25, omission: '..' }).padStart(40, ' ');
               switch (progress.event) {
                 case 'started':
-                  progressBars[progress.name] = opts.multibar.create(Infinity, 0, {
-                    resource: truncate(progress.name, { length: 28, omission: '..' }).padStart(30, ' '),
-                  });
+                  progressBar.update(0, { resource: name });
                   break;
                 case 'updated':
-                  if (progress.total) progressBars[progress.name].setTotal(progress.total);
-                  progressBars[progress.name].update(progress.current);
+                  if (progress.total) totals[progress.name] = progress.total;
+                  progressBar.setTotal(totals[progress.name]);
+                  progressBar.update(progress.current, { resource: `Thread ${index + 1} - ${name}` });
                   break;
                 case 'finished':
-                  opts.multibar.remove(progressBars[progress.name]);
+                  opts.multibar.remove(progressBar);
                   break;
               }
             },
