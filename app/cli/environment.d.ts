@@ -11,6 +11,8 @@ declare global {
       CLI_POSTGRES_USERNAME?: string;
       CLI_POSTGRES_PASSWORD?: string;
       CLI_POSTGRES_DATABASE?: string;
+      CLI_POSTGRES_POOL_MIN?: number;
+      CLI_POSTGRES_POOL_MAX?: number;
       CLI_REDIS_HOST?: string;
       CLI_REDIS_PORT?: number;
       CLI_REDIS_DB?: number;

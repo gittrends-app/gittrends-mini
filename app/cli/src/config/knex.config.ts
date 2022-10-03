@@ -68,7 +68,7 @@ function getConnectionSettings(repo: string): Knex.Config<any> {
         database: process.env.CLI_POSTGRES_DATABASE ?? 'gittrends.app',
       },
       searchPath: [repo.replace(/\./g, '[dot]')],
-      pool: { min: 1, max: 3 },
+      pool: { min: process.env.CLI_POSTGRES_POOL_MIN || 1, max: process.env.CLI_POSTGRES_POOL_MAX || 3 },
     };
   }
 
