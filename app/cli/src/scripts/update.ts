@@ -174,7 +174,10 @@ export async function redisQueue(opts: {
     }).finally(() => opts.multibar?.remove(generalProgress));
   }
 
-  const createWorker = (concurrency: number, index: number): Worker => {
+  const createWorker = (
+    concurrency: number,
+    index: number,
+  ): { worker: Worker; closed: boolean; progressBar?: SingleBar } => {
     const workerFile = path.resolve(__dirname, `update-thread${extname(__filename)}`);
     const worker = new Worker(workerFile, {
       workerData: {
@@ -206,18 +209,19 @@ export async function redisQueue(opts: {
       },
     );
 
-    return worker;
+    return { worker, closed: false, progressBar };
   };
 
-  const threads = threadsConcurrency.map((workers, index) => ({ worker: createWorker(workers, index), closed: false }));
+  const threads = threadsConcurrency.map((workers, index) => createWorker(workers, index));
 
   process.stdin.on('keypress', (chunk, key) => {
     if (!key) return;
     if (key.sequence === '+') {
-      threads.push({ worker: createWorker(opts.workers, threads.length), closed: false });
+      threads.push(createWorker(opts.workers, threads.length));
     } else if (key.sequence === '-') {
       for (const thread of threads.reverse()) {
         if (!thread.closed) {
+          if (thread.progressBar) opts.multibar?.remove(thread.progressBar);
           thread.worker.terminate().finally(() => (thread.closed = true));
           break;
         }
