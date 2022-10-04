@@ -121,7 +121,7 @@ export async function rollback(db: string | Knex): Promise<void> {
   if (typeof db === 'string') {
     const conn = await createOrConnectDatabase(db);
     if (isProduction) await conn.schema.createSchemaIfNotExists(db.replace(/\./g, '[dot]').toLowerCase());
-    return migrate(conn).finally(() => conn.destroy());
+    return rollback(conn).finally(() => conn.destroy());
   }
 
   return db.migrate.rollback();
