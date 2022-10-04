@@ -18,6 +18,10 @@
       "shared/*"
     ]
   },
+  "dependencies": {
+    "@gittrends/env": "link:./shared/env",
+    "@gittrends/lib": "link:./shared/lib"
+  },
   "devDependencies": {
     "@commitlint/cli": "^17.1.1",
     "@commitlint/config-conventional": "^17.1.0",
