@@ -8,7 +8,8 @@
     "outDir": "./dist",                                  /* Specify an output folder for all emitted files. */    
     "resolveJsonModule": true,
     "paths": {
-      "@gittrends/lib": ["../../shared/lib/src/*"]
+      "@gittrends/env": ["../../shared/env/src/*"],
+      "@gittrends/lib": ["../../shared/lib/src/*"],
     }
   },
   "ts-node": {
