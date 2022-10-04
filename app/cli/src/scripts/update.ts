@@ -233,7 +233,9 @@ export async function redisQueue(opts: {
             if (progress.total) totals[progress.name] = progress.total;
             progressBar.setTotal(totals[progress.name]);
             progressBar.update(progress.current, { resource });
-            queue?.getJob(progress.name).then((job) => job?.updateProgress(progress.current / totals[progress.name]));
+            queue
+              ?.getJob(progress.name)
+              .then((job) => job?.updateProgress((progress.current / totals[progress.name]) * 100));
             break;
         }
       },
