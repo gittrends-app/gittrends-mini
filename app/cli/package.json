@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "cli": "node -r @gittrends/env dist/cli.js",
-    "build": "tsc",
+    "build": "yarn install && tsc",
     "eslint": "eslint --color",
     "add-repositories": "node -r @gittrends/env dist/scripts/add-repositories.js",
     "schedule": "node -r @gittrends/env dist/scripts/schedule.js",
