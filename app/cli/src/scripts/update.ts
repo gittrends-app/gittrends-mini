@@ -3,7 +3,7 @@ import { Queue, QueueEvents } from 'bullmq';
 import { MultiBar, SingleBar } from 'cli-progress';
 import { Argument, Option, program } from 'commander';
 import consola, { WinstonReporter } from 'consola';
-import { get, pick, sum, truncate, values } from 'lodash';
+import { get, isNil, omitBy, pick, size, sum, truncate, values } from 'lodash';
 import path, { extname } from 'node:path';
 import readline from 'node:readline';
 import { clearInterval } from 'node:timers';
@@ -68,21 +68,45 @@ export async function updater(name: string, opts: UpdaterOpts) {
 
     const resources = [];
     const includesAll = opts.resources.includes('all');
+    let writeBatchSize: Record<string, number | undefined> = {};
 
-    if (includesAll || opts.resources.includes(Stargazer.__collection_name))
+    if (includesAll || opts.resources.includes(Stargazer.__collection_name)) {
       resources.push({ resource: Stargazer, repository: localRepos.stargazers });
-    if (includesAll || opts.resources.includes(Tag.__collection_name))
+      writeBatchSize[Stargazer.__collection_name] =
+        parseInt(process.env[`CLI_WRITE_BATCH_${Stargazer.__collection_name}`.toUpperCase()] || '') || undefined;
+    }
+    if (includesAll || opts.resources.includes(Tag.__collection_name)) {
       resources.push({ resource: Tag, repository: localRepos.tags });
-    if (includesAll || opts.resources.includes(Release.__collection_name))
+      writeBatchSize[Tag.__collection_name] =
+        parseInt(process.env[`CLI_WRITE_BATCH_${Tag.__collection_name}`.toUpperCase()] || '') || undefined;
+    }
+    if (includesAll || opts.resources.includes(Release.__collection_name)) {
       resources.push({ resource: Release, repository: localRepos.releases });
-    if (includesAll || opts.resources.includes(Watcher.__collection_name))
+      writeBatchSize[Release.__collection_name] =
+        parseInt(process.env[`CLI_WRITE_BATCH_${Release.__collection_name}`.toUpperCase()] || '') || undefined;
+    }
+    if (includesAll || opts.resources.includes(Watcher.__collection_name)) {
       resources.push({ resource: Watcher, repository: localRepos.watchers });
-    if (includesAll || opts.resources.includes(Dependency.__collection_name))
+      writeBatchSize[Watcher.__collection_name] =
+        parseInt(process.env[`CLI_WRITE_BATCH_${Watcher.__collection_name}`.toUpperCase()] || '') || undefined;
+    }
+    if (includesAll || opts.resources.includes(Dependency.__collection_name)) {
       resources.push({ resource: Dependency, repository: localRepos.dependencies });
-    if (includesAll || opts.resources.includes(Issue.__collection_name))
+      writeBatchSize[Dependency.__collection_name] =
+        parseInt(process.env[`CLI_WRITE_BATCH_${Dependency.__collection_name}`.toUpperCase()] || '') || undefined;
+    }
+    if (includesAll || opts.resources.includes(Issue.__collection_name)) {
       resources.push({ resource: Issue, repository: localRepos.issues });
-    if (includesAll || opts.resources.includes(PullRequest.__collection_name))
+      writeBatchSize[Issue.__collection_name] =
+        parseInt(process.env[`CLI_WRITE_BATCH_${Issue.__collection_name}`.toUpperCase()] || '') || undefined;
+    }
+    if (includesAll || opts.resources.includes(PullRequest.__collection_name)) {
       resources.push({ resource: PullRequest, repository: localRepos.pull_requests });
+      writeBatchSize[PullRequest.__collection_name] =
+        parseInt(process.env[`CLI_WRITE_BATCH_${PullRequest.__collection_name}`.toUpperCase()] || '') || undefined;
+    }
+
+    writeBatchSize = omitBy(writeBatchSize, isNil);
 
     const resourcesInfo = await Promise.all(
       resources.map(async (info) => {
@@ -97,7 +121,12 @@ export async function updater(name: string, opts: UpdaterOpts) {
 
     if (opts.onProgress) opts.onProgress({ current, total: resourcesInfo.reduce((acc, p) => acc + p.total, 0) });
 
-    const iterator = localService.resources(repo.id, resourcesInfo, { ignoreCache: true });
+    const iterator = localService.resources(repo.id, resourcesInfo, {
+      ignoreCache: true,
+      persistenceBatchSize: size(writeBatchSize)
+        ? (writeBatchSize as Record<string, number>)
+        : parseInt(process.env.CLI_WRITE_BATCH || '') || undefined,
+    });
 
     // eslint-disable-next-line no-constant-condition
     while (true) {

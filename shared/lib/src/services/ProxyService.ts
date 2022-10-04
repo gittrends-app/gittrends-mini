@@ -22,7 +22,7 @@ export class ProxyService implements Service {
   resources(
     repositoryId: string,
     resources: { resource: Constructor<RepositoryResource>; endCursor?: string; hasNextPage?: boolean }[],
-    opts?: { persistenceBatchSize?: number; ignoreCache?: boolean },
+    opts?: { persistenceBatchSize?: number | Record<string, number>; ignoreCache?: boolean },
   ): Iterable<RepositoryResource> {
     return new ProxiedIterator(repositoryId, resources, {
       github: this.githubService,
@@ -67,7 +67,7 @@ class ProxiedIterator implements Iterable<RepositoryResource> {
       local: LocalService;
       github: GitHubService;
       repos: ServiceOpts;
-      persistenceBatchSize?: number;
+      persistenceBatchSize?: number | Record<string, number>;
       ignoreCache?: boolean;
     },
   ) {
@@ -111,6 +111,12 @@ class ProxiedIterator implements Iterable<RepositoryResource> {
     await each(
       (githubResults.value || []) as { items: RepositoryResource[]; endCursor?: string; hasNextPage: boolean }[],
       async (result, index) => {
+        const persistenceBatchSize = !this.opts.persistenceBatchSize
+          ? undefined
+          : typeof this.opts.persistenceBatchSize === 'number'
+          ? this.opts.persistenceBatchSize
+          : this.opts.persistenceBatchSize[(this.resources[index].resource as any).__collection_name];
+
         const repository: IResourceRepository<RepositoryResource> = (this.opts.repos as any)[
           (this.resources[index].resource as any).__collection_name
         ];
@@ -120,10 +126,10 @@ class ProxiedIterator implements Iterable<RepositoryResource> {
         arrayRef.endCursor = result.endCursor;
 
         if (
-          !this.opts.persistenceBatchSize ||
+          !persistenceBatchSize ||
           !result.hasNextPage ||
           (!result.items.length && arrayRef.items.length > 0) ||
-          arrayRef.items.length >= this.opts.persistenceBatchSize
+          arrayRef.items.length >= persistenceBatchSize
         ) {
           await repository.save(arrayRef.items.splice(0)).then(() =>
             this.opts.repos.metadata.save(

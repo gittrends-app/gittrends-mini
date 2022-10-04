@@ -19,6 +19,7 @@ declare global {
       CLI_QUEUE_ATTEMPS?: number;
       CLI_ACCESS_TOKEN?: string;
       CLI_API_URL?: string;
+      CLI_WRITE_BATCH?: string;
     }
   }
 }

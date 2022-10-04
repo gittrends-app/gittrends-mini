@@ -5,6 +5,10 @@
   "license": "MIT",
   "private": true,
   "scripts": {
+    "build": "yarn build-env && yarn build-lib && yarn install && yarn build-cli",
+    "build-env": "yarn workspace @gittrends/env build",
+    "build-lib": "yarn workspace @gittrends/lib build",
+    "build-cli": "yarn workspace @gittrends/cli build",
     "format": "prettier --config .prettierrc.json --write .",
     "prepare": "husky install"
   },
