@@ -235,7 +235,7 @@ export async function redisQueue(opts: {
             progressBar.update(progress.current, { resource });
             queue
               ?.getJob(progress.name)
-              .then((job) => job?.updateProgress((progress.current / totals[progress.name]) * 100));
+              .then((job) => job?.updateProgress(Math.round((progress.current / totals[progress.name]) * 100)));
             break;
         }
       },
