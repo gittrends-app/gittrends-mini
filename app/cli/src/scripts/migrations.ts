@@ -31,7 +31,7 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
     .addCommand(
       new Command('rollback').action(async () =>
         forEach((db: string, callback) => {
-          consola.log(`-> rollbacking ${db}`);
+          consola.log(`-> rolling back ${db}`);
           return rollback(db)
             .then(() => callback())
             .catch((error) => callback(error));
