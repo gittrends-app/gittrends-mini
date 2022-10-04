@@ -189,7 +189,7 @@ export async function redisQueue(opts: {
           generalProgress.setTotal(sum(values(counts)));
           const failedPrefix = counts?.failed ? ` (${counts?.failed} failed)` : '';
           generalProgress.update(sum(values(pick(counts, ['completed', 'failed']))), {
-            resource: `Finished jobs ${failedPrefix}`.padEnd(32, ' '),
+            resource: `Finished jobs ${failedPrefix}`.padEnd(35, ' '),
           });
         };
 
@@ -224,7 +224,7 @@ export async function redisQueue(opts: {
       (progress: { event: 'started' | 'updated' | 'finished'; name: string; current: number; total?: number }) => {
         if (!opts.multibar || !progressBar) return;
         const name = `<thd${index + 1}>${progress.name}`;
-        const resource = truncate(name, { length: 25, omission: '..' }).padEnd(32, ' ');
+        const resource = truncate(name, { length: 25, omission: '..' }).padEnd(35, ' ');
         switch (progress.event) {
           case 'started':
             progressBar.update(0, { resource });
