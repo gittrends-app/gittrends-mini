@@ -2,7 +2,7 @@ import { AsyncWorker, queue } from 'async';
 import { Command, program } from 'commander';
 import consola from 'consola';
 
-import { createOrConnectDatabase, getRepositoriesList, migrate } from '../config/knex.config';
+import { createOrConnectDatabase, getRepositoriesList, migrate, rollback } from '../config/knex.config';
 import { version } from '../package.json';
 
 async function forEach(queueFunction: AsyncWorker<string>) {
@@ -23,6 +23,16 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
         forEach((db: string, callback) => {
           consola.log(`-> migrating ${db}`);
           return migrate(db)
+            .then(() => callback())
+            .catch((error) => callback(error));
+        }),
+      ),
+    )
+    .addCommand(
+      new Command('rollback').action(async () =>
+        forEach((db: string, callback) => {
+          consola.log(`-> rollbacking ${db}`);
+          return rollback(db)
             .then(() => callback())
             .catch((error) => callback(error));
         }),
