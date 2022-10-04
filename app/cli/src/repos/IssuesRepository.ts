@@ -1,4 +1,4 @@
-import { all, each } from 'bluebird';
+import { all, map } from 'bluebird';
 import { Knex } from 'knex';
 
 import { Actor, IResourceRepository, Issue, IssueOrPull, PullRequest } from '@gittrends/lib';
@@ -55,7 +55,7 @@ class IssueOrPullRepository<T extends IssueOrPull> implements IResourceRepositor
 
     const transaction = trx || (await this.db.transaction());
 
-    await each(data, async ({ issue, actors, reactions, timeline_items }) =>
+    await map(data, async ({ issue, actors, reactions, timeline_items }) =>
       all([
         this.actorsRepo.save(actors, transaction),
         this.reactionsRepo.save(reactions, transaction),

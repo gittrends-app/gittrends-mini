@@ -1,4 +1,4 @@
-import { all, each } from 'bluebird';
+import { all, map } from 'bluebird';
 import { Knex } from 'knex';
 
 import { Actor, IResourceRepository, Tag } from '@gittrends/lib';
@@ -41,7 +41,7 @@ export class TagsRepository implements IResourceRepository<Tag> {
 
     await all([
       this.actorsRepo.save(actors, transaction),
-      each(tags, (tag) =>
+      map(tags, (tag) =>
         this.db
           .table(Tag.__collection_name)
           .insertEntity(tag.toJSON())
