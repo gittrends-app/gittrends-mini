@@ -16,7 +16,8 @@
     "dev:add-repositories": "ts-node -r tsconfig-paths/register -r @gittrends/env src/scripts/add-repositories.ts",
     "dev:schedule": "ts-node -r tsconfig-paths/register -r @gittrends/env src/scripts/schedule.ts",
     "dev:update": "ts-node -r tsconfig-paths/register -r @gittrends/env src/scripts/update.ts",
-    "dev:migrations": "ts-node -r tsconfig-paths/register -r @gittrends/env src/scripts/migrations.ts"
+    "dev:migrations": "ts-node -r tsconfig-paths/register -r @gittrends/env src/scripts/migrations.ts",
+    "migrate:make": "knex migrate:make --migrations-directory src/config/migrations"
   },
   "dependencies": {
     "@gittrends/env": "link:../../shared/env",
