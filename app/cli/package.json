@@ -19,6 +19,8 @@
     "dev:migrations": "ts-node -r tsconfig-paths/register -r @gittrends/env src/scripts/migrations.ts"
   },
   "dependencies": {
+    "@gittrends/env": "link:../../shared/env",
+    "@gittrends/lib": "link:../../shared/lib",
     "async": "^3.2.4",
     "better-sqlite3": "^7.6.2",
     "bluebird": "^3.7.2",
@@ -42,6 +44,8 @@
     "@types/debug": "^4.1.7",
     "@types/glob": "^8.0.0",
     "@types/prettyjson": "^0.0.30",
+    "@typescript-eslint/eslint-plugin": "^5.37.0",
+    "@typescript-eslint/parser": "^5.37.0",
     "clinic": "^12.0.0",
     "sync-dotenv": "^2.7.0",
     "tsconfig-paths": "^4.1.0"
