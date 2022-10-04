@@ -223,11 +223,10 @@ export async function redisQueue(opts: {
       'message',
       (progress: { event: 'started' | 'updated' | 'finished'; name: string; current: number; total?: number }) => {
         if (!opts.multibar || !progressBar) return;
-        const name = truncate(progress.name, { length: 25, omission: '..' }).padEnd(32, ' ');
-        const label = `T${index + 1}. ${name}`;
+        const label = truncate(`<thd_${index + 1}> ${progress.name}`, { length: 25, omission: '..' });
         switch (progress.event) {
           case 'started':
-            progressBar.update(0, { resource: label });
+            progressBar.update(0, { resource: label.padEnd(32, ' ') });
             break;
           case 'updated':
             if (progress.total) totals[progress.name] = progress.total;
