@@ -15,10 +15,11 @@ const Resources = [Repository, Stargazer, Watcher, Tag, Release, Dependency].map
 
 const logger = debug('schedule');
 
-export async function schedule(hours = 24, drain = false) {
+export async function schedule(hours = 24, drain = false, obliterate = false) {
   logger('Connecting to redis server...');
   await withBullQueue(async (queue) => {
-    if (drain) await queue.drain();
+    if (obliterate) await queue.obliterate({ force: true });
+    else if (drain) await queue.drain();
 
     async function _schedule(repo: string) {
       await withDatabase(repo, async (repos) => {
@@ -66,7 +67,10 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
   await program
     .addOption(new Option('-w, --wait [hours]', 'Number of hours before updating').default(24))
     .addOption(new Option('--drain', 'Remove all pending jobs on queue before proceeding'))
-    .action((opts: { wait: number; drain: boolean }) => schedule(opts.wait, opts.drain))
+    .addOption(new Option('--obliterate', 'Remove all jobs on queue (including the active ones)'))
+    .action((opts: { wait: number; drain: boolean; obliterate: boolean }) =>
+      schedule(opts.wait, opts.drain, opts.obliterate),
+    )
     .helpOption(true)
     .version(version)
     .parseAsync(args, { from });
