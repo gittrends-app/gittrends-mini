@@ -13,7 +13,7 @@ import {
   ReactionComponent,
   RepositoryComponent,
 } from '../../../github/components';
-import { GithubRequestError } from '../../../helpers/errors';
+import { GithubRequestError, ServerRequestError } from '../../../helpers/errors';
 import { ComponentBuilder } from './ComponentBuilder';
 
 enum Stages {
@@ -51,7 +51,7 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
   }
 
   build(error?: Error): RepositoryComponent | IssueComponent[] | ReactionComponent[] {
-    if (error instanceof GithubRequestError) {
+    if (error instanceof GithubRequestError || error instanceof ServerRequestError) {
       if (this.meta.first > 1) this.meta.first = Math.floor(this.meta.first / 2);
     } else if (error) {
       throw error;
