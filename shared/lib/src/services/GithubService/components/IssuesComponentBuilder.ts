@@ -32,7 +32,9 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
   private previousEndCursor: string | undefined;
   private currentStage: Stages = Stages.GET_ISSUES_LIST;
 
-  private meta: TMeta = { first: 15 };
+  protected defaultBatchSize = 25;
+
+  private meta: TMeta = { first: this.defaultBatchSize };
   private issuesMeta: (TMeta & { issue: T })[] = [];
   private reactablesMeta: (TMeta & { reactable: Reactable })[] = [];
 
@@ -53,6 +55,7 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
   build(error?: Error): RepositoryComponent | IssueComponent[] | ReactionComponent[] {
     if (error instanceof GithubRequestError || error instanceof ServerRequestError) {
       if (this.meta.first > 1) this.meta.first = Math.floor(this.meta.first / 2);
+      else throw error;
     } else if (error) {
       throw error;
     }
@@ -100,7 +103,7 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
   }
 
   parse(data: any): { hasNextPage: boolean; endCursor?: string; data: T[] } {
-    this.meta.first = Math.min(15, this.meta.first * 2);
+    this.meta.first = Math.min(this.defaultBatchSize, this.meta.first * 2);
 
     switch (this.currentStage) {
       case Stages.GET_ISSUES_LIST: {
@@ -270,6 +273,8 @@ export class IssuesComponentBuilder extends GenericBuilder<Issue> {
 }
 
 export class PullRequestsComponentBuilder extends GenericBuilder<PullRequest> {
+  protected defaultBatchSize = 15;
+
   constructor(repositoryId: string, endCursor?: string) {
     super(repositoryId, endCursor, PullRequest);
   }
