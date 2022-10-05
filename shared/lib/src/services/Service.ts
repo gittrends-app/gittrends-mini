@@ -8,6 +8,7 @@ export type Iterable<T extends Entity | RepositoryResource> = AsyncIterableItera
 >;
 
 export interface Service {
+  get(id: string): Promise<Repository | undefined>;
   find(name: string): Promise<Repository | undefined>;
   search?(opts: SearchComponentQuery): Iterable<Repository>;
   resources(

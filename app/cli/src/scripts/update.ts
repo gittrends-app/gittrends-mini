@@ -63,8 +63,11 @@ export async function updater(name: string, opts: UpdaterOpts) {
   return withDatabase(name, async (localRepos) => {
     const localService = new ProxyService(opts.httpClient, localRepos);
 
-    const repo = await localService.find(name, { noCache: true });
-    if (!repo) throw new Error('Repository not found!');
+    let repo = await localRepos.repositories.findByName(name);
+    if (!repo) throw new Error(`Database corrupted! Repository ${name} not found!`);
+
+    repo = await localService.get(repo.id, { noCache: true });
+    if (!repo) throw new Error(`Repository ${name} not found!`);
 
     const resources = [];
     const includesAll = opts.resources.includes('all');
@@ -110,8 +113,11 @@ export async function updater(name: string, opts: UpdaterOpts) {
 
     const resourcesInfo = await Promise.all(
       resources.map(async (info) => {
-        const [meta] = await localRepos.metadata.findByRepository(repo.id, info.resource.__collection_name as any);
-        const cachedCount = await info.repository.countByRepository(repo.id);
+        const [meta] = await localRepos.metadata.findByRepository(
+          repo?.id as string,
+          info.resource.__collection_name as any,
+        );
+        const cachedCount = await info.repository.countByRepository(repo?.id as string);
         const total = get(repo, info.resource.__collection_name, 0);
         return { resource: info.resource, endCursor: meta?.end_cursor, total, cachedCount };
       }),

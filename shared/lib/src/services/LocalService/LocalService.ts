@@ -25,6 +25,10 @@ export class LocalService implements Service {
     this.persistence = opts;
   }
 
+  async get(id: string): Promise<Repository | undefined> {
+    return this.persistence.repositories.findById(id, { resolve: ['owner'] });
+  }
+
   async find(name: string): Promise<Repository | undefined> {
     return this.persistence.repositories.findByName(name, { resolve: ['owner'] });
   }

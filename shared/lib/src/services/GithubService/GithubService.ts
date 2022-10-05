@@ -153,20 +153,16 @@ export class GitHubService implements Service {
     else this.httpClient = new HttpClient(tokenOrClient);
   }
 
-  async find(name: string): Promise<Repository | undefined> {
+  async get(id: string): Promise<Repository | undefined> {
     return Query.create(this.httpClient)
-      .compose(new SearchComponent({ repo: name }, { first: 1 }).setAlias('search'))
-      .run()
-      .then((response) =>
-        Query.create(this.httpClient)
-          .compose(
-            new RepositoryComponent(get(response, ['search', 'nodes', 0, 'id']))
-              .includeDetails(true)
-              .includeLanguages(true, { first: 100 })
-              .includeTopics(true, { first: 100 }),
-          )
-          .run(),
+      .compose(
+        new RepositoryComponent(id)
+          .setAlias('repository')
+          .includeDetails(true)
+          .includeLanguages(true, { first: 100 })
+          .includeTopics(true, { first: 100 }),
       )
+      .run()
       .then(
         ({ repository: { _languages, _topics, ...repo } }) =>
           new Repository({
@@ -175,6 +171,13 @@ export class GitHubService implements Service {
             repository_topics: _topics?.nodes?.map((n: any) => n.topic),
           }),
       );
+  }
+
+  async find(name: string): Promise<Repository | undefined> {
+    return Query.create(this.httpClient)
+      .compose(new SearchComponent({ repo: name }, { first: 1 }).setAlias('search'))
+      .run()
+      .then((response) => this.get(get(response, ['search', 'nodes', 0, 'id'])));
   }
 
   search({ limit, ...queryOpts }: SearchComponentQuery & { limit: number }): Iterable<Repository> {

@@ -33,13 +33,25 @@ export class ProxyService implements Service {
     });
   }
 
+  async get(id: string, opts: { noCache: boolean } = { noCache: false }): Promise<Repository | undefined> {
+    return this.generic('get', id, opts);
+  }
+
   async find(name: string, opts: { noCache: boolean } = { noCache: false }): Promise<Repository | undefined> {
+    return this.generic('find', name, opts);
+  }
+
+  private async generic(
+    op: 'find' | 'get',
+    value: string,
+    opts: { noCache: boolean } = { noCache: false },
+  ): Promise<Repository | undefined> {
     if (opts.noCache === false) {
-      const cachedRepo = await this.cacheService.find(name);
+      const cachedRepo = await this.cacheService?.[op](value);
       if (cachedRepo) return cachedRepo;
     }
 
-    const repo = await this.githubService.find(name);
+    const repo = await this.githubService?.[op](value);
     if (repo) {
       await this.persistence.repositories
         .save(repo)
