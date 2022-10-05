@@ -52,13 +52,21 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
     this.EntityComponent = this.Entity === Issue ? IssueComponent : PullRequestComponent;
   }
 
-  build(error?: Error): RepositoryComponent | IssueComponent[] | ReactionComponent[] {
+  private errorHandler(error: Error) {
     if (error instanceof GithubRequestError || error instanceof ServerRequestError) {
-      if (this.meta.first > 1) this.meta.first = Math.floor(this.meta.first / 2);
-      else throw error;
-    } else if (error) {
-      throw error;
+      if (this.meta.first > 1) {
+        return (this.meta.first = Math.floor(this.meta.first / 2));
+      }
+      if (this.meta.first === 1 && this.currentStage == Stages.GET_TIMELINE_EVENTS && this.pendingIssues[0].first > 1) {
+        return (this.pendingIssues[0].first = Math.floor(this.pendingIssues[0].first / 2));
+      }
     }
+
+    throw error;
+  }
+
+  build(error?: Error): RepositoryComponent | IssueComponent[] | ReactionComponent[] {
+    if (error) this.errorHandler(error);
 
     switch (this.currentStage) {
       case Stages.GET_ISSUES_LIST: {
@@ -84,7 +92,7 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
         return this.pendingIssues.map((iMeta, index) =>
           new this.EntityComponent(iMeta.issue.id, `issue_${index}`)
             .includeDetails(false)
-            .includeTimeline(true, { first: 100, after: iMeta.endCursor, alias: 'tl' }),
+            .includeTimeline(true, { first: iMeta.first, after: iMeta.endCursor, alias: 'tl' }),
         );
       }
 
@@ -108,7 +116,7 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
     switch (this.currentStage) {
       case Stages.GET_ISSUES_LIST: {
         const nodes = get<any[]>(data, 'repo.issues.nodes', []);
-        this.issuesMeta = nodes.map((issue) => ({ issue, first: 100, hasNextPage: true }));
+        this.issuesMeta = nodes.map((issue) => ({ issue, first: 50, hasNextPage: true }));
 
         const pageInfo = get(data, 'repo.issues.page_info', {});
         this.meta.hasNextPage = get(pageInfo, 'has_next_page', false);
@@ -146,6 +154,8 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
 
       case Stages.GET_TIMELINE_EVENTS: {
         this.pendingIssues.forEach((iMeta, index) => {
+          iMeta.first = Math.min(50, iMeta.first * 2);
+
           const nodes = get<any[]>(data, `issue_${index}.tl.nodes`, [])
             .map((node) => transformTimelineEvent(node, { repository: this.repositoryId, issue: iMeta.issue.id }))
             .map((node) => TimelineEvent.from({ ...node, repository: this.repositoryId, issue: iMeta.issue.id }));
