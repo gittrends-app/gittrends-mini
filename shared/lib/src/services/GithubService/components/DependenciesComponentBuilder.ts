@@ -1,4 +1,4 @@
-import { get } from 'lodash';
+import { flatten, get } from 'lodash';
 
 import { Dependency } from '../../../entities';
 import Component from '../../../github/Component';
@@ -25,23 +25,13 @@ export class DependenciesComponentBuilder implements ComponentBuilder<Component,
     dependencies: Dependency[];
   }[] = [];
 
-  private get pendingManifests() {
-    return this.dependenciesMeta.filter((dm) => dm.hasNextPage === true).slice(0, this.manifestsBatchSize);
-  }
-
   constructor(private repositoryId: string, endCursor?: string) {
     this.previousEndCursor = endCursor;
     this.manifestsMeta.endCursor = endCursor;
   }
 
-  toJSON(): Record<string, unknown> {
-    return {
-      repository: this.repositoryId,
-      currentStage: this.currentStage,
-      ...(this.currentStage === Stages.GET_MANIFESTS
-        ? this.manifestsMeta
-        : this.dependenciesMeta.map(({ first, hasNextPage, endCursor }) => ({ first, hasNextPage, endCursor }))),
-    };
+  private get pendingManifests() {
+    return this.dependenciesMeta.filter((dm) => dm.hasNextPage).slice(0, this.manifestsBatchSize);
   }
 
   build(error?: Error): RepositoryComponent | DependencyGraphManifestComponent[] {
@@ -86,9 +76,9 @@ export class DependenciesComponentBuilder implements ComponentBuilder<Component,
         (this.previousEndCursor = this.manifestsMeta.endCursor),
       );
 
-      this.currentStage = Stages.GET_DEPENDENCIES;
+      if (this.dependenciesMeta.length) this.currentStage = Stages.GET_DEPENDENCIES;
 
-      return { hasNextPage: this.pendingManifests.length > 0, endCursor: this.previousEndCursor, data: [] };
+      return { hasNextPage: this.dependenciesMeta.length > 0, endCursor: this.previousEndCursor, data: [] };
     }
 
     if (this.currentStage === Stages.GET_DEPENDENCIES) {
@@ -113,12 +103,12 @@ export class DependenciesComponentBuilder implements ComponentBuilder<Component,
         );
       });
 
-      if (this.dependenciesMeta.reduce((done, dm) => done && !dm.hasNextPage, true)) {
+      if (this.pendingManifests.length === 0) {
         this.currentStage = Stages.GET_MANIFESTS;
         return {
           hasNextPage: this.manifestsMeta.hasNextPage || false,
           endCursor: this.manifestsMeta.endCursor,
-          data: this.dependenciesMeta.reduce((deps: Dependency[], dep) => deps.concat(dep.dependencies), []),
+          data: flatten(this.dependenciesMeta.map((dep) => dep.dependencies)),
         };
       }
 
@@ -126,5 +116,15 @@ export class DependenciesComponentBuilder implements ComponentBuilder<Component,
     }
 
     throw new Error(`Unknown Stage on ${this.constructor.name}`);
+  }
+
+  toJSON(): Record<string, unknown> {
+    return {
+      repository: this.repositoryId,
+      currentStage: this.currentStage,
+      ...(this.currentStage === Stages.GET_MANIFESTS
+        ? this.manifestsMeta
+        : this.dependenciesMeta.map(({ first, hasNextPage, endCursor }) => ({ first, hasNextPage, endCursor }))),
+    };
   }
 }
