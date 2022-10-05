@@ -1,4 +1,4 @@
-import { all, map } from 'bluebird';
+import { all, each } from 'bluebird';
 import { Knex } from 'knex';
 import { size } from 'lodash';
 
@@ -53,7 +53,7 @@ export class TimelineEventsRepository implements IResourceRepository<TimelineEve
     await all([
       this.actorsRepo.save(actors, transaction),
       this.reactionsRepo.save(reactables, transaction),
-      map(events, (event) =>
+      each(events, (event) =>
         this.db
           .table(TimelineEvent.__collection_name)
           .insertEntity(event)

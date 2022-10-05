@@ -1,4 +1,4 @@
-import { all, map } from 'bluebird';
+import { all, each } from 'bluebird';
 import { Knex } from 'knex';
 
 import { Actor, IResourceRepository, Reaction } from '@gittrends/lib';
@@ -40,7 +40,7 @@ export class ReactionsRepository implements IResourceRepository<Reaction> {
 
     await all([
       this.actorsRepo.save(actors, transaction),
-      map(reactions, (reaction) => {
+      each(reactions, (reaction) => {
         return this.db
           .table(Reaction.__collection_name)
           .insertEntity(reaction.toJSON())

@@ -1,4 +1,4 @@
-import { map } from 'bluebird';
+import { each } from 'bluebird';
 import { Knex } from 'knex';
 import { uniqBy } from 'lodash';
 
@@ -22,7 +22,7 @@ export class ActorsRepository implements IActorsRepository {
 
     const actors = uniqBy(Array.isArray(user) ? user : [user], 'id');
 
-    await map(actors, (actor) =>
+    await each(actors, (actor) =>
       this.db
         .table(Actor.__collection_name)
         .insertEntity(actor.toJSON())

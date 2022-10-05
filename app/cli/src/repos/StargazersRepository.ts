@@ -1,4 +1,4 @@
-import { all, map } from 'bluebird';
+import { all, each } from 'bluebird';
 import { Knex } from 'knex';
 
 import { Actor, IResourceRepository, Stargazer } from '@gittrends/lib';
@@ -41,7 +41,7 @@ export class StargazersRepository implements IResourceRepository<Stargazer> {
 
     await all([
       this.actorsRepo.save(actors, transaction),
-      map(stars, (star) =>
+      each(stars, (star) =>
         this.db
           .table(Stargazer.__collection_name)
           .insertEntity(star.toJSON())

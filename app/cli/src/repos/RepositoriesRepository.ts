@@ -1,4 +1,4 @@
-import { all, map } from 'bluebird';
+import { all, each } from 'bluebird';
 import { Knex } from 'knex';
 import { uniqBy } from 'lodash';
 
@@ -51,7 +51,7 @@ export class RepositoriesRepository implements IRepositoriesRepository {
 
     await all([
       this.actorRepo.save(actors, transaction),
-      map(repos, (repo) =>
+      each(repos, (repo) =>
         this.db
           .table(Repository.__collection_name)
           .insertEntity(repo.toJSON())

@@ -1,4 +1,4 @@
-import { all, map } from 'bluebird';
+import { all, each } from 'bluebird';
 import { Knex } from 'knex';
 
 import { Actor, IResourceRepository, Reaction, Release } from '@gittrends/lib';
@@ -47,7 +47,7 @@ export class ReleasesRepository implements IResourceRepository<Release> {
     await all([
       this.actorsRepo.save(actors, transaction),
       this.reactionsRepo.save(reactions, transaction),
-      map(
+      each(
         releases.map((rel) => {
           if (Array.isArray(rel.reactions)) rel.reactions = rel.reactions.length;
           return rel;

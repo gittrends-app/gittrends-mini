@@ -1,4 +1,4 @@
-import { map } from 'bluebird';
+import { each } from 'bluebird';
 import { Knex } from 'knex';
 
 import { IMetadataRepository, Metadata } from '@gittrends/lib';
@@ -20,7 +20,7 @@ export class MetadataRepository implements IMetadataRepository {
 
     const metas = Array.isArray(metadata) ? metadata : [metadata];
 
-    await map(metas, (meta) => {
+    await each(metas, (meta) => {
       const { repository, resource, end_cursor, updated_at, ...payload } = meta;
       return this.db
         .table(Metadata.__collection_name)

@@ -1,4 +1,5 @@
 import { queue } from 'async';
+import { mapSeries } from 'bluebird';
 import { Queue, QueueEvents } from 'bullmq';
 import { MultiBar, SingleBar } from 'cli-progress';
 import { Argument, Option, program } from 'commander';
@@ -111,17 +112,15 @@ export async function updater(name: string, opts: UpdaterOpts) {
 
     writeBatchSize = omitBy(writeBatchSize, isNil);
 
-    const resourcesInfo = await Promise.all(
-      resources.map(async (info) => {
-        const [meta] = await localRepos.metadata.findByRepository(
-          repo?.id as string,
-          info.resource.__collection_name as any,
-        );
-        const cachedCount = await info.repository.countByRepository(repo?.id as string);
-        const total = get(repo, info.resource.__collection_name, 0);
-        return { resource: info.resource, endCursor: meta?.end_cursor, total, cachedCount };
-      }),
-    );
+    const resourcesInfo = await mapSeries(resources, async (info) => {
+      const [meta] = await localRepos.metadata.findByRepository(
+        repo?.id as string,
+        info.resource.__collection_name as any,
+      );
+      const cachedCount = await info.repository.countByRepository(repo?.id as string);
+      const total = get(repo, info.resource.__collection_name, 0);
+      return { resource: info.resource, endCursor: meta?.end_cursor, total, cachedCount };
+    });
 
     let current = resourcesInfo.reduce((acc, p) => acc + (p.total && p.cachedCount), 0);
 

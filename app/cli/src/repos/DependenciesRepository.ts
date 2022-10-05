@@ -1,4 +1,4 @@
-import { map } from 'bluebird';
+import { each } from 'bluebird';
 import { Knex } from 'knex';
 
 import { Dependency, IResourceRepository } from '@gittrends/lib';
@@ -35,7 +35,7 @@ export class DependenciesRepository implements IResourceRepository<Dependency> {
 
     const transaction = trx || (await this.db.transaction());
 
-    await map(dependencies, (dep) =>
+    await each(dependencies, (dep) =>
       this.db
         .table(Dependency.__collection_name)
         .insertEntity(dep.toJSON())
