@@ -32,8 +32,12 @@ export abstract class Entity<T = any> {
       allowUnknown: !this.__strip_unknown,
     });
 
-    if (error) throw new EntityValidationError(error);
-    else return value as any;
+    if (error) {
+      error.message = `${error.message} <${JSON.stringify(error.details)}>`;
+      throw new EntityValidationError(error);
+    }
+
+    return value as any;
   }
 }
 
