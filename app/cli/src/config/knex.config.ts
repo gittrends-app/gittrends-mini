@@ -11,6 +11,8 @@ const baseDir = resolve(homedir(), '.gittrends', process.env.NODE_ENV || 'develo
 knex.QueryBuilder.extend('insertEntity', function (value: Record<string, unknown>) {
   const sqliteFormattedValue = mapValues(value, (value) => {
     if (isProduction) {
+      // eslint-disable-next-line no-control-regex
+      if (typeof value === 'string') return value.replace(/\u0000/g, '\\u0000');
       if (value instanceof Date) return value.toISOString();
       if (typeof value === 'object' || Array.isArray(value)) {
         if (size(value) === 0) return undefined;
@@ -52,7 +54,7 @@ function knexResponseParser(result: any) {
     if (value === 'TRUE') return true;
     else if (value === 'FALSE') return false;
     else if (value.startsWith('{"$Object":')) return JSON.parse(value).$Object;
-    else return value;
+    else return isProduction ? value.replace(/\\u0000/g, '\u0000') : value;
   });
 }
 
