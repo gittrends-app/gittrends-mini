@@ -2,6 +2,7 @@ import { get } from 'lodash';
 
 import { Actor, Reaction, Release } from '../../../entities';
 import { ReactionComponent, RepositoryComponent } from '../../../github/components';
+import { GithubRequestError, ServerRequestError } from '../../../helpers/errors';
 import { ComponentBuilder } from './ComponentBuilder';
 
 enum Stages {
@@ -15,6 +16,7 @@ export class ReleasesComponentBuilder implements ComponentBuilder<RepositoryComp
   private previousEndCursor?: string;
   private currentStage = Stages.GET_RELEASES;
 
+  private batchSize = 25;
   private releasesMeta: { release: Release; endCursor?: string; hasNextPage?: boolean }[] = [];
 
   constructor(private repositoryId: string, private endCursor?: string) {
@@ -22,11 +24,19 @@ export class ReleasesComponentBuilder implements ComponentBuilder<RepositoryComp
   }
 
   private get pendingReactables() {
-    return this.releasesMeta.filter((meta) => meta.hasNextPage).slice(0, 25) || [];
+    return this.releasesMeta.filter((meta) => meta.hasNextPage).slice(0, this.batchSize) || [];
   }
 
   build(error?: Error): RepositoryComponent | ReactionComponent[] {
-    if (error) throw error;
+    if (error) {
+      if (error instanceof GithubRequestError || error instanceof ServerRequestError) {
+        if (this.currentStage === Stages.GET_RELEASES && this.first > 1) {
+          this.first = Math.floor(this.first / 2);
+        } else if (this.currentStage === Stages.GET_REACTIONS && this.batchSize > 1) {
+          this.batchSize = Math.floor(this.batchSize / 2);
+        } else throw error;
+      } else throw error;
+    }
 
     if (this.currentStage === Stages.GET_RELEASES) {
       return new RepositoryComponent(this.repositoryId)
@@ -48,6 +58,9 @@ export class ReleasesComponentBuilder implements ComponentBuilder<RepositoryComp
   }
 
   parse(data: any): { hasNextPage: boolean; endCursor?: string; data: Release[] } {
+    this.first = Math.min(100, this.first * 2);
+    this.batchSize = Math.min(25, this.batchSize * 2);
+
     if (this.currentStage === Stages.GET_RELEASES) {
       this.releasesMeta = get<any[]>(data, 'repo.releases.nodes', []).map((node) => ({
         release: new Release({
