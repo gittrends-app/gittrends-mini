@@ -33,7 +33,7 @@ export abstract class Entity<T = any> {
     });
 
     if (error) {
-      error.message = `${error.message} <${JSON.stringify(error.details)}>`;
+      error.message = `${error.message} <${JSON.stringify({ original: error._original })}>`;
       throw new EntityValidationError(error);
     }
 
