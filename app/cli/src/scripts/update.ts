@@ -60,7 +60,7 @@ type UpdaterOpts = {
 };
 
 export async function updater(name: string, opts: UpdaterOpts) {
-  await withDatabase(name, async (localRepos) => {
+  return withDatabase(name, async (localRepos) => {
     const localService = new ProxyService(opts.httpClient, localRepos);
 
     const repo = await localService.find(name, { noCache: true });
