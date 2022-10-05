@@ -12,6 +12,7 @@ import ClosedEvent from '../fragments/events/ClosedEvent';
 import CommentDeletedEvent from '../fragments/events/CommentDeletedEvent';
 import ConnectedEvent from '../fragments/events/ConnectedEvent';
 import ConvertedNoteToIssueEvent from '../fragments/events/ConvertedNoteToIssueEvent';
+import ConvertedToDiscussionEvent from '../fragments/events/ConvertedToDiscussionEvent';
 import CrossReferencedEvent from '../fragments/events/CrossReferencedEvent';
 import DemilestonedEvent from '../fragments/events/DemilestonedEvent';
 import DisconnectedEvent from '../fragments/events/DisconnectedEvent';
@@ -63,6 +64,7 @@ export default class IssueComponent extends Component {
         .add(CommentDeletedEvent)
         .add(ConnectedEvent)
         .add(ConvertedNoteToIssueEvent)
+        .add(ConvertedToDiscussionEvent)
         .add(CrossReferencedEvent)
         .add(DemilestonedEvent)
         .add(DisconnectedEvent)
@@ -154,6 +156,7 @@ export default class IssueComponent extends Component {
             ... on CommentDeletedEvent { ...${CommentDeletedEvent.code} }
             ... on ConnectedEvent { ...${ConnectedEvent.code} }
             ... on ConvertedNoteToIssueEvent { ...${ConvertedNoteToIssueEvent.code} }
+            ... on ConvertedToDiscussionEvent { ...${ConvertedToDiscussionEvent.code} }
             ... on CrossReferencedEvent { ...${CrossReferencedEvent.code} }
             ... on DemilestonedEvent { ...${DemilestonedEvent.code} }
             ... on DisconnectedEvent { ...${DisconnectedEvent.code} }

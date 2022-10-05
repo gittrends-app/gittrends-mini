@@ -31,7 +31,6 @@ export class PullRequestFragment extends IssueFragment {
       ${Fragment.include(this.full, 'closingIssuesReferences { totalCount }')}
       ${Fragment.include(this.full, 'commits { totalCount }')}
       ${Fragment.include(this.full, 'deletions')}
-      ${Fragment.include(this.full, 'files { totalCount }')}
       ${Fragment.include(this.full, `headRef { name target { id:oid } }`)}
       ${Fragment.include(this.full, 'headRefName')}
       ${Fragment.include(this.full, 'headRefOid')}

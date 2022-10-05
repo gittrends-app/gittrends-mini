@@ -18,7 +18,6 @@ export class PullRequest extends IssueOrPull {
   closing_issues_references!: number;
   commits!: number;
   deletions!: number;
-  files!: number;
   head_ref?: { name?: string; target?: string } | string;
   head_ref_name!: string;
   head_ref_oid!: string;
@@ -54,7 +53,6 @@ export class PullRequest extends IssueOrPull {
         closing_issues_references: Joi.number().required(),
         commits: Joi.number().required(),
         deletions: Joi.number().required(),
-        files: Joi.number().required(),
         head_ref: Joi.alternatives(Joi.string(), Joi.object({ name: Joi.string(), target: Joi.string() })),
         head_ref_name: Joi.string().required(),
         head_ref_oid: Joi.string().required(),
