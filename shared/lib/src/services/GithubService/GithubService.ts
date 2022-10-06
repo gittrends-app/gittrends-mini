@@ -33,9 +33,8 @@ class ServiceRequestError extends ExtendedError {
 async function request(
   httpClient: HttpClient,
   builders: ComponentBuilder[],
-  previousError?: Error,
 ): Promise<ReturnType<ComponentBuilder['parse']>[]> {
-  try {
+  const results = await (async function _request(builders: ComponentBuilder[], previousError?: Error): Promise<any> {
     const components = builders.map((builder) => {
       const _component = builder.build(previousError);
       return Array.isArray(_component) ? _component : [_component];
@@ -44,38 +43,40 @@ async function request(
     const newAliases = components.map((ca, i) => ca.map((c, i2) => `${c.alias}__${i}_${i2}`));
     const componentsWithNewAliases = components.map((ca, i) => ca.map((c, i2) => c.setAlias(`${c.alias}__${i}_${i2}`)));
 
-    const response = await Query.create(httpClient)
+    return Query.create(httpClient)
       .compose(...flatten(componentsWithNewAliases))
       .run()
-      .finally(() => components.map((ca) => ca.map((comp) => comp.setAlias(comp.alias.replace(/__\d+_\d+$/i, '')))));
+      .then((response) =>
+        newAliases.map((na) => mapKeys(pick(response, na), (_, key) => key.replace(/__\d+_\d+$/i, ''))),
+      )
+      .finally(() => components.map((ca) => ca.map((comp) => comp.setAlias(comp.alias.replace(/__\d+_\d+$/i, '')))))
+      .catch(async (error) => {
+        if (builders.length === 1) {
+          if (!(error instanceof RequestError) || previousError) throw error;
+          return _request(builders, error as Error);
+        }
+        const mappedResults = await mapSeries(builders, (builder) => _request([builder]));
+        return flatten(mappedResults);
+      });
+  })(builders).catch((error) => Promise.reject(new ServiceRequestError(error as any, builders)));
 
-    const results = newAliases.map((na) => mapKeys(pick(response, na), (_, key) => key.replace(/__\d+_\d+$/i, '')));
+  const parseResults = builders.map((builder, i) => builder.parse(results[i]));
 
-    const parseResults = builders.map((builder, i) => builder.parse(results[i]));
+  const partialResultsIndexes = parseResults.reduce(
+    (indexes: number[], pr, index) =>
+      pr.hasNextPage && (!pr.data || !pr.data.length) ? indexes.concat([index]) : indexes,
+    [],
+  );
 
-    const partialResultsIndexes = parseResults.reduce(
-      (indexes: number[], pr, index) =>
-        pr.hasNextPage && (!pr.data || !pr.data.length) ? indexes.concat([index]) : indexes,
-      [],
+  if (partialResultsIndexes.length > 0) {
+    const finalPartialResults = await request(
+      httpClient,
+      builders.filter((_, index) => partialResultsIndexes.includes(index)),
     );
-
-    if (partialResultsIndexes.length > 0) {
-      const finalPartialResults = await request(
-        httpClient,
-        builders.filter((_, index) => partialResultsIndexes.includes(index)),
-      );
-      partialResultsIndexes.forEach((prIndex, index) => (parseResults[prIndex] = finalPartialResults[index]));
-    }
-
-    return parseResults;
-  } catch (error) {
-    if (builders.length === 1) {
-      if (!(error instanceof RequestError)) throw new ServiceRequestError(error as any, builders);
-      if (previousError) throw new ServiceRequestError(error, builders);
-      return request(httpClient, builders, error as Error);
-    }
-    return mapSeries(builders, (builer) => request(httpClient, [builer]).then((res) => res[0]));
+    partialResultsIndexes.forEach((prIndex, index) => (parseResults[prIndex] = finalPartialResults[index]));
   }
+
+  return parseResults;
 }
 
 function getComponentBuilder(Target: Constructor<RepositoryResource>) {
@@ -111,37 +112,34 @@ class ResourceIterator implements Iterable<RepositoryResource> {
 
     const pendingResources = this.resourcesStatus.filter((rs) => rs.hasMore);
 
-    try {
-      const results = await request(
-        this.httpClient,
-        pendingResources.map((rs) => rs.builder),
-      );
+    const results = await request(
+      this.httpClient,
+      pendingResources.map((rs) => rs.builder),
+    ).catch(async (error) => {
+      if (!(error instanceof ServiceRequestError)) throw error;
 
-      results.forEach((result, index) => {
-        pendingResources[index].hasMore = result?.hasNextPage;
-        pendingResources[index].endCursor = result?.endCursor;
-      });
-
-      const value = this.resourcesStatus.map((rs) => {
-        const index = pendingResources.findIndex((pr) => pr.builder === rs.builder);
-        if (index < 0) return { items: [], endCursor: rs.endCursor, hasNextPage: rs.hasMore };
-        const result = results[index];
-        return { items: result.data, endCursor: result.endCursor, hasNextPage: result.hasNextPage };
-      });
-
-      return { done: false, value };
-    } catch (error) {
-      if (error instanceof ServiceRequestError) {
-        for (const pResource of pendingResources) {
-          if (error.components.includes(pResource.builder)) {
+      return mapSeries(pendingResources, (pResource) =>
+        request(this.httpClient, [pResource.builder]).catch((error) => {
+          if (error instanceof ServiceRequestError) {
             pResource.hasMore = false;
             this.errors = (this.errors || []).concat([error]);
+            return undefined;
           }
-        }
-        return this.next();
-      }
-      throw error;
-    }
+          throw error;
+        }),
+      ).then((responses) =>
+        responses.reduce((acc: Awaited<ReturnType<typeof request>>, res) => (res ? acc.concat(res) : acc), []),
+      );
+    });
+
+    const value = this.resourcesStatus.map((rs) => {
+      const index = pendingResources.findIndex((pr) => pr.builder === rs.builder);
+      if (index < 0) return { items: [], endCursor: rs.endCursor, hasNextPage: rs.hasMore };
+      const result = results[index];
+      return { items: result.data, endCursor: result.endCursor, hasNextPage: result.hasNextPage };
+    });
+
+    return { done: false, value };
   }
 }
 
