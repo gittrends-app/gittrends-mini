@@ -118,17 +118,17 @@ class ResourceIterator implements Iterable<RepositoryResource> {
     ).catch(async (error) => {
       if (!(error instanceof ServiceRequestError)) throw error;
 
-      return mapSeries(pendingResources, (pResource) =>
-        request(this.httpClient, [pResource.builder]).catch((error) => {
-          if (error instanceof ServiceRequestError) {
-            pResource.hasMore = false;
-            this.errors = (this.errors || []).concat([error]);
-            return undefined;
-          }
-          throw error;
-        }),
-      ).then((responses) =>
-        responses.reduce((acc: Awaited<ReturnType<typeof request>>, res) => (res ? acc.concat(res) : acc), []),
+      return flatten(
+        await mapSeries(pendingResources, (pResource) =>
+          request(this.httpClient, [pResource.builder]).catch((error) => {
+            if (error instanceof ServiceRequestError) {
+              pResource.hasMore = false;
+              this.errors = (this.errors || []).concat([error]);
+              return { hasNextPage: false, endCursor: pResource.endCursor, data: [] };
+            }
+            throw error;
+          }),
+        ),
       );
     });
 
