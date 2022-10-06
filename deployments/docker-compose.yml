@@ -7,22 +7,3 @@ services:
     restart: always
     ports:
       - 6379:6379
-
-  postgres:
-    build:
-      context: postgres
-      dockerfile: Dockerfile
-    command: -c 'config_file=/etc/postgresql/postgresql.conf'
-    restart: always
-    environment:
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: root
-      POSTGRES_DB: gittrends.app
-    ports:
-      - 5432:5432
-    volumes:
-      - db:/var/lib/postgresql/data
-
-volumes:
-  db:
-    driver: local

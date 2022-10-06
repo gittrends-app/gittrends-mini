@@ -6,7 +6,7 @@ export {};
 declare global {
   namespace NodeJS {
     interface ProcessEnv {
-      NODE_ENV: 'test' | 'development' | 'production';
+      NODE_ENV: 'test' | 'development' | 'production' | string;
 
       CLI_API_URL?: string;
       CLI_ACCESS_TOKEN?: string;
