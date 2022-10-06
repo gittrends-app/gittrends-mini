@@ -9,7 +9,9 @@ export async function up(knex: Knex): Promise<void> {
     table.text('end_cursor');
     table.timestamp('updated_at').notNullable();
     table.json('payload');
+
     table.primary(['repository', 'resource']);
+    table.index('repository');
   });
 }
 

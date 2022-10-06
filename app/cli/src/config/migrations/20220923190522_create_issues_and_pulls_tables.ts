@@ -30,6 +30,8 @@ function issueOrPullBuilder(table: Knex.CreateTableBuilder) {
   table.integer('timeline_items').notNullable();
   table.text('title').notNullable();
   table.timestamp('updated_at').notNullable();
+
+  table.index('repository');
 }
 
 export async function up(knex: Knex): Promise<void> {
@@ -54,7 +56,6 @@ export async function up(knex: Knex): Promise<void> {
       table.integer('closing_issues_references').notNullable();
       table.integer('commits').notNullable();
       table.integer('deletions').notNullable();
-      table.integer('files').notNullable();
       table.json('head_ref');
       table.text('head_ref_name').notNullable();
       table.text('head_ref_oid').notNullable();

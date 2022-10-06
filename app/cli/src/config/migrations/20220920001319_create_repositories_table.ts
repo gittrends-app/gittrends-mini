@@ -60,6 +60,8 @@ export async function up(knex: Knex): Promise<void> {
     table.boolean('uses_custom_open_graph_image');
     table.integer('vulnerability_alerts');
     table.integer('watchers');
+
+    table.index('name_with_owner');
   });
 }
 

@@ -13,7 +13,9 @@ export async function up(knex: Knex): Promise<void> {
     table.text('package_manager');
     table.json('target_repository');
     table.text('requirements').notNullable();
+
     table.primary(['repository', 'manifest', 'package_name', 'requirements']);
+    table.index(['repository', 'manifest']);
   });
 }
 

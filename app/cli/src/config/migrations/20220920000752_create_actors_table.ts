@@ -50,6 +50,8 @@ export async function up(knex: Knex): Promise<void> {
     // EnterpriseUserAccount
     /* shared: created_at, name, updated_at */
     table.text('user');
+
+    table.index('login');
   });
 }
 

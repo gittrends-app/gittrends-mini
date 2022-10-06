@@ -7,6 +7,8 @@ export async function up(knex: Knex): Promise<void> {
     table.text('repository').notNullable();
     table.text('user').notNullable();
     table.primary(['repository', 'user']);
+
+    table.index('repository');
   });
 }
 

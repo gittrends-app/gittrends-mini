@@ -11,6 +11,8 @@ export async function up(knex: Knex): Promise<void> {
     table.text('oid').notNullable();
     table.json('tagger').notNullable();
     table.text('target');
+
+    table.index(['repository', 'name']);
   });
 }
 

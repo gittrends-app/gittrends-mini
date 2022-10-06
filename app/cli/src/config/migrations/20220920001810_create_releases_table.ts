@@ -21,6 +21,8 @@ export async function up(knex: Knex): Promise<void> {
     table.text('tag_commit');
     table.text('tag_name').notNullable();
     table.timestamp('updated_at').notNullable();
+
+    table.index(['repository', 'created_at']);
   });
 }
 
