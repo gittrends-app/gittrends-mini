@@ -27,7 +27,7 @@ export default class IssueComment extends TimelineEvent implements Comment, Reac
       .append<IssueComment>({
         author_association: Joi.string().required(),
         author: Joi.alternatives(Joi.string(), Actor.__schema),
-        body: Joi.string().required(),
+        body: Joi.string().default(''),
         created_at: Joi.date().required(),
         created_via_email: Joi.boolean().required(),
         editor: Joi.alternatives(Joi.string(), Actor.__schema),

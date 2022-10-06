@@ -16,7 +16,7 @@ export interface Comment {
 // export const CommentSchema = Joi.object<Comment>({
 //   author: Joi.alternatives(Joi.string(), Actor.__schema),
 //   author_association: Joi.string().required(),
-//   body: Joi.string().required(),
+//   body: Joi.string(),
 //   created_at: Joi.date().required(),
 //   created_via_email: Joi.boolean().required(),
 //   editor: Joi.alternatives(Joi.string(), Actor.__schema),

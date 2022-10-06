@@ -51,7 +51,7 @@ export abstract class IssueOrPull extends Entity<IssueOrPull> implements Node, R
       assignees: Joi.alternatives(Joi.array().items(Joi.string()), Joi.array().items(Actor.__schema)),
       author: Joi.alternatives(Joi.string(), Actor.__schema),
       author_association: Joi.string().required(),
-      body: Joi.string(),
+      body: Joi.string().default(''),
       closed: Joi.boolean().required(),
       closed_at: Joi.date(),
       created_at: Joi.date().required(),

@@ -28,7 +28,7 @@ export class CommitComment extends TimelineEvent implements Comment, Reactable {
       .append<CommitComment>({
         author_association: Joi.string().required(),
         author: Joi.alternatives(Joi.string(), Actor.__schema),
-        body: Joi.string().required(),
+        body: Joi.string().default(''),
         commit: Joi.string(),
         created_at: Joi.date().required(),
         created_via_email: Joi.boolean().required(),
