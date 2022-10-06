@@ -57,8 +57,12 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
       if (this.meta.first > 1) {
         return (this.meta.first = Math.floor(this.meta.first / 2));
       }
-      if (this.meta.first === 1 && this.currentStage == Stages.GET_TIMELINE_EVENTS && this.pendingIssues[0].first > 1) {
-        return (this.pendingIssues[0].first = Math.floor(this.pendingIssues[0].first / 2));
+      if (this.meta.first === 1 && this.currentStage == Stages.GET_TIMELINE_EVENTS) {
+        if (this.pendingIssues[0].first > 1)
+          return (this.pendingIssues[0].first = Math.floor(this.pendingIssues[0].first / 2));
+        else if (this.pendingIssues[0].first === 1 && error instanceof GithubRequestError) {
+          return (this.pendingIssues[0].hasNextPage = false);
+        }
       }
     }
 
