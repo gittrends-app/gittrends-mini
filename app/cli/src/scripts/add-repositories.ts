@@ -38,20 +38,19 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
       });
 
       consola.info('Opening local database ...');
-
-      await withMultibar(async (multibar) => {
-        const progressBar = multibar.create(opts.limit, 0, { resource: 'repositories' });
-
+      await withDatabase({ name: 'public', migrate: true }, async ({ repositories: publicRepos }) => {
         consola.info('Iterating over repositories ...\n');
-        for await (const [{ items }] of iterator) {
-          await map(items, (item) =>
-            withDatabase({ name: item.name_with_owner, migrate: true }, ({ repositories }) =>
-              repositories.save(item),
-            ).then(() => progressBar.increment()),
-          );
-        }
-
-        consola.success(`Done! ${progressBar.getProgress() * progressBar.getTotal()} repositories added.`);
+        await withMultibar(async (multibar) => {
+          const progressBar = multibar.create(opts.limit, 0, { resource: 'repositories' });
+          for await (const [{ items }] of iterator) {
+            await map(items, (item) =>
+              withDatabase({ name: item.name_with_owner, migrate: true }, ({ repositories }) =>
+                Promise.all([publicRepos.save(item), repositories.save(item)]),
+              ).then(() => progressBar.increment()),
+            );
+          }
+          consola.success(`Done! ${progressBar.getProgress() * progressBar.getTotal()} repositories added.`);
+        });
       });
     })
     .helpOption(true)

@@ -70,6 +70,8 @@ export async function updater(name: string, opts: UpdaterOpts) {
     repo = await localService.get(repo.id, { noCache: true });
     if (!repo) throw new Error(`Repository ${name} not found!`);
 
+    await withDatabase('public', ({ repositories }) => (repo ? repositories.save(repo) : Promise.reject()));
+
     const resources = [];
     const includesAll = opts.resources.includes('all');
     let writeBatchSize: Record<string, number | undefined> = {};

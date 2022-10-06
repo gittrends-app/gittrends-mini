@@ -2,14 +2,24 @@ import { AsyncWorker, queue } from 'async';
 import { Command, program } from 'commander';
 import consola from 'consola';
 
-import { createOrConnectDatabase, getRepositoriesList, migrate, rollback } from '../config/knex.config';
+import { Repository } from '@gittrends/lib/dist';
+
+import { createOrConnectDatabase, migrate, rollback } from '../config/knex.config';
+import { withDatabase } from '../helpers/withDatabase';
 import { version } from '../package.json';
 
 async function forEach(queueFunction: AsyncWorker<string>) {
   consola.info('Preparing processing queue ...');
   const q = queue(queueFunction, 10);
 
-  q.push(await getRepositoriesList());
+  q.push(
+    await withDatabase('public', ({ knex }) =>
+      knex
+        .from(Repository.__collection_name)
+        .select('name_with_owner')
+        .then((repos) => repos.map((repo) => repo.name_with_owner)),
+    ),
+  );
 
   await q.drain();
 

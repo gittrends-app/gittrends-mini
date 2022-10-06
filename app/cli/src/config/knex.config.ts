@@ -1,9 +1,10 @@
 import { mkdirSync } from 'fs';
-import { GlobSync } from 'glob';
 import knex, { Knex } from 'knex';
 import { isNil, mapValues, omitBy, size } from 'lodash';
 import { homedir } from 'os';
 import { dirname, extname, resolve } from 'path';
+
+import { Repository } from '@gittrends/lib/dist';
 
 type TargetDatabase = 'sqlite' | 'postgres';
 
@@ -45,19 +46,13 @@ knex.QueryBuilder.extend('insertEntity', function (value: Record<string, unknown
 });
 
 export async function getRepositoriesList(): Promise<string[]> {
-  if (targetDatabase === 'postgres') {
-    return createOrConnectDatabase('public')
-      .then((conn) => conn.raw('SELECT schema_name FROM information_schema.schemata;').finally(() => conn.destroy()))
-      .then(({ rows }) => rows.map((res: { schema_name: string }) => res.schema_name.replace(/\[dot\]/g, '.')))
-      .then((names) => names.filter((name: string) => /.\/./gi.test(name)));
-  }
-
-  if (targetDatabase === 'sqlite') {
-    const { found } = new GlobSync('**/*.sqlite', { cwd: baseDir });
-    return found.map((file) => file.replace(/\.sqlite$/i, ''));
-  }
-
-  throw new Error(`Invalid target database "${targetDatabase}"!`);
+  return createOrConnectDatabase('public').then((conn) =>
+    conn
+      .from(Repository.__collection_name)
+      .select('name_with_owner')
+      .then((repos) => repos.map((repo) => repo.name_with_owner))
+      .finally(() => conn.destroy()),
+  );
 }
 
 function knexResponseParser(result: any) {
@@ -95,7 +90,7 @@ function getConnectionSettings(repo: string): Knex.Config<any> {
         password: process.env.CLI_DATABASE_PASSWORD ?? 'root',
         database: process.env.CLI_DATABASE_DB ?? 'gittrends.app',
       },
-      searchPath: [repo.replace(/\./g, '[dot]')],
+      searchPath: [repo.replace(/\./g, '[dot]').slice(0, 63)], // postgres limita a 63 chars nome de schemas
       pool: {
         min: parseInt(process.env.CLI_DATABASE_POOL_MIN || '1'),
         max: parseInt(process.env.CLI_DATABASE_POOL_MAX || '3'),
@@ -144,7 +139,7 @@ export async function migrate(db: string | Knex): Promise<void> {
   if (typeof db === 'string') {
     const conn = await createOrConnectDatabase(db);
     if (targetDatabase === 'postgres')
-      await conn.schema.createSchemaIfNotExists(db.replace(/\./g, '[dot]').toLowerCase());
+      await conn.schema.createSchemaIfNotExists(db.replace(/\./g, '[dot]').toLowerCase().slice(0, 63)); // postgres limita a 63 chars nome de schemas
     return migrate(conn).finally(() => conn.destroy());
   }
 
@@ -155,7 +150,7 @@ export async function rollback(db: string | Knex): Promise<void> {
   if (typeof db === 'string') {
     const conn = await createOrConnectDatabase(db);
     if (targetDatabase === 'postgres')
-      await conn.schema.createSchemaIfNotExists(db.replace(/\./g, '[dot]').toLowerCase());
+      await conn.schema.createSchemaIfNotExists(db.replace(/\./g, '[dot]').toLowerCase().slice(0, 63)); // postgres limita a 63 chars nome de schemas
     return rollback(conn).finally(() => conn.destroy());
   }
 
