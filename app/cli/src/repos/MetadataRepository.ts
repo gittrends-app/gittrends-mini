@@ -6,7 +6,7 @@ import { IMetadataRepository, Metadata } from '@gittrends/lib';
 export class MetadataRepository implements IMetadataRepository {
   constructor(private db: Knex) {}
 
-  async findByRepository(repository: string, resource?: 'stargazers' | 'repository' | undefined): Promise<Metadata[]> {
+  async findByRepository(repository: string, resource?: string): Promise<Metadata[]> {
     const metas = await this.db
       .table(Metadata.__collection_name)
       .select('*')

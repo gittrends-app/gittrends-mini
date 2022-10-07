@@ -1,5 +1,7 @@
 import { each } from 'bluebird';
 
+import debug from '@gittrends/debug';
+
 import { Metadata, Repository } from '../entities';
 import { RepositoryResource } from '../entities/interfaces/RepositoryResource';
 import HttpClient from '../github/HttpClient';
@@ -8,6 +10,8 @@ import { Constructor } from '../types';
 import { GitHubService } from './GithubService';
 import { LocalService, ServiceOpts } from './LocalService';
 import { Iterable, Service } from './Service';
+
+const logger = debug('services:proxy');
 
 export class ProxyService implements Service {
   private readonly cacheService: LocalService;
@@ -24,6 +28,7 @@ export class ProxyService implements Service {
     resources: { resource: Constructor<RepositoryResource>; endCursor?: string; hasNextPage?: boolean }[],
     opts?: { persistenceBatchSize?: number | Record<string, number>; ignoreCache?: boolean },
   ): Iterable<RepositoryResource> {
+    logger(`Creating ProxiedIterator for ${repositoryId} (${resources.map((r) => r.resource.name).join(', ')})`);
     return new ProxiedIterator(repositoryId, resources, {
       github: this.githubService,
       local: this.cacheService,
@@ -46,6 +51,7 @@ export class ProxyService implements Service {
     value: string,
     opts: { noCache: boolean } = { noCache: false },
   ): Promise<Repository | undefined> {
+    logger(`${op === 'find' ? 'Finding' : 'Getting'} repository ${value} (noCache: ${opts.noCache})...`);
     if (opts.noCache === false) {
       const cachedRepo = await this.cacheService?.[op](value);
       if (cachedRepo) return cachedRepo;
@@ -91,6 +97,8 @@ class ProxiedIterator implements Iterable<RepositoryResource> {
   }
 
   async next(): Promise<IteratorResult<{ items: RepositoryResource[]; endCursor?: string; hasNextPage?: boolean }[]>> {
+    logger(`Requesting next page ... has already done? ${this.done}`);
+
     if (this.done) return Promise.resolve({ done: true, value: undefined });
 
     const cachedResourcesIndexes = this.opts.ignoreCache
@@ -100,13 +108,13 @@ class ProxiedIterator implements Iterable<RepositoryResource> {
           .filter((v) => v !== null) as number[]);
 
     if (!this.localIterables && !this.githubIterables) {
+      logger('Preparing iterables (github and cached)...');
       this.localIterables = this.opts.local.resources(
         this.repositoryId,
         this.resources.filter((_, index) => cachedResourcesIndexes.includes(index)),
       );
 
       const metas = await this.opts.repos.metadata.findByRepository(this.repositoryId);
-
       this.githubIterables = this.opts.github.resources(
         this.repositoryId,
         this.resources.map((res) => ({
@@ -116,10 +124,12 @@ class ProxiedIterator implements Iterable<RepositoryResource> {
       );
     }
 
-    if (!this.localIterables || !this.githubIterables) throw new Error('Unknown error on ProxyServer class');
+    if (!this.localIterables || !this.githubIterables) throw new Error('Iterators not created!');
 
+    logger('Requesting next data from github and cached iterables...');
     const [cachedResults, githubResults] = await Promise.all([this.localIterables.next(), this.githubIterables.next()]);
 
+    logger('Iterating over iterable results...');
     await each(
       (githubResults.value || []) as { items: RepositoryResource[]; endCursor?: string; hasNextPage: boolean }[],
       async (result, index) => {
@@ -138,29 +148,39 @@ class ProxiedIterator implements Iterable<RepositoryResource> {
         arrayRef.endCursor = result.endCursor;
 
         if (
-          !persistenceBatchSize ||
-          !result.hasNextPage ||
-          (!result.items.length && arrayRef.items.length > 0) ||
-          arrayRef.items.length >= persistenceBatchSize
+          (persistenceBatchSize && arrayRef.items.length >= persistenceBatchSize) ||
+          (!result.hasNextPage && arrayRef.items.length > 0)
         ) {
-          await repository.save(arrayRef.items.splice(0)).then(() =>
-            this.opts.repos.metadata.save(
-              new Metadata({
-                repository: this.repositoryId,
-                end_cursor: arrayRef.endCursor,
-                resource: (this.resources[index].resource as any).__collection_name,
-                updated_at: new Date(),
-              }),
-            ),
-          );
+          logger(`Persisting ${arrayRef.items.length} ${(this.resources[index].resource as any).__collection_name}...`);
+          await repository
+            .save(arrayRef.items)
+            .then(() =>
+              this.opts.repos.metadata.save(
+                new Metadata({
+                  repository: this.repositoryId,
+                  end_cursor: arrayRef.endCursor,
+                  resource: (this.resources[index].resource as any).__collection_name,
+                  updated_at: new Date(),
+                }),
+              ),
+            )
+            .then(() => (arrayRef.items = []));
         }
       },
     );
 
-    if (cachedResults.done && githubResults.done) return { done: (this.done = true), value: undefined };
-    else if (cachedResults.done) return githubResults;
-    else if (githubResults.done) githubResults.value = new Array(this.resources.length);
+    if (cachedResults.done && githubResults.done) {
+      logger('Iterators done, no more data to iterate...');
+      return { done: (this.done = true), value: undefined };
+    } else if (cachedResults.done) {
+      logger('No cached results, returning github iterator result...');
+      return githubResults;
+    } else if (githubResults.done) {
+      logger('I dont now what is it, sory :(');
+      githubResults.value = new Array(this.resources.length);
+    }
 
+    logger('Merging results from github and cached iterators...');
     cachedResourcesIndexes.forEach((ghrIndex, crIndex) => {
       if (!githubResults.value[ghrIndex]) githubResults.value[ghrIndex] = cachedResults.value;
       else
@@ -170,6 +190,7 @@ class ProxiedIterator implements Iterable<RepositoryResource> {
         ] as any;
     });
 
+    logger('Proxied iterating done, returning...');
     return githubResults;
   }
 }

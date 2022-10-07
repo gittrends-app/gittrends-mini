@@ -58,7 +58,9 @@ async function request(
         const mappedResults = await mapSeries(builders, (builder) => _request([builder]));
         return flatten(mappedResults);
       });
-  })(builders).catch((error) => Promise.reject(new ServiceRequestError(error as any, builders)));
+  })(builders).catch((error) => {
+    throw new ServiceRequestError(error as any, builders);
+  });
 
   const parseResults = builders.map((builder, i) => builder.parse(results[i]));
 
@@ -136,7 +138,11 @@ class ResourceIterator implements Iterable<RepositoryResource> {
       const index = pendingResources.findIndex((pr) => pr.builder === rs.builder);
       if (index < 0) return { items: [], endCursor: rs.endCursor, hasNextPage: rs.hasMore };
       const result = results[index];
-      return { items: result.data, endCursor: result.endCursor, hasNextPage: result.hasNextPage };
+      return {
+        items: result.data,
+        endCursor: (rs.endCursor = result.endCursor),
+        hasNextPage: (rs.hasMore = result.hasNextPage),
+      };
     });
 
     return { done: false, value };

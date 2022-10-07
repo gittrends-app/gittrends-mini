@@ -4,6 +4,9 @@
     "rootDir": "src/",
     "outDir": "dist/",
     "composite": true,
-    "lib": ["esnext.asynciterable"]
+    "lib": ["esnext.asynciterable"],
+    "paths": {
+      "@gittrends/debug": ["../debug/src/*"],
+    }
   }
 }

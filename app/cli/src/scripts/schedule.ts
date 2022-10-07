@@ -5,8 +5,9 @@ import { pick } from 'lodash';
 
 import { Dependency, EntityValidationError, Release, Repository, Stargazer, Tag, Watcher } from '@gittrends/lib';
 
+import debug from '@gittrends/debug';
+
 import { getRepositoriesList } from '../config/knex.config';
-import debug from '../helpers/debug';
 import { withBullQueue } from '../helpers/withBullQueue';
 import { withDatabase } from '../helpers/withDatabase';
 import { version } from '../package.json';
