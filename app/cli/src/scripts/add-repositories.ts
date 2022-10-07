@@ -65,27 +65,26 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
 
       consola.info('Opening local database...');
       await withDatabase({ name: 'public', migrate: true }, async ({ repositories: publicRepos }) => {
-        consola.info('Creating progress bar...\n');
+        consola.info('Creating progress bar...');
         await withMultibar(async (multibar) => {
           const progressBar = multibar.create(opts.limit, 0, { resource: 'search' });
 
-          consola.info('Finding repositories...\n');
+          consola.info('Finding and persisting repositories...\n');
           const entityList = await multiFind(3, { httpClient, progressBar, repository: repo, ...opts });
 
-          progressBar.update(0, { resource: 'persistence' });
+          progressBar.update(0, { resource: 'Persisting...' });
 
-          consola.info('Iterating over repository list...\n');
           for (const entity of entityList) {
             await withDatabase({ name: entity.name_with_owner, migrate: true }, ({ repositories }) =>
               Promise.all([
                 publicRepos.save(entity, { onConflict: 'ignore' }),
                 repositories.save(entity, { onConflict: 'ignore' }),
               ]),
-            ).then(() => progressBar.increment());
+            ).then(() => progressBar.increment(1, { resource: entity.name_with_owner }));
           }
 
           setTimeout(
-            () => consola.success(`\nDone! ${progressBar.getProgress() * progressBar.getTotal()} repositories added.`),
+            () => consola.success(`Done! ${progressBar.getProgress() * progressBar.getTotal()} repositories added.`),
             1000,
           );
         });

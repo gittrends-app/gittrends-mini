@@ -4,7 +4,7 @@ import { Queue, QueueEvents } from 'bullmq';
 import { MultiBar, SingleBar } from 'cli-progress';
 import { Argument, Option, program } from 'commander';
 import consola, { WinstonReporter } from 'consola';
-import { get, isNil, omitBy, pick, size, sum, truncate, values } from 'lodash';
+import { get, isNil, omitBy, pick, size, sum, values } from 'lodash';
 import path, { extname } from 'node:path';
 import readline from 'node:readline';
 import { clearInterval } from 'node:timers';
@@ -197,7 +197,7 @@ export async function redisQueue(opts: {
           generalProgress.setTotal(sum(values(counts)));
           const failedPrefix = counts?.failed ? ` (${counts?.failed} failed)` : '';
           generalProgress.update(sum(values(pick(counts, ['completed', 'failed']))), {
-            resource: `Finished jobs ${failedPrefix}`.padEnd(35, ' '),
+            resource: `Finished jobs ${failedPrefix}`,
           });
         };
 
@@ -232,15 +232,14 @@ export async function redisQueue(opts: {
       (progress: { event: 'started' | 'updated' | 'finished'; name: string; current: number; total?: number }) => {
         if (!opts.multibar || !progressBar) return;
         const name = `<thd${index + 1}> ${progress.name}`;
-        const resource = truncate(name, { length: 25, omission: '..' }).padEnd(35, ' ');
         switch (progress.event) {
           case 'started':
-            progressBar.update(0, { resource });
+            progressBar.update(0, { resource: name });
             break;
           case 'updated':
             if (progress.total) totals[progress.name] = progress.total;
             progressBar.setTotal(totals[progress.name]);
-            progressBar.update(progress.current, { resource });
+            progressBar.update(progress.current, { resource: name });
             queue
               ?.getJob(progress.name)
               .then((job) => job?.updateProgress(Math.round((progress.current / totals[progress.name]) * 100)));
