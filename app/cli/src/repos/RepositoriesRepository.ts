@@ -43,11 +43,14 @@ export class RepositoriesRepository implements IRepositoriesRepository {
     );
   }
 
-  async save(repo: Repository | Repository[], trx?: Knex.Transaction): Promise<void> {
+  async save(
+    repo: Repository | Repository[],
+    opts?: { trx?: Knex.Transaction; onConflict: 'merge' | 'ignore' },
+  ): Promise<void> {
     const repos = uniqBy(Array.isArray(repo) ? repo : [repo], 'id');
     const actors = extractEntityInstances<Actor>(repos, Actor as any);
 
-    const transaction = trx || (await this.db.transaction());
+    const transaction = opts?.trx || (await this.db.transaction());
 
     await all([
       this.actorRepo.save(actors, transaction),
@@ -56,13 +59,13 @@ export class RepositoriesRepository implements IRepositoriesRepository {
           .table(Repository.__collection_name)
           .insertEntity(repo.toJSON())
           .onConflict('id')
-          .merge()
+          ?.[opts?.onConflict || 'merge']()
           .transacting(transaction),
       ),
     ])
-      .then(async () => (!trx ? transaction.commit() : null))
+      .then(async () => (!opts?.trx ? transaction.commit() : null))
       .catch(async (error) => {
-        if (!trx) await transaction.rollback(error);
+        if (!opts?.trx) await transaction.rollback(error);
         throw error;
       });
   }

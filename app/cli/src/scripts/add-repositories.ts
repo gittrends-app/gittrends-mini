@@ -1,12 +1,47 @@
 import { map } from 'bluebird';
+import { SingleBar } from 'cli-progress';
 import { Argument, Command, Option, program } from 'commander';
 import consola from 'consola';
+import { flatten, isNil, orderBy, range, uniqBy } from 'lodash';
 
-import { GitHubService, HttpClient } from '@gittrends/lib';
+import { GitHubService, HttpClient, Repository } from '@gittrends/lib';
 
 import { withDatabase } from '../helpers/withDatabase';
 import { withMultibar } from '../helpers/withMultibar';
 import { version } from '../package.json';
+
+type FindOpts = {
+  httpClient: HttpClient;
+  limit: number;
+  language: string;
+  repository?: string;
+  progressBar?: SingleBar;
+  index?: number;
+};
+
+async function find(opts: FindOpts): Promise<Repository[]> {
+  const iterator = new GitHubService(opts.httpClient).search({
+    limit: opts.limit,
+    language: opts.language,
+    sort: 'stars',
+    order: 'desc',
+    minStargazers: 5,
+    repo: opts.repository,
+  });
+
+  const repositories: Repository[] = [];
+  for await (const [{ items }] of iterator) {
+    repositories.push(...items);
+    opts.progressBar?.update(repositories.length, { resource: 'search ' + (isNil(opts.index) ? '' : opts.index) });
+  }
+
+  return repositories;
+}
+
+async function multiFind(workers = 1, opts: FindOpts): Promise<Repository[]> {
+  const results = await map(range(workers), (index) => find({ ...opts, index }));
+  return orderBy(uniqBy(flatten(results), 'id'), 'stargazers', 'desc').slice(0, opts.limit);
+}
 
 export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<Command> {
   return program
@@ -18,7 +53,7 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
     .action(async (repo?: string, opts?: { limit: number; language: string; token?: string; apiUrl?: string }) => {
       if (!opts?.apiUrl && !opts?.token) throw new Error('--token or --api-url is mandatory!');
 
-      consola.info('Preparing github client service ...');
+      consola.info('Preparing github client service...');
       const apiURL = new URL((opts.token ? 'https://api.github.com' : opts.apiUrl) as string);
 
       const httpClient = new HttpClient({
@@ -28,28 +63,31 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
         authToken: opts.token,
       });
 
-      const iterator = new GitHubService(httpClient).search({
-        limit: opts.limit,
-        language: opts.language,
-        sort: 'stars',
-        order: 'desc',
-        minStargazers: 5,
-        repo,
-      });
-
-      consola.info('Opening local database ...');
+      consola.info('Opening local database...');
       await withDatabase({ name: 'public', migrate: true }, async ({ repositories: publicRepos }) => {
-        consola.info('Iterating over repositories ...\n');
+        consola.info('Creating progress bar...\n');
         await withMultibar(async (multibar) => {
-          const progressBar = multibar.create(opts.limit, 0, { resource: 'repositories' });
-          for await (const [{ items }] of iterator) {
-            await map(items, (item) =>
-              withDatabase({ name: item.name_with_owner, migrate: true }, ({ repositories }) =>
-                Promise.all([publicRepos.save(item), repositories.save(item)]),
-              ).then(() => progressBar.increment()),
-            );
+          const progressBar = multibar.create(opts.limit, 0, { resource: 'search' });
+
+          consola.info('Finding repositories...\n');
+          const entityList = await multiFind(3, { httpClient, progressBar, repository: repo, ...opts });
+
+          progressBar.update(0, { resource: 'persistence' });
+
+          consola.info('Iterating over repository list...\n');
+          for (const entity of entityList) {
+            await withDatabase({ name: entity.name_with_owner, migrate: true }, ({ repositories }) =>
+              Promise.all([
+                publicRepos.save(entity, { onConflict: 'ignore' }),
+                repositories.save(entity, { onConflict: 'ignore' }),
+              ]),
+            ).then(() => progressBar.increment());
           }
-          consola.success(`Done! ${progressBar.getProgress() * progressBar.getTotal()} repositories added.`);
+
+          setTimeout(
+            () => consola.success(`\nDone! ${progressBar.getProgress() * progressBar.getTotal()} repositories added.`),
+            1000,
+          );
         });
       });
     })
