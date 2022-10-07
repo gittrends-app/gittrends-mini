@@ -22,12 +22,12 @@ export async function withMultibar<T>(context: (multibar: MultiBar) => Promise<T
           Math.round((1 - params.progress) * (options.barsize || 40)),
         );
         const resource = (
-          payload.resource.length > 35 ? truncate(payload.resource, { length: 35, omission: '..' }) : payload.resource
-        ).padEnd(35);
+          payload.resource.length > 38 ? truncate(payload.resource, { length: 38, omission: '..' }) : payload.resource
+        ).padEnd(38);
         const progress = `${round(params.progress * 100, 1)}`.padStart(4);
         const progressDetails = `${params.value}/${params.total}`;
         maxProgressDetails = Math.max(maxProgressDetails, progressDetails.length);
-        return `${resource} [${completedBar}${pendingBar}]  ${progressDetails.padStart(
+        return `${resource}  [${completedBar}${pendingBar}]  ${progressDetails.padStart(
           maxProgressDetails,
         )} (${progress}%)`;
       },
