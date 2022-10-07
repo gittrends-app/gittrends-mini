@@ -1,3 +1,4 @@
+import { round } from 'lodash';
 import { isMainThread, parentPort, workerData } from 'node:worker_threads';
 
 import { HttpClient } from '@gittrends/lib';
@@ -13,8 +14,10 @@ if (!isMainThread) {
     return updater(job.data.name_with_owner, {
       httpClient: new HttpClient(workerData.httpClientOpts),
       resources: workerData.resources,
-      onProgress: (progress) =>
-        parentPort?.postMessage({ event: 'updated', name: job.data.name_with_owner, ...progress }),
+      onProgress: (progress) => {
+        parentPort?.postMessage({ event: 'updated', name: job.data.name_with_owner, ...progress });
+        job.updateProgress(round((progress.current / progress.total) * 100, 1));
+      },
     })
       .catch((error: Error) => {
         errorLogger.error('Metadata: ' + JSON.stringify({ repository: job.data.id, resources: workerData.resources }));

@@ -57,7 +57,7 @@ export const errorLogger = consola.create({
 type UpdaterOpts = {
   httpClient: HttpClient;
   resources: string[];
-  onProgress?: (progress: { current: number; total?: number }) => void;
+  onProgress?: (progress: { current: number; total: number }) => void;
 };
 
 export async function updater(name: string, opts: UpdaterOpts) {
@@ -126,7 +126,8 @@ export async function updater(name: string, opts: UpdaterOpts) {
 
     let current = resourcesInfo.reduce((acc, p) => acc + (p.total && p.cachedCount), 0);
 
-    if (opts.onProgress) opts.onProgress({ current, total: resourcesInfo.reduce((acc, p) => acc + p.total, 0) });
+    const total = resourcesInfo.reduce((acc, p) => acc + p.total, 0);
+    if (opts.onProgress) opts.onProgress({ current, total });
 
     const iterator = localService.resources(repo.id, resourcesInfo, {
       ignoreCache: true,
@@ -140,7 +141,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
       const { done, value } = await iterator.next();
       if (done) break;
       resourcesInfo.forEach((_, index) => (current += value[index].items.length));
-      if (opts.onProgress) opts.onProgress({ current: (current += value.length) });
+      if (opts.onProgress) opts.onProgress({ current: (current += value.length), total });
     }
   });
 }
