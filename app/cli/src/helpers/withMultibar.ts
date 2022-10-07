@@ -7,7 +7,7 @@ export async function withMultibar<T>(context: (multibar: MultiBar) => Promise<T
       autopadding: true,
       hideCursor: true,
     },
-    Presets.shades_classic,
+    Presets.rect,
   );
 
   return context(multibar).finally(() => {
