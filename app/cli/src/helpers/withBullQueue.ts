@@ -13,7 +13,6 @@ type JobType = {
 export async function withBullQueue<T>(callback: (queue: Queue<JobType>) => Promise<T>): Promise<T> {
   const queue = new Queue<JobType>('@gittrends/cli', {
     connection: { host: REDIS_HOST, port: REDIS_PORT, db: REDIS_DB },
-    defaultJobOptions: { attempts: process.env.CLI_QUEUE_ATTEMPS || 1 },
   });
 
   return callback(queue).finally(() => queue.close());
