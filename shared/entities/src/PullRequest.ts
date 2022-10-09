@@ -54,7 +54,7 @@ export class PullRequest extends IssueOrPull {
         commits: Joi.number().required(),
         deletions: Joi.number().required(),
         head_ref: Joi.alternatives(Joi.string(), Joi.object({ name: Joi.string(), target: Joi.string() })),
-        head_ref_name: Joi.string().required(),
+        head_ref_name: Joi.string().default('').required(),
         head_ref_oid: Joi.string().required(),
         head_repository_owner: Joi.alternatives(Joi.string(), Actor.__schema),
         head_repository: Joi.string(),

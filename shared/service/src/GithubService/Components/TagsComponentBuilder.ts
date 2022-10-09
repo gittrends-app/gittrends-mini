@@ -30,7 +30,7 @@ export class TagsComponentBuilder implements ComponentBuilder<RepositoryComponen
           name: target.name,
           oid: target.oid,
           repository: this.repositoryId,
-          tagger: { ...target.tagger, ...(target.tagger.user ? { user: new User(target.tagger.user) } : {}) },
+          tagger: { ...target.tagger, ...(target.tagger?.user ? { user: new User(target.tagger?.user) } : {}) },
           target: target.target?.oid,
         });
       } else {

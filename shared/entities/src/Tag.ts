@@ -27,7 +27,7 @@ export class Tag extends Entity<Tag> implements Node, RepositoryResource {
       tagger: Joi.object({
         date: Joi.date().required(),
         email: Joi.string(),
-        name: Joi.string().required(),
+        name: Joi.string().default('').required(),
         user: Joi.alternatives(Joi.string(), User.__schema),
       }),
       target: Joi.string(),
