@@ -9,13 +9,13 @@ import { Issue, PullRequest } from '@gittrends/entities';
 import { ExtendeableError } from '@gittrends/helpers';
 
 import { Iterable, Service } from '../Service';
-import { ComponentBuilder } from './components/ComponentBuilder';
-import { DependenciesComponentBuilder } from './components/DependenciesComponentBuilder';
-import { IssuesComponentBuilder, PullRequestsComponentBuilder } from './components/IssuesComponentBuilder';
-import { ReleasesComponentBuilder } from './components/ReleasesComponentBuilder';
-import { StargazersComponentBuilder } from './components/StargazersComponentBuilder';
-import { TagsComponentBuilder } from './components/TagsComponentBuilder';
-import { WatchersComponentBuilder } from './components/WatchersComponentBuilder';
+import { ComponentBuilder } from './ComponentBuilder';
+import { DependenciesComponentBuilder } from './Components/DependenciesComponentBuilder';
+import { IssuesComponentBuilder, PullRequestsComponentBuilder } from './Components/IssuesComponentBuilder';
+import { ReleasesComponentBuilder } from './Components/ReleasesComponentBuilder';
+import { StargazersComponentBuilder } from './Components/StargazersComponentBuilder';
+import { TagsComponentBuilder } from './Components/TagsComponentBuilder';
+import { WatchersComponentBuilder } from './Components/WatchersComponentBuilder';
 
 class ServiceRequestError extends ExtendeableError {
   public readonly components: ComponentBuilder[];

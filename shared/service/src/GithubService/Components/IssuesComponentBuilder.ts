@@ -21,7 +21,7 @@ import {
   isntanceOfReactable,
 } from '@gittrends/entities';
 
-import { ComponentBuilder } from './ComponentBuilder';
+import { ComponentBuilder } from '../ComponentBuilder';
 
 enum Stages {
   GET_ISSUES_LIST,
@@ -237,8 +237,8 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
     return { hasNextPage: true, endCursor: this.previousEndCursor, data: [] };
   }
 
-  toJSON(): Record<string, unknown> {
-    const data = { repository: this.repositoryId, currentStage: this.currentStage };
+  toJSON() {
+    const data = { repository: this.repositoryId, endCursor: this.previousEndCursor, currentStage: this.currentStage };
 
     if (this.currentStage === Stages.GET_ISSUES_LIST) {
       Object.assign(data, this.meta);

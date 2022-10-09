@@ -4,7 +4,7 @@ import { RepositoryComponent } from '@gittrends/github';
 
 import { Watcher } from '@gittrends/entities';
 
-import { ComponentBuilder } from './ComponentBuilder';
+import { ComponentBuilder } from '../ComponentBuilder';
 
 export class WatchersComponentBuilder implements ComponentBuilder<RepositoryComponent, Watcher[]> {
   private first = 100;
@@ -30,7 +30,7 @@ export class WatchersComponentBuilder implements ComponentBuilder<RepositoryComp
     };
   }
 
-  toJSON(): Record<string, unknown> {
-    return { repository: this.repositoryId, first: this.first, endCursor: this.endCursor };
+  toJSON() {
+    return { repository: this.repositoryId, endCursor: this.endCursor, first: this.first };
   }
 }

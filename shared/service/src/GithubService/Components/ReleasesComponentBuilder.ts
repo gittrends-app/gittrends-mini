@@ -4,7 +4,7 @@ import { GithubRequestError, ReactionComponent, RepositoryComponent, ServerReque
 
 import { Actor, Reaction, Release } from '@gittrends/entities';
 
-import { ComponentBuilder } from './ComponentBuilder';
+import { ComponentBuilder } from '../ComponentBuilder';
 
 enum Stages {
   GET_RELEASES,
@@ -102,7 +102,7 @@ export class ReleasesComponentBuilder implements ComponentBuilder<RepositoryComp
       this.currentStage = Stages.GET_RELEASES;
       return {
         hasNextPage: this.hasNextPage,
-        endCursor: this.endCursor,
+        endCursor: (this.previousEndCursor = this.endCursor),
         data: this.releasesMeta.map((rm) => rm.release),
       };
     }
@@ -110,12 +110,12 @@ export class ReleasesComponentBuilder implements ComponentBuilder<RepositoryComp
     return { hasNextPage: true, endCursor: this.previousEndCursor, data: [] };
   }
 
-  toJSON(): Record<string, unknown> {
+  toJSON() {
     return {
       repository: this.repositoryId,
+      endCursor: this.previousEndCursor,
       currentStage: this.currentStage,
       first: this.first,
-      endCursor: this.endCursor,
     };
   }
 }

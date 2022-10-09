@@ -4,7 +4,7 @@ import { RepositoryComponent } from '@gittrends/github';
 
 import { Stargazer } from '@gittrends/entities';
 
-import { ComponentBuilder } from './ComponentBuilder';
+import { ComponentBuilder } from '../ComponentBuilder';
 
 export class StargazersComponentBuilder implements ComponentBuilder<RepositoryComponent, Stargazer[]> {
   private first = 100;
@@ -30,7 +30,7 @@ export class StargazersComponentBuilder implements ComponentBuilder<RepositoryCo
     };
   }
 
-  toJSON(): Record<string, unknown> {
-    return { repository: this.repositoryId, first: this.first, endCursor: this.endCursor };
+  toJSON() {
+    return { repository: this.repositoryId, endCursor: this.endCursor, first: this.first };
   }
 }

@@ -4,7 +4,7 @@ import { Component, DependencyGraphManifestComponent, RepositoryComponent } from
 
 import { Dependency } from '@gittrends/entities';
 
-import { ComponentBuilder } from './ComponentBuilder';
+import { ComponentBuilder } from '../ComponentBuilder';
 
 enum Stages {
   GET_MANIFESTS,
@@ -119,9 +119,10 @@ export class DependenciesComponentBuilder implements ComponentBuilder<Component,
     throw new Error(`Unknown Stage on ${this.constructor.name}`);
   }
 
-  toJSON(): Record<string, unknown> {
+  toJSON() {
     return {
       repository: this.repositoryId,
+      endCursor: this.previousEndCursor,
       currentStage: this.currentStage,
       ...(this.currentStage === Stages.GET_MANIFESTS
         ? this.manifestsMeta

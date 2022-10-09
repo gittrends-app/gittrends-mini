@@ -8,5 +8,5 @@ export interface ComponentBuilder<
 > {
   build(error?: Error): T | T[];
   parse(data: any): { hasNextPage: boolean; endCursor?: string; data: E };
-  toJSON(): Record<string, unknown>;
+  toJSON(): { repository: string; endCursor?: string } & Record<string, unknown>;
 }
