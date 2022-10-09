@@ -23,7 +23,8 @@ declare global {
       CLI_REDIS_PORT?: number;
       CLI_REDIS_DB?: number;
 
-      CLI_QUEUE_ATTEMPS?: number;
+      CLI_SCHEDULER_WORKERS?: number;
+      CLI_SCHEDULER_ATTEMPS?: number;
 
       CLI_WRITE_BATCH?: string;
       CLI_WRITE_BATCH_STARGAZERS?: number;

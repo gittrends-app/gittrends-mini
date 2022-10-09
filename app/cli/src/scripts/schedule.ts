@@ -38,7 +38,11 @@ export async function schedule(hours = 24, drain = false, obliterate = false) {
         return queue.getJob(details.id).then(async (job) => {
           if (!(await job?.isActive())) await job?.remove();
           const data = pick(details, ['id', 'name_with_owner', 'url']);
-          return queue.add(details.name_with_owner, data, { priority, jobId: details.id });
+          return queue.add(details.name_with_owner, data, {
+            priority,
+            jobId: details.id,
+            attempts: process.env.CLI_SCHEDULER_ATTEMPS || 3,
+          });
         });
       }).catch((error) => (error instanceof EntityValidationError ? [] : Promise.reject(error)));
     }
@@ -55,7 +59,7 @@ export async function schedule(hours = 24, drain = false, obliterate = false) {
             .then(() => callback())
             .catch(callback);
         }),
-        10,
+        process.env.CLI_SCHEDULER_WORKERS || 10,
         (error) => (error ? reject(error) : resolve()),
       );
     });
