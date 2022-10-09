@@ -4,7 +4,7 @@
   "semi": true,
   "singleQuote": true,
   "printWidth": 120,
-  "importOrder": ["@gittrends/lib", "@gittrends/*", "^[./]"],
+  "importOrder": ["@gittrends/github", "@gittrends/service", "@gittrends/*", "^[./]"],
   "importOrderSeparation": true,
   "importOrderSortSpecifiers": true
 }

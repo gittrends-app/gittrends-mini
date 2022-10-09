@@ -4,7 +4,7 @@ import { isNil, mapValues, omitBy, size } from 'lodash';
 import { homedir } from 'os';
 import { dirname, extname, resolve } from 'path';
 
-import { Repository } from '@gittrends/lib/dist';
+import { Repository } from '@gittrends/entities';
 
 type TargetDatabase = 'sqlite' | 'postgres';
 

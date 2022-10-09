@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "src/",
+    "outDir": "dist/",
+    "composite": true,
+    "paths": {
+      "@gittrends/entities": ["../entities/src/*"],
+      "@gittrends/github": ["../github/src/*"]
+    }
+  }
+}

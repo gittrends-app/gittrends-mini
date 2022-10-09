@@ -14,17 +14,11 @@ import prettyjson from 'prettyjson';
 import { LoggerOptions, format } from 'winston';
 import { File } from 'winston/lib/winston/transports';
 
-import {
-  Dependency,
-  HttpClient,
-  Issue,
-  ProxyService,
-  PullRequest,
-  Release,
-  Stargazer,
-  Tag,
-  Watcher,
-} from '@gittrends/lib';
+import { HttpClient } from '@gittrends/github';
+
+import { ProxyService } from '@gittrends/service';
+
+import { Dependency, Issue, PullRequest, Release, Stargazer, Tag, Watcher } from '@gittrends/entities';
 
 import { withBullEvents, withBullQueue } from '../helpers/withBullQueue';
 import { withDatabase } from '../helpers/withDatabase';

@@ -1,7 +1,7 @@
 import { round } from 'lodash';
 import { isMainThread, parentPort, workerData } from 'node:worker_threads';
 
-import { HttpClient } from '@gittrends/lib';
+import { HttpClient } from '@gittrends/github';
 
 import { withBullWorker } from '../helpers/withBullQueue';
 import { errorLogger, updater } from './update';

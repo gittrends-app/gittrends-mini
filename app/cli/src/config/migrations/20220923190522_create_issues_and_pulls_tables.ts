@@ -1,6 +1,6 @@
 import { Knex } from 'knex';
 
-import { Issue, PullRequest, Reaction, TimelineEvent } from '@gittrends/lib';
+import { Issue, PullRequest, Reaction, TimelineEvent } from '@gittrends/entities';
 
 function issueOrPullBuilder(table: Knex.CreateTableBuilder) {
   table.text('id').primary();

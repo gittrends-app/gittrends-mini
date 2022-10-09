@@ -2,7 +2,7 @@ import { AsyncWorker, queue } from 'async';
 import { Command, program } from 'commander';
 import consola from 'consola';
 
-import { Repository } from '@gittrends/lib/dist';
+import { Repository } from '@gittrends/entities';
 
 import { createOrConnectDatabase, migrate, rollback } from '../config/knex.config';
 import { withDatabase } from '../helpers/withDatabase';

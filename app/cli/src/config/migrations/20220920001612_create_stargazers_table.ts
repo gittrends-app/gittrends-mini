@@ -1,6 +1,6 @@
 import { Knex } from 'knex';
 
-import { Stargazer } from '@gittrends/lib';
+import { Stargazer } from '@gittrends/entities';
 
 export async function up(knex: Knex): Promise<void> {
   return knex.schema.createTable(Stargazer.__collection_name, (table) => {

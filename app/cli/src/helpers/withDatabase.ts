@@ -1,15 +1,15 @@
 import { Knex } from 'knex';
 
 import { createOrConnectDatabase } from '../config/knex.config';
-import { ActorsRepository } from '../repos/ActorRepository';
-import { DependenciesRepository } from '../repos/DependenciesRepository';
-import { IssuesRepository, PullRequestsRepository } from '../repos/IssuesRepository';
-import { MetadataRepository } from '../repos/MetadataRepository';
-import { ReleasesRepository } from '../repos/ReleasesRepository';
-import { RepositoriesRepository } from '../repos/RepositoriesRepository';
-import { StargazersRepository } from '../repos/StargazersRepository';
-import { TagsRepository } from '../repos/TagsRepository';
-import { WatchersRepository } from '../repos/WatchersRepository';
+import { ActorsRepository } from '../repositories/ActorRepository';
+import { DependenciesRepository } from '../repositories/DependenciesRepository';
+import { IssuesRepository, PullRequestsRepository } from '../repositories/IssuesRepository';
+import { MetadataRepository } from '../repositories/MetadataRepository';
+import { ReleasesRepository } from '../repositories/ReleasesRepository';
+import { RepositoriesRepository } from '../repositories/RepositoriesRepository';
+import { StargazersRepository } from '../repositories/StargazersRepository';
+import { TagsRepository } from '../repositories/TagsRepository';
+import { WatchersRepository } from '../repositories/WatchersRepository';
 
 type Repositories = {
   knex: Knex;

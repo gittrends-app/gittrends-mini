@@ -1,6 +1,6 @@
 import { Knex } from 'knex';
 
-import { Metadata } from '@gittrends/lib';
+import { Metadata } from '@gittrends/entities';
 
 export async function up(knex: Knex): Promise<void> {
   return knex.schema.createTable(Metadata.__collection_name, (table) => {

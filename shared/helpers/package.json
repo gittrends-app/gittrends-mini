@@ -1,0 +1,15 @@
+{
+  "name": "@gittrends/helpers",
+  "version": "1.0.0",
+  "main": "dist",
+  "types": "dist",
+  "license": "MIT",
+  "scripts": {
+    "build": "yarn install && rm -rf dist tsconfig.tsbuildinfo && tsc"
+  },
+  "dependencies": {
+    "@types/debug": "^4.1.7",
+    "debug": "^4.3.4",
+    "lodash": "^4.17.21"
+  }
+}

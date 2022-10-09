@@ -3,9 +3,8 @@ import { Option, program } from 'commander';
 import dayjs from 'dayjs';
 import { pick } from 'lodash';
 
-import { Dependency, EntityValidationError, Release, Repository, Stargazer, Tag, Watcher } from '@gittrends/lib';
-
-import debug from '@gittrends/debug';
+import { Dependency, EntityValidationError, Release, Repository, Stargazer, Tag, Watcher } from '@gittrends/entities';
+import { debug } from '@gittrends/helpers';
 
 import { getRepositoriesList } from '../config/knex.config';
 import { withBullQueue } from '../helpers/withBullQueue';

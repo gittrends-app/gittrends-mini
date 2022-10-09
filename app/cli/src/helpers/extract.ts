@@ -1,4 +1,4 @@
-import { Node } from '@gittrends/lib';
+import { Node } from '@gittrends/entities';
 
 export function extractEntityInstances<T extends Node>(data: any, Instance: new (...args: any[]) => T): T[] {
   const actors = new Array<T>();

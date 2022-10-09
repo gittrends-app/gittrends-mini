@@ -1,6 +1,6 @@
 import { Knex } from 'knex';
 
-import { Tag } from '@gittrends/lib';
+import { Tag } from '@gittrends/entities';
 
 export async function up(knex: Knex): Promise<void> {
   return knex.schema.createTable(Tag.__collection_name, (table) => {

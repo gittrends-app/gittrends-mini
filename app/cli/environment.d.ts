@@ -1,6 +1,5 @@
 import { Knex as KnexOriginal } from 'knex';
 
-
 export {};
 
 declare global {
@@ -27,13 +26,13 @@ declare global {
       CLI_QUEUE_ATTEMPS?: number;
 
       CLI_WRITE_BATCH?: string;
-      CLI_WRITE_BATCH_STARGAZERS:? number;
-      CLI_WRITE_BATCH_WATCHERS:? number;
-      CLI_WRITE_BATCH_TAGS:? number;
-      CLI_WRITE_BATCH_RELEASES:? number;
-      CLI_WRITE_BATCH_DEPENDENCIES:? number;
-      CLI_WRITE_BATCH_ISSUES:? number;
-      CLI_WRITE_BATCH_PULL_REQUESTS:? number;
+      CLI_WRITE_BATCH_STARGAZERS?: number;
+      CLI_WRITE_BATCH_WATCHERS?: number;
+      CLI_WRITE_BATCH_TAGS?: number;
+      CLI_WRITE_BATCH_RELEASES?: number;
+      CLI_WRITE_BATCH_DEPENDENCIES?: number;
+      CLI_WRITE_BATCH_ISSUES?: number;
+      CLI_WRITE_BATCH_PULL_REQUESTS?: number;
     }
   }
 }

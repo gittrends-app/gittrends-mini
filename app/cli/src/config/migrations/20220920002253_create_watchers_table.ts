@@ -1,6 +1,6 @@
 import { Knex } from 'knex';
 
-import { Watcher } from '@gittrends/lib';
+import { Watcher } from '@gittrends/entities';
 
 export async function up(knex: Knex): Promise<void> {
   return knex.schema.createTable(Watcher.__collection_name, (table) => {

@@ -1,6 +1,6 @@
 import { Knex } from 'knex';
 
-import { Actor } from '@gittrends/lib';
+import { Actor } from '@gittrends/entities';
 
 export async function up(knex: Knex): Promise<void> {
   return knex.schema.createTable(Actor.__collection_name, (table) => {

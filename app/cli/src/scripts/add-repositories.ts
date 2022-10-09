@@ -4,7 +4,11 @@ import { Argument, Command, Option, program } from 'commander';
 import consola from 'consola';
 import { flatten, isNil, orderBy, range, uniqBy } from 'lodash';
 
-import { GitHubService, HttpClient, Repository } from '@gittrends/lib';
+import { HttpClient } from '@gittrends/github';
+
+import { GitHubService } from '@gittrends/service';
+
+import { Repository } from '@gittrends/entities';
 
 import { withDatabase } from '../helpers/withDatabase';
 import { withMultibar } from '../helpers/withMultibar';
