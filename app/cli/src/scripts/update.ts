@@ -196,6 +196,7 @@ export async function redisQueue(opts: {
         };
 
         queueEvents.on('completed', updateGeneralProgress);
+        queueEvents.on('failed', updateGeneralProgress);
         queueEvents.on('error', updateGeneralProgress);
 
         updateGeneralProgress();
