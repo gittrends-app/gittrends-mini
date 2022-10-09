@@ -41,7 +41,7 @@ export async function schedule(hours = 24, drain = false, obliterate = false) {
           return queue.add(details.name_with_owner, data, {
             priority,
             jobId: details.id,
-            attempts: process.env.CLI_SCHEDULER_ATTEMPS || 3,
+            attempts: parseInt(process.env.CLI_SCHEDULER_ATTEMPS || '3'),
           });
         });
       }).catch((error) => (error instanceof EntityValidationError ? [] : Promise.reject(error)));
@@ -59,7 +59,7 @@ export async function schedule(hours = 24, drain = false, obliterate = false) {
             .then(() => callback())
             .catch(callback);
         }),
-        process.env.CLI_SCHEDULER_WORKERS || 10,
+        parseInt(process.env.CLI_SCHEDULER_WORKERS || '10'),
         (error) => (error ? reject(error) : resolve()),
       );
     });
