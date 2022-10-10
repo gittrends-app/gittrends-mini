@@ -3,7 +3,7 @@ import { flatten, get, mapKeys, min, pick } from 'lodash';
 import { BaseError } from 'make-error-cause';
 
 import { HttpClient, Query, RepositoryComponent, SearchComponent, SearchComponentQuery } from '@gittrends/github';
-import { RequestError, ServerRequestError } from '@gittrends/github';
+import { ServerRequestError } from '@gittrends/github';
 
 import { Dependency, Release, Repository, RepositoryResource, Stargazer, Tag, Watcher } from '@gittrends/entities';
 import { Issue, PullRequest } from '@gittrends/entities';
@@ -49,15 +49,11 @@ async function request(
       .then((response) =>
         newAliases.map((na) => mapKeys(pick(response, na), (_, key) => key.replace(/__\d+_\d+$/i, ''))),
       )
-      .finally(() => components.map((ca) => ca.map((comp) => comp.setAlias(comp.alias.replace(/__\d+_\d+$/i, '')))))
       .catch(async (error) => {
-        if (builders.length === 1) {
-          if (!(error instanceof RequestError) || previousError) throw error;
-          return _request(builders, error as Error);
-        }
-        const mappedResults = await mapSeries(builders, (builder) => _request([builder]));
-        return flatten(mappedResults);
-      });
+        if (builders.length === 1) return _request(builders, error as Error);
+        return flatten(await mapSeries(builders, (builder) => _request([builder])));
+      })
+      .finally(() => components.map((ca) => ca.map((comp) => comp.setAlias(comp.alias.replace(/__\d+_\d+$/i, '')))));
   })(builders).catch((error) => {
     throw new ServiceRequestError(error as any, builders);
   });
