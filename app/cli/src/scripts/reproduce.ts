@@ -56,7 +56,7 @@ type ComponentBuilderRef = new (repository: string, endCursor?: string) => Compo
     ])
     .then(async (responses: { component: ComponentBuilderRef; repository: string; endCursor: string }) => {
       consola.info('Rebuilding component with the provided parameters...');
-      const ref = new responses.component(responses.repository, responses.endCursor);
+      const ref = new responses.component(responses.repository, responses.endCursor ? responses.endCursor : undefined);
 
       consola.info('Preparing iterator function...');
       async function buildRequestParse(error?: Error): Promise<any> {
@@ -77,6 +77,8 @@ type ComponentBuilderRef = new (repository: string, endCursor?: string) => Compo
                 componentsList.map((c) => c.alias),
               ),
             );
+
+            if (data.data?.length) consola.info(`Data obtained: ${data.data}`);
 
             if (data.hasNextPage) {
               consola.info('There is more data, requesting additionl info...');

@@ -127,10 +127,10 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
   }
 
   parse(data: any): { hasNextPage: boolean; endCursor?: string; data: T[] } {
-    this.meta.first = Math.min(this.defaultBatchSize, this.meta.first * 2);
-
     switch (this.currentStage) {
       case Stages.GET_ISSUES_LIST: {
+        this.meta.first = Math.min(this.defaultBatchSize, this.meta.first * 2);
+
         const nodes = get<any[]>(data, 'repo.issues.nodes', []);
         this.issuesMeta = nodes.map((issue) => ({ issue, first: 50, hasNextPage: true }));
 
