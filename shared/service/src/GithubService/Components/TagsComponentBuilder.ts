@@ -12,7 +12,10 @@ export class TagsComponentBuilder implements ComponentBuilder<RepositoryComponen
   constructor(private repositoryId: string, private endCursor?: string) {}
 
   build(error?: Error): RepositoryComponent {
-    if (error) throw error;
+    if (error) {
+      if (this.first > 1) this.first = Math.floor(this.first / 2);
+      else throw error;
+    }
 
     return new RepositoryComponent(this.repositoryId)
       .setAlias('repo')
@@ -21,6 +24,8 @@ export class TagsComponentBuilder implements ComponentBuilder<RepositoryComponen
   }
 
   parse(data: any): { hasNextPage: boolean; endCursor?: string; data: Tag[] } {
+    this.first = Math.min(100, this.first * 2);
+
     const parsedData = get<any[]>(data, 'repo.tags.nodes', []).map((node) => {
       if (node.target.type === 'Tag') {
         const target = node.target;
