@@ -62,8 +62,11 @@ export class Query {
 
         if (data?.errors?.length) {
           throw RequestError.create(
-            `Response errors (${data.errors.length}): ${JSON.stringify(data.errors)}`,
-            Object.assign(new Error('Response errors'), { components: this.components, status: response.status, data }),
+            Object.assign(new Error(`Response errors (${data.errors.length}): ${JSON.stringify(data.errors)}`), {
+              components: this.components,
+              status: response.status,
+              data,
+            }),
           );
         }
 

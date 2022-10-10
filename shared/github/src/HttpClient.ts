@@ -72,9 +72,7 @@ export class HttpClient {
       .post('/graphql', data)
       .then(({ status, statusText, data, headers }) => ({ status, statusText, data, headers }))
       .catch((err: AxiosError) =>
-        Promise.reject(
-          RequestError.create(err.message, err, { status: err.response?.status, data: err.response?.data }),
-        ),
+        Promise.reject(RequestError.create(err, { status: err.response?.status, data: err.response?.data })),
       );
   }
 

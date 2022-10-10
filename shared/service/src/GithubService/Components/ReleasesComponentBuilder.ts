@@ -30,7 +30,10 @@ export class ReleasesComponentBuilder implements ComponentBuilder<RepositoryComp
 
   build(error?: Error): RepositoryComponent | ReactionComponent[] {
     if (error) {
-      if (error instanceof GithubRequestError || error instanceof ServerRequestError) {
+      const instanceofGithubRequestError = error.name === GithubRequestError.name;
+      const instanceofServerRequestError = error.name === ServerRequestError.name;
+
+      if (instanceofGithubRequestError || instanceofServerRequestError) {
         if (this.currentStage === Stages.GET_RELEASES && this.first > 1) {
           this.first = Math.floor(this.first / 2);
         } else if (this.currentStage === Stages.GET_REACTIONS && this.batchSize > 1) {

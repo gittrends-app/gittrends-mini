@@ -1,12 +1,12 @@
 import { mapSeries } from 'bluebird';
 import { flatten, get, mapKeys, min, pick } from 'lodash';
+import { BaseError } from 'make-error-cause';
 
 import { HttpClient, Query, RepositoryComponent, SearchComponent, SearchComponentQuery } from '@gittrends/github';
 import { RequestError, ServerRequestError } from '@gittrends/github';
 
 import { Dependency, Release, Repository, RepositoryResource, Stargazer, Tag, Watcher } from '@gittrends/entities';
 import { Issue, PullRequest } from '@gittrends/entities';
-import { ExtendeableError } from '@gittrends/helpers';
 
 import { Iterable, Service } from '../Service';
 import { ComponentBuilder } from './ComponentBuilder';
@@ -17,13 +17,15 @@ import { StargazersComponentBuilder } from './Components/StargazersComponentBuil
 import { TagsComponentBuilder } from './Components/TagsComponentBuilder';
 import { WatchersComponentBuilder } from './Components/WatchersComponentBuilder';
 
-class ServiceRequestError extends ExtendeableError {
+class ServiceRequestError extends BaseError {
   public readonly components: ComponentBuilder[];
 
   constructor(cause: Error, component: ComponentBuilder | ComponentBuilder[]) {
     const components = Array.isArray(component) ? component : [component];
     const parameters = components.map((c) => [c.constructor.name, c.toJSON()]);
-    super(`${cause.message} <${JSON.stringify(parameters)}>`, cause);
+    cause.message = `${cause.message} <${JSON.stringify(parameters)}> | Original message: ${cause.message}`;
+    super(cause.message, cause);
+    this.name = this.constructor.name;
     this.components = components;
   }
 }
@@ -107,10 +109,7 @@ class ResourceIterator implements Iterable<RepositoryResource> {
 
     if (done) {
       if (this.errors && this.errors.length) {
-        throw new ServerRequestError(
-          `Multiple errors: ${this.errors.map((e) => e.message).join(' -- ')}`,
-          this.errors[0],
-        );
+        throw new ServerRequestError(new Error(`Multiple errors: ${this.errors.map((e) => e.message).join(' -- ')}`));
       } else {
         return Promise.resolve({ done: true, value: undefined });
       }
@@ -208,7 +207,9 @@ export class GitHubService implements Service {
           )
           .run();
       } catch (error) {
-        if (error instanceof ServerRequestError && first > 1) {
+        const instanceofServerRequestError = error instanceof Error && error.name === ServerRequestError.name;
+
+        if (instanceofServerRequestError && first > 1) {
           first = Math.ceil(first / 2);
           return run();
         }

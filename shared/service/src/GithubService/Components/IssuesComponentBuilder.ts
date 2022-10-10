@@ -60,14 +60,19 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
   }
 
   private errorHandler(error: Error) {
-    if (error instanceof GithubRequestError || error instanceof ServerRequestError) {
+    if (!error) return;
+
+    const isGithubRequestError = error.name === GithubRequestError.name;
+    const isServerRequestError = error.name === ServerRequestError.name;
+
+    if (isGithubRequestError || isServerRequestError) {
       if (this.meta.first > 1) {
         return (this.meta.first = Math.floor(this.meta.first / 2));
       }
       if (this.meta.first === 1 && this.currentStage == Stages.GET_TIMELINE_EVENTS) {
         if (this.pendingIssues[0].first > 1)
           return (this.pendingIssues[0].first = Math.floor(this.pendingIssues[0].first / 2));
-        else if (this.pendingIssues[0].first === 1 && error instanceof GithubRequestError) {
+        else if (this.pendingIssues[0].first === 1 && isGithubRequestError) {
           return (this.pendingIssues[0].hasNextPage = false);
         }
       }

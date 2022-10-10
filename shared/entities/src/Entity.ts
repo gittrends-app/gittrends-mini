@@ -3,9 +3,8 @@
  */
 import Joi from 'joi';
 import { cloneDeep, omit, snakeCase } from 'lodash';
+import { BaseError } from 'make-error-cause';
 import { plural } from 'pluralize';
-
-import { ExtendeableError } from '@gittrends/helpers';
 
 export abstract class Entity<T = any> {
   static readonly __schema: Joi.ObjectSchema<Entity>;
@@ -41,8 +40,9 @@ export abstract class Entity<T = any> {
   }
 }
 
-export class EntityValidationError extends ExtendeableError {
+export class EntityValidationError extends BaseError {
   constructor(error: Joi.ValidationError) {
     super(error.message, error);
+    this.name = this.constructor.name;
   }
 }

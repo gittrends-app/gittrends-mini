@@ -10,12 +10,16 @@ afterEach(() => {
 });
 
 describe('Test request errors', () => {
+  test('Test errors hierarchy', () => {
+    expect(new GithubRequestError(new Error('test'))).toBeInstanceOf(RequestError);
+  });
+
   test('it should store information of the failed request', async () => {
     nock(url).get('/').reply(500, 'failed');
 
     await expect(
       axios.get<string>(url).catch(async ({ response: { data, status } }) => {
-        const error = new RequestError('Request error', new Error(), { data, status: status });
+        const error = new RequestError(new Error('Request error'), { data, status: status });
         expect(error.response?.status).toBe(500);
         expect(error.response?.data).toBe('failed');
       }),
@@ -27,7 +31,7 @@ describe('Test request errors', () => {
 
     let error = await axios
       .get(url)
-      .catch(({ response }) => RequestError.create('Request error', new Error(), { status: response.status }));
+      .catch(({ response }) => RequestError.create(new Error('Request error'), { status: response.status }));
     expect(error).toBeInstanceOf(ServerRequestError);
     expect((error as ServerRequestError).type).toBe('INTERNAL_SERVER');
 
@@ -35,7 +39,7 @@ describe('Test request errors', () => {
 
     error = await axios
       .get(url)
-      .catch(({ response }) => RequestError.create('Request error', new Error(), { status: response.status }));
+      .catch(({ response }) => RequestError.create(new Error('Request error'), { status: response.status }));
     expect(error).toBeInstanceOf(ServerRequestError);
     expect((error as ServerRequestError).type).toBe('BAD_GATEWAY');
   });
@@ -57,7 +61,7 @@ describe('Test request errors', () => {
       });
 
     let response = await axios.get(`${url}/errors`);
-    let error = RequestError.create('Request error', new Error(), {
+    let error = RequestError.create(new Error('Request error'), {
       data: response.data,
       status: response.status,
     });
@@ -86,7 +90,7 @@ describe('Test request errors', () => {
       });
 
     response = await axios.get(`${url}/errors`);
-    error = RequestError.create('Request error', new Error(), {
+    error = RequestError.create(new Error('Request error'), {
       data: response.data,
       status: response.status,
     });

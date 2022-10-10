@@ -2,8 +2,7 @@
  *  Author: Hudson S. Borges
  */
 import { compact, isNil, uniq } from 'lodash';
-
-import { ExtendeableError } from '@gittrends/helpers';
+import { BaseError } from 'make-error-cause';
 
 import { Component } from './Component';
 import { HttpClientResponse } from './HttpClient';
@@ -14,24 +13,24 @@ export type RequestErrorOptions = {
   data?: any;
 };
 
-export class RequestError extends ExtendeableError {
+export class RequestError extends BaseError {
   readonly response?: { message: string; status?: number; data?: any };
   readonly components?: any[];
 
-  static create(message: string, cause: Error, opts?: RequestErrorOptions): RequestError;
-  static create(message: string, cause: Error & HttpClientResponse, opts?: RequestErrorOptions): RequestError {
+  static create(cause: Error, opts?: RequestErrorOptions): RequestError;
+  static create(cause: Error & HttpClientResponse, opts?: RequestErrorOptions): RequestError {
     const status = `${cause.status || opts?.status}`;
     if (status) {
-      if (/[24]\d{2}/.test(status)) return new GithubRequestError(message, cause, opts);
-      else return new ServerRequestError(message, cause, opts);
+      if (/[24]\d{2}/.test(status)) return new GithubRequestError(cause, opts);
+      else return new ServerRequestError(cause, opts);
     } else {
-      return new RequestError(message, cause, opts);
+      return new RequestError(cause, opts);
     }
   }
 
-  constructor(message: string, cause: Error, opts?: RequestErrorOptions);
-  constructor(message: string, cause: Error & HttpClientResponse, opts?: RequestErrorOptions) {
-    super(message, cause);
+  constructor(cause: Error, opts?: RequestErrorOptions);
+  constructor(cause: Error & HttpClientResponse, opts?: RequestErrorOptions) {
+    super(cause.message, cause);
     this.response = { message: cause.message, status: cause.status || opts?.status, data: cause.data || opts?.data };
     if (opts?.components) {
       const componentArray = Array.isArray(opts?.components) ? opts?.components : [opts?.components];
@@ -43,9 +42,9 @@ export class RequestError extends ExtendeableError {
 export class ServerRequestError extends RequestError {
   readonly type: 'BAD_GATEWAY' | 'INTERNAL_SERVER' | 'UNKNOWN';
 
-  constructor(message: string, cause: Error, opts?: RequestErrorOptions);
-  constructor(message: string, cause: Error & HttpClientResponse, opts?: RequestErrorOptions) {
-    super(message, cause, opts);
+  constructor(cause: Error, opts?: RequestErrorOptions);
+  constructor(cause: Error & HttpClientResponse, opts?: RequestErrorOptions) {
+    super(cause, opts);
     if (this.response?.status == 500) this.type = 'INTERNAL_SERVER';
     else if (this.response?.status == 502) this.type = 'BAD_GATEWAY';
     else this.type = 'UNKNOWN';
@@ -68,10 +67,9 @@ type GithubRequestErrorType =
 export class GithubRequestError extends RequestError {
   readonly type: GithubRequestErrorType[] = [];
 
-  constructor(message: string, cause: Error, opts?: RequestErrorOptions);
-  constructor(message: string, cause: Error & HttpClientResponse, opts?: RequestErrorOptions) {
-    super(message, cause, opts);
-
+  constructor(cause: Error, opts?: RequestErrorOptions);
+  constructor(cause: Error & HttpClientResponse, opts?: RequestErrorOptions) {
+    super(cause, opts);
     if (this.response?.data?.errors) {
       this.type = (
         this.response.data.errors as (unknown & {
