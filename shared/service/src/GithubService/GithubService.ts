@@ -105,6 +105,7 @@ class ResourceIterator implements Iterable<RepositoryResource> {
 
     if (done) {
       if (this.errors && this.errors.length) {
+        if (this.errors.length === 1) throw this.errors[0];
         throw new ServerRequestError(new Error(`Multiple errors: ${this.errors.map((e) => e.message).join(' -- ')}`));
       } else {
         return Promise.resolve({ done: true, value: undefined });
