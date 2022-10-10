@@ -19,6 +19,7 @@
     "dev:schedule": "ts-node -r tsconfig-paths/register -r @gittrends/env src/scripts/schedule.ts",
     "dev:update": "ts-node -r tsconfig-paths/register -r @gittrends/env src/scripts/update.ts",
     "dev:migrations": "ts-node -r tsconfig-paths/register -r @gittrends/env src/scripts/migrations.ts",
+    "dev:reproduce": "ts-node -r tsconfig-paths/register -r @gittrends/env src/scripts/reproduce.ts",
     "dev:bull-board": "ts-node -r tsconfig-paths/register -r @gittrends/env src/scripts/bull-queue-board.ts",
     "migrate:make": "knex migrate:make --migrations-directory src/config/migrations"
   },
