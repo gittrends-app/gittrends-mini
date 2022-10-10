@@ -1,61 +1,32 @@
 import { Argument, program } from 'commander';
 import consola from 'consola';
 import inquirer from 'inquirer';
-import { pick } from 'lodash';
 import prettyjson from 'prettyjson';
 
-import { HttpClient, Query } from '@gittrends/github/dist';
+import { HttpClient } from '@gittrends/github';
 
-import {
-  DependenciesComponentBuilder,
-  IssuesComponentBuilder,
-  PullRequestsComponentBuilder,
-  ReleasesComponentBuilder,
-  StargazersComponentBuilder,
-  TagsComponentBuilder,
-  WatchersComponentBuilder,
-} from '@gittrends/service';
+import { GitHubService } from '@gittrends/service';
+
+import { Dependency, Issue, PullRequest, Release, Stargazer, Tag, Watcher } from '@gittrends/entities';
 
 import { version } from '../package.json';
 
-type ComponentBuilder =
-  | DependenciesComponentBuilder
-  | IssuesComponentBuilder
-  | PullRequestsComponentBuilder
-  | ReleasesComponentBuilder
-  | StargazersComponentBuilder
-  | TagsComponentBuilder
-  | WatchersComponentBuilder;
-
-type ComponentBuilderRef = new (repository: string, endCursor?: string) => ComponentBuilder;
-
-const ComponentNames = ['Dependencies', 'Issues', 'PullRequests', 'Releases', 'Stargazers', 'Tags', 'Watchers'];
+const Entities = [Dependency, Issue, PullRequest, Release, Stargazer, Tag, Watcher];
 
 export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void> {
   program
-    .addArgument(new Argument('[component]', 'Component name').choices(ComponentNames))
-    .addArgument(new Argument('[repository_id]', 'Repository identifier'))
+    .addArgument(new Argument('[resource]', 'Component name').choices(Entities.map((e) => e.__collection_name)))
+    .addArgument(new Argument('[repository]', 'Repository identifier'))
     .addArgument(new Argument('[end_cursor]', 'End cursor'))
-    .action(async (component?: string, repository?: string, endCursor?: string) => {
-      function getComponentBuilder(name: string): ComponentBuilderRef {
-        if (name === 'Dependencies') return DependenciesComponentBuilder;
-        else if (name === 'Issues') return IssuesComponentBuilder;
-        else if (name === 'PullRequests') return PullRequestsComponentBuilder;
-        else if (name === 'Releases') return ReleasesComponentBuilder;
-        else if (name === 'Stargazers') return StargazersComponentBuilder;
-        else if (name === 'Tags') return TagsComponentBuilder;
-        else if (name === 'Watchers') return WatchersComponentBuilder;
-        throw new Error('Unknown component builder!');
-      }
-
+    .action(async (resource?: string, repository?: string, endCursor?: string) => {
       const questions = [
         {
           type: 'list',
-          name: 'component',
-          message: 'Select the component to reproduce',
-          choices: ComponentNames.map((cn) => ({ name: cn, value: cn })),
-          default: component,
-          when: !component,
+          name: 'resource',
+          message: 'Select the resource to reproduce',
+          choices: Entities.map((e) => ({ name: e.__collection_name, value: e.__collection_name })),
+          default: resource,
+          when: !resource,
         },
         {
           type: 'input',
@@ -76,53 +47,27 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
 
       await inquirer
         .prompt(questions)
-        .then((responses) => ({ ...{ component, repository, endCursor }, ...responses }))
-        .then(async (responses: { component: string; repository: string; endCursor: string }) => {
+        .then((responses) => ({ ...{ resource, repository, endCursor }, ...responses }))
+        .then(async (responses: { resource: string; repository: string; endCursor: string }) => {
           consola.info('Starting reproducer...');
           consola.log(prettyjson.render(responses));
 
-          consola.info('Rebuilding component with the provided parameters...');
-          const ComponentRef = getComponentBuilder(responses.component);
-          const ref = new ComponentRef(responses.repository, responses.endCursor ? responses.endCursor : undefined);
+          const service = new GitHubService(
+            new HttpClient({ host: 'localhost', protocol: 'http', port: 3000, timeout: 60000 }),
+          );
 
-          consola.info('Preparing iterator function...');
-          async function buildRequestParse(error?: Error): Promise<any> {
-            consola.info('Building http components...');
-            const components = ref.build(error);
-            const componentsList = Array.isArray(components) ? components : [components];
+          consola.info('Preparing GitHubService resources iterator...');
+          const iterator = service.resources(responses.repository, [
+            {
+              resource: Entities.find((e) => e.__collection_name === responses.resource),
+              endCursor: responses.endCursor,
+            },
+          ]);
 
-            consola.info('Running query using local http client...');
-            return Query.create(new HttpClient({ host: 'localhost', protocol: 'http', port: 3000, timeout: 60000 }))
-              .compose(...componentsList)
-              .run()
-              .catch((error) => buildRequestParse(error))
-              .then((response) => {
-                consola.info('Parsing response server...');
-                const data = ref.parse(
-                  pick(
-                    response,
-                    componentsList.map((c) => c.alias),
-                  ),
-                );
-
-                consola.log('Metadata: ', prettyjson.render(componentsList.map((c) => c.toJSON())));
-
-                if (data.hasNextPage) {
-                  consola.info('There is more data, requesting additionl info...');
-                  return buildRequestParse();
-                }
-
-                consola.info('Requests done, finishing...');
-                return data;
-              });
+          consola.info('Iterating over results...');
+          for await (const [result] of iterator) {
+            consola.info(prettyjson.render(result, { inlineArrays: false }));
           }
-
-          return buildRequestParse()
-            .then(console.log)
-            .catch((error) => {
-              console.error(error);
-              throw error;
-            });
         });
     })
     .helpOption(true)
