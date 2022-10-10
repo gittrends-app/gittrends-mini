@@ -5,7 +5,7 @@ import { get, uniq } from 'lodash';
 
 import { Component } from './Component';
 import Fragment from './Fragment';
-import { HttpClient } from './HttpClient';
+import { HttpClient, HttpClientResponse } from './HttpClient';
 import { RequestError } from './RequestError';
 import compress from './helpers/gql-compress';
 import normalize from './helpers/normalize';
@@ -55,22 +55,25 @@ export class Query {
   }
 
   async run(interceptor?: (args: string) => string): Promise<any> {
-    return this.client
-      .request({ query: compress(interceptor ? interceptor(this.toString()) : this.toString()) })
-      .then((response) => {
-        const data = normalize(response.data, true);
+    const resultPromise =
+      this.components.length === 0
+        ? Promise.resolve({ data: {}, status: 200 } as HttpClientResponse)
+        : this.client.request({ query: compress(interceptor ? interceptor(this.toString()) : this.toString()) });
 
-        if (data?.errors?.length) {
-          throw RequestError.create(
-            Object.assign(new Error(`Response errors (${data.errors.length}): ${JSON.stringify(data.errors)}`), {
-              components: this.components,
-              status: response.status,
-              data,
-            }),
-          );
-        }
+    return resultPromise.then((response) => {
+      const data = normalize(response.data, true);
 
-        return get(data, 'data', {});
-      });
+      if (data?.errors?.length) {
+        throw RequestError.create(
+          Object.assign(new Error(`Response errors (${data.errors.length}): ${JSON.stringify(data.errors)}`), {
+            components: this.components,
+            status: response.status,
+            data,
+          }),
+        );
+      }
+
+      return get(data, 'data', {});
+    });
   }
 }

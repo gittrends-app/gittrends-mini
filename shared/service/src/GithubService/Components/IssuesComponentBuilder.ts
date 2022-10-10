@@ -191,15 +191,6 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
             return reactable;
           });
 
-          if (reactables.length === 0) {
-            this.currentStage = Stages.GET_ISSUES_LIST;
-            return {
-              hasNextPage: true,
-              endCursor: this.meta.endCursor,
-              data: this.issuesMeta.map((iMeta) => iMeta.issue),
-            };
-          }
-
           this.reactablesMeta = reactables.map((reactable) => ({ reactable, first: 100, hasNextPage: true }));
           this.currentStage = Stages.GET_REACTIONS;
         }
