@@ -23,6 +23,8 @@ declare global {
       CLI_REDIS_PORT?: number;
       CLI_REDIS_DB?: number;
 
+      CLI_MIGRATIONS_WORKERS?: string;
+
       CLI_SCHEDULER_WORKERS?: string;
       CLI_SCHEDULER_ATTEMPS?: string;
 

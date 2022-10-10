@@ -10,7 +10,7 @@ import { version } from '../package.json';
 
 async function forEach(queueFunction: AsyncWorker<string>) {
   consola.info('Preparing processing queue ...');
-  const q = queue(queueFunction, 10);
+  const q = queue(queueFunction, parseInt(process.env.CLI_MIGRATIONS_WORKERS || '10'));
 
   q.push(
     await withDatabase('public', ({ knex }) =>
