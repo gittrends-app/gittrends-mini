@@ -14,8 +14,8 @@ export default class RenamedTitleEvent extends TimelineEvent {
       .append<RenamedTitleEvent>({
         actor: Joi.alternatives(Joi.string(), Actor.__schema),
         created_at: Joi.date().required(),
-        current_title: Joi.string().required(),
-        previous_title: Joi.string().default('').required(),
+        current_title: Joi.string().default(''),
+        previous_title: Joi.string().default(''),
       })
       .custom((value) => Object.assign(new RenamedTitleEvent(), value));
   }
