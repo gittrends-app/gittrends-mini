@@ -45,6 +45,10 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
   private issuesMeta: (TMeta & { issue: T })[] = [];
   private reactablesMeta: (TMeta & { reactable: Reactable })[] = [];
 
+  private get pendingDetails() {
+    return this.issuesMeta.filter((rm) => !(rm.issue instanceof this.Entity)).slice(0, this.meta.first);
+  }
+
   private get pendingIssues() {
     return this.issuesMeta.filter((rm) => rm.hasNextPage).slice(0, this.meta.first);
   }
@@ -95,7 +99,7 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
       }
 
       case Stages.GET_ISSUES_DETAILS: {
-        return this.issuesMeta.map((iMeta, index) =>
+        return this.pendingDetails.map((iMeta, index) =>
           new this.EntityComponent(iMeta.issue.id, `issue_${index}`)
             .includeDetails(true)
             .includeAssignees(true, { first: 100, alias: '_assignees' })
@@ -145,7 +149,7 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
       }
 
       case Stages.GET_ISSUES_DETAILS: {
-        this.issuesMeta.forEach((iMeta, index) => {
+        this.pendingDetails.forEach((iMeta, index) => {
           const { _assignees, _labels, _participants, ...iData } = data?.[`issue_${index}`] || {};
 
           const assignees = get<any[]>(_assignees, 'nodes', []).map((a) => Actor.from(a));
@@ -164,7 +168,11 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
           }) as T;
         });
 
-        this.currentStage = Stages.GET_TIMELINE_EVENTS;
+        this.meta.first = Math.min(this.defaultBatchSize, this.meta.first * 2);
+
+        if (this.issuesMeta.every((iMeta) => iMeta.issue instanceof Issue))
+          this.currentStage = Stages.GET_TIMELINE_EVENTS;
+
         break;
       }
 

@@ -17,7 +17,7 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
         serverAdapter.setBasePath('/');
 
         createBullBoard({
-          queues: [new BullMQAdapter(queue, { readOnlyMode: true })],
+          queues: [new BullMQAdapter(queue, { allowRetries: true })],
           serverAdapter: serverAdapter,
         });
 
