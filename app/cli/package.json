@@ -5,7 +5,7 @@
   "types": "dist",
   "license": "MIT",
   "scripts": {
-    "cli": "node -r @gittrends/env dist/cli.js",
+    "cli": "node --expose-gc -r @gittrends/env dist/cli.js",
     "build": "yarn install && rm -rf dist tsconfig.tsbuildinfo && tsc",
     "eslint": "eslint --color",
     "add-repositories": "node -r @gittrends/env dist/scripts/add-repositories.js",
@@ -14,7 +14,7 @@
     "migrations": "node -r @gittrends/env dist/scripts/migrations.js",
     "bull-board": "node -r @gittrends/env dist/scripts/bull-queue-board.js",
     "clinic:update": "clinic bubbleprof -- node dist/scripts/update.js",
-    "dev": "node -r ts-node/register -r tsconfig-paths/register -r @gittrends/env src/cli.ts",
+    "dev": "node --expose-gc -r ts-node/register -r tsconfig-paths/register -r @gittrends/env src/cli.ts",
     "dev:add-repositories": "ts-node -r tsconfig-paths/register -r @gittrends/env src/scripts/add-repositories.ts",
     "dev:schedule": "ts-node -r tsconfig-paths/register -r @gittrends/env src/scripts/schedule.ts",
     "dev:update": "ts-node -r tsconfig-paths/register -r @gittrends/env src/scripts/update.ts",

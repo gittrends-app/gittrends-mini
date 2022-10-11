@@ -24,6 +24,9 @@ if (!isMainThread) {
         errorLogger.error(error);
         throw error;
       })
-      .finally(() => parentPort?.postMessage({ event: 'finished', name: job.data.name_with_owner }));
+      .finally(() => {
+        if (globalThis.gc) globalThis.gc();
+        parentPort?.postMessage({ event: 'finished', name: job.data.name_with_owner });
+      });
   }, workerData.concurrency);
 }
