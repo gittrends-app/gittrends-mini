@@ -170,7 +170,7 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
 
         this.meta.first = Math.min(this.defaultBatchSize, this.meta.first * 2);
 
-        if (this.issuesMeta.every((iMeta) => iMeta.issue instanceof Issue))
+        if (this.issuesMeta.every((iMeta) => iMeta.issue instanceof this.Entity))
           this.currentStage = Stages.GET_TIMELINE_EVENTS;
 
         break;
