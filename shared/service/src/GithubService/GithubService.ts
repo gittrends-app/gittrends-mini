@@ -199,7 +199,7 @@ export class GitHubService implements Service {
   }
 
   async getActors(ids: string[]): Promise<(Actor | undefined)[]> {
-    if (ids.length > 25) return flatten(await mapSeries(chunk(ids, 2), (iChunk) => this.getActors(iChunk)));
+    if (ids.length > 10) return flatten(await mapSeries(chunk(ids, 10), (iChunk) => this.getActors(iChunk)));
 
     const components = ids.map((id, index) => new ActorComponent(id).setAlias(`actor_${index}`));
 
@@ -209,7 +209,8 @@ export class GitHubService implements Service {
       .then((result) => components.map((comp) => (result[comp.alias] ? Actor.from(result[comp.alias]) : undefined)))
       .catch(async (error) => {
         if (error instanceof Error && [GithubRequestError.name, ServerRequestError.name].includes(error.name)) {
-          if (ids.length > 1) return flatten(await mapSeries(chunk(ids, 2), (aChunk) => this.getActors(aChunk)));
+          if (ids.length > 1)
+            return flatten(await mapSeries(chunk(ids, ids.length / 2), (aChunk) => this.getActors(aChunk)));
           else return [undefined];
         }
         throw error;
