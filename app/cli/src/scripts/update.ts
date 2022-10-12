@@ -295,9 +295,6 @@ export async function redisQueue(opts: {
       },
     );
 
-    worker.on('error', (error) => consola.error(error));
-    worker.on('exit', (code) => code && consola.error(`Worker exited with code ${code}`));
-
     return { worker, closed: false, progressBar };
   };
 
