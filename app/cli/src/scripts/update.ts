@@ -5,7 +5,7 @@ import { MultiBar, SingleBar } from 'cli-progress';
 import { Argument, Option, program } from 'commander';
 import consola, { WinstonReporter } from 'consola';
 import dayjs from 'dayjs';
-import { get, isNil, omitBy, pick, size, sum, values } from 'lodash';
+import { chunk, compact, get, isNil, omitBy, pick, size, sum, values } from 'lodash';
 import path, { extname } from 'node:path';
 import readline from 'node:readline';
 import { clearInterval } from 'node:timers';
@@ -158,20 +158,18 @@ export async function updater(name: string, opts: UpdaterOpts) {
 
     const actorsUpdatePromise = withDatabase('public', async (publicActorsRepos) => {
       if (!actorsIds?.length) return;
-      logger(`Updating ${actorsIds.length} actors...`);
       const actorsProxy = new ProxyService(opts.httpClient, publicActorsRepos);
-      for (const { id } of actorsIds) {
+      for (const [index, iChunk] of chunk(actorsIds, 100).entries()) {
+        logger(`Updating ${iChunk.length * index + iChunk.length} (of ${actorsIds.length}) actors...`);
         try {
-          const actor = await actorsProxy.getActor(id).catch((error) => {
-            if (error instanceof Error && ['ServerRequestError', 'GithubRequestError'].includes(error.name))
-              return null;
-            else throw error;
-          });
-          if (actor) localRepos.actors.upsert(actor);
+          const ids = iChunk.map((i) => i.id);
+          const actors = await actorsProxy.getActors(ids).then(compact);
+          localRepos.actors.upsert(actors);
         } finally {
           if (opts.onProgress) opts.onProgress({ current: (current += 1), total });
         }
       }
+      logger(`${actorsIds.length} actors updated...`);
     });
 
     const resourcesUpdatePromise = new Promise<void>((resolve, reject) =>

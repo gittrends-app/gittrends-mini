@@ -15,4 +15,5 @@ export interface Service {
     resources: { resource: Constructor<RepositoryResource>; endCursor?: string; hasNextPage?: boolean }[],
   ): Iterable<RepositoryResource>;
   getActor(id: string): Promise<Actor | undefined>;
+  getActors(ids: string[]): Promise<(Actor | undefined)[]>;
 }

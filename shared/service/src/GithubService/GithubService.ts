@@ -1,9 +1,10 @@
 import { mapSeries } from 'bluebird';
-import { flatten, get, mapKeys, min, pick } from 'lodash';
+import { chunk, flatten, get, mapKeys, min, pick } from 'lodash';
 import { BaseError } from 'make-error-cause';
 
 import {
   ActorComponent,
+  GithubRequestError,
   HttpClient,
   Query,
   RepositoryComponent,
@@ -194,10 +195,25 @@ export class GitHubService implements Service {
   }
 
   async getActor(id: string): Promise<Actor | undefined> {
+    return this.getActors([id]).then((response) => response.at(0));
+  }
+
+  async getActors(ids: string[]): Promise<(Actor | undefined)[]> {
+    if (ids.length > 25) return flatten(await mapSeries(chunk(ids, 2), (iChunk) => this.getActors(iChunk)));
+
+    const components = ids.map((id, index) => new ActorComponent(id).setAlias(`actor_${index}`));
+
     return Query.create(this.httpClient)
-      .compose(new ActorComponent(id).setAlias('actor'))
+      .compose(...components)
       .run()
-      .then(({ actor }) => Actor.from(actor));
+      .then((result) => components.map((comp) => (result[comp.alias] ? Actor.from(result[comp.alias]) : undefined)))
+      .catch(async (error) => {
+        if (error instanceof Error && [GithubRequestError.name, ServerRequestError.name].includes(error.name)) {
+          if (ids.length > 1) return flatten(await mapSeries(chunk(ids, 2), (aChunk) => this.getActors(aChunk)));
+          else return [undefined];
+        }
+        throw error;
+      });
   }
 
   async find(name: string): Promise<Repository | undefined> {
