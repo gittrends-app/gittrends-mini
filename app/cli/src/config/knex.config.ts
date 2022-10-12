@@ -92,8 +92,8 @@ function getConnectionSettings(repo: string): Knex.Config<any> {
       },
       searchPath: [repo.replace(/\./g, '[dot]').slice(0, 63)], // postgres limita a 63 chars nome de schemas
       pool: {
-        min: parseInt(process.env.CLI_DATABASE_POOL_MIN || '1'),
-        max: repo.toLowerCase() === 'public' ? 1 : parseInt(process.env.CLI_DATABASE_POOL_MAX || '3'),
+        min: repo.toLowerCase() === 'public' ? 0 : parseInt(process.env.CLI_DATABASE_POOL_MIN || '1'),
+        max: repo.toLowerCase() === 'public' ? 2 : parseInt(process.env.CLI_DATABASE_POOL_MAX || '3'),
       },
     };
   }
