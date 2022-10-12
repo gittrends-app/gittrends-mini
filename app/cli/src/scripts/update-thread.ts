@@ -11,7 +11,7 @@ if (!isMainThread) {
     if (!job.data.name_with_owner) throw new Error('Invlaid job:id!');
 
     parentPort?.postMessage({ event: 'started', name: job.data.name_with_owner });
-    return updater(job.data.name_with_owner, {
+    await updater(job.data.name_with_owner, {
       httpClient: new HttpClient(workerData.httpClientOpts),
       resources: workerData.resources,
       onProgress: (progress) => {
