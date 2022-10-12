@@ -162,7 +162,11 @@ export async function updater(name: string, opts: UpdaterOpts) {
       const actorsProxy = new ProxyService(opts.httpClient, publicActorsRepos);
       for (const { id } of actorsIds) {
         try {
-          const actor = await actorsProxy.getActor(id);
+          const actor = await actorsProxy.getActor(id).catch((error) => {
+            if (error instanceof Error && ['ServerRequestError', 'GithubRequestError'].includes(error.name))
+              return null;
+            else throw error;
+          });
           if (actor) localRepos.actors.upsert(actor);
         } finally {
           if (opts.onProgress) opts.onProgress({ current: (current += 1), total });
