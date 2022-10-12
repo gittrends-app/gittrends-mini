@@ -199,7 +199,7 @@ export class GitHubService implements Service {
   }
 
   async getActors(ids: string[]): Promise<(Actor | undefined)[]> {
-    if (ids.length > 10) return flatten(await mapSeries(chunk(ids, 10), (iChunk) => this.getActors(iChunk)));
+    if (ids.length > 50) return flatten(await mapSeries(chunk(ids, 50), (iChunk) => this.getActors(iChunk)));
 
     const components = ids.map((id, index) => new ActorComponent(id).setAlias(`actor_${index}`));
 
