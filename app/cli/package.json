@@ -6,6 +6,7 @@
   "license": "MIT",
   "scripts": {
     "cli": "node --expose-gc -r @gittrends/env dist/cli.js",
+    "cli-nodemon": "nodemon --expose-gc -r @gittrends/env dist/cli.js -- ",
     "build": "yarn install && rm -rf dist tsconfig.tsbuildinfo && tsc",
     "eslint": "eslint --color",
     "add-repositories": "node -r @gittrends/env dist/scripts/add-repositories.js",
@@ -37,6 +38,7 @@
     "inquirer": "^8.2.3",
     "knex": "^2.3.0",
     "lodash": "^4.17.21",
+    "nodemon": "^2.0.20",
     "pg": "^8.8.0",
     "prettyjson": "^1.2.5",
     "winston": "^3.8.2"
