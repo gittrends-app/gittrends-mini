@@ -166,7 +166,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
           const actors = await actorsProxy.getActors(ids).then(compact);
           localRepos.actors.upsert(actors);
         } finally {
-          if (opts.onProgress) opts.onProgress({ current: (current += 1), total });
+          if (opts.onProgress) opts.onProgress({ current: (current += iChunk.length), total });
         }
       }
       logger(`${actorsIds.length} actors updated...`);
