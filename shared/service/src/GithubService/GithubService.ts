@@ -2,10 +2,26 @@ import { mapSeries } from 'bluebird';
 import { flatten, get, mapKeys, min, pick } from 'lodash';
 import { BaseError } from 'make-error-cause';
 
-import { HttpClient, Query, RepositoryComponent, SearchComponent, SearchComponentQuery } from '@gittrends/github';
+import {
+  ActorComponent,
+  HttpClient,
+  Query,
+  RepositoryComponent,
+  SearchComponent,
+  SearchComponentQuery,
+} from '@gittrends/github';
 import { ServerRequestError } from '@gittrends/github';
 
-import { Dependency, Release, Repository, RepositoryResource, Stargazer, Tag, Watcher } from '@gittrends/entities';
+import {
+  Actor,
+  Dependency,
+  Release,
+  Repository,
+  RepositoryResource,
+  Stargazer,
+  Tag,
+  Watcher,
+} from '@gittrends/entities';
 import { Issue, PullRequest } from '@gittrends/entities';
 
 import { Iterable, Service } from '../Service';
@@ -175,6 +191,13 @@ export class GitHubService implements Service {
             repository_topics: _topics?.nodes?.map((n: any) => n.topic),
           }),
       );
+  }
+
+  async getActor(id: string): Promise<Actor | undefined> {
+    return Query.create(this.httpClient)
+      .compose(new ActorComponent(id).setAlias('actor'))
+      .run()
+      .then(({ actor }) => Actor.from(actor));
   }
 
   async find(name: string): Promise<Repository | undefined> {

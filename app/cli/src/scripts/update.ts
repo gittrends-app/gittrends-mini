@@ -4,6 +4,7 @@ import { Queue, QueueEvents } from 'bullmq';
 import { MultiBar, SingleBar } from 'cli-progress';
 import { Argument, Option, program } from 'commander';
 import consola, { WinstonReporter } from 'consola';
+import dayjs from 'dayjs';
 import { get, isNil, omitBy, pick, size, sum, values } from 'lodash';
 import path, { extname } from 'node:path';
 import readline from 'node:readline';
@@ -18,13 +19,16 @@ import { HttpClient } from '@gittrends/github';
 
 import { ProxyService } from '@gittrends/service';
 
-import { Dependency, Issue, PullRequest, Release, Stargazer, Tag, Watcher } from '@gittrends/entities';
+import { Actor, Dependency, Issue, PullRequest, Release, Stargazer, Tag, Watcher } from '@gittrends/entities';
+import { debug } from '@gittrends/helpers';
 
 import { withBullEvents, withBullQueue } from '../helpers/withBullQueue';
 import { withDatabase } from '../helpers/withDatabase';
 import { withMultibar } from '../helpers/withMultibar';
 import { version } from '../package.json';
 import { schedule } from './schedule';
+
+const logger = debug('cli:update');
 
 readline.emitKeypressEvents(process.stdin);
 if (process.stdin.isTTY) process.stdin.setRawMode(true);
@@ -55,17 +59,22 @@ type UpdaterOpts = {
 };
 
 export async function updater(name: string, opts: UpdaterOpts) {
+  logger(`Starting updater for ${name} (resources: ${opts.resources.join(', ')})`);
   return withDatabase(name, async (localRepos) => {
     const localService = new ProxyService(opts.httpClient, localRepos);
 
+    logger('Finding repository localy...');
     let repo = await localRepos.repositories.findByName(name);
     if (!repo) throw new Error(`Database corrupted! Repository ${name} not found!`);
 
+    logger('Updating repository data from github...');
     repo = await localService.get(repo.id, { noCache: true });
     if (!repo) throw new Error(`Repository ${name} not found!`);
 
+    logger('Updating local data...');
     await withDatabase('public', ({ repositories }) => (repo ? repositories.save(repo) : Promise.reject()));
 
+    logger('Preparing resources metadata...');
     const resources = [];
     const includesAll = opts.resources.includes('all');
     let writeBatchSize: Record<string, number | undefined> = {};
@@ -75,39 +84,56 @@ export async function updater(name: string, opts: UpdaterOpts) {
       writeBatchSize[Stargazer.__collection_name] =
         parseInt(process.env[`CLI_WRITE_BATCH_${Stargazer.__collection_name}`.toUpperCase()] || '') || undefined;
     }
+
     if (includesAll || opts.resources.includes(Tag.__collection_name)) {
       resources.push({ resource: Tag, repository: localRepos.tags });
       writeBatchSize[Tag.__collection_name] =
         parseInt(process.env[`CLI_WRITE_BATCH_${Tag.__collection_name}`.toUpperCase()] || '') || undefined;
     }
+
     if (includesAll || opts.resources.includes(Release.__collection_name)) {
       resources.push({ resource: Release, repository: localRepos.releases });
       writeBatchSize[Release.__collection_name] =
         parseInt(process.env[`CLI_WRITE_BATCH_${Release.__collection_name}`.toUpperCase()] || '') || undefined;
     }
+
     if (includesAll || opts.resources.includes(Watcher.__collection_name)) {
       resources.push({ resource: Watcher, repository: localRepos.watchers });
       writeBatchSize[Watcher.__collection_name] =
         parseInt(process.env[`CLI_WRITE_BATCH_${Watcher.__collection_name}`.toUpperCase()] || '') || undefined;
     }
+
     if (includesAll || opts.resources.includes(Dependency.__collection_name)) {
       resources.push({ resource: Dependency, repository: localRepos.dependencies });
       writeBatchSize[Dependency.__collection_name] =
         parseInt(process.env[`CLI_WRITE_BATCH_${Dependency.__collection_name}`.toUpperCase()] || '') || undefined;
     }
+
     if (includesAll || opts.resources.includes(Issue.__collection_name)) {
       resources.push({ resource: Issue, repository: localRepos.issues });
       writeBatchSize[Issue.__collection_name] =
         parseInt(process.env[`CLI_WRITE_BATCH_${Issue.__collection_name}`.toUpperCase()] || '') || undefined;
     }
+
     if (includesAll || opts.resources.includes(PullRequest.__collection_name)) {
       resources.push({ resource: PullRequest, repository: localRepos.pull_requests });
       writeBatchSize[PullRequest.__collection_name] =
         parseInt(process.env[`CLI_WRITE_BATCH_${PullRequest.__collection_name}`.toUpperCase()] || '') || undefined;
     }
 
+    let actorsIds: Array<{ id: string }> | undefined;
+    if (includesAll || opts.resources.includes(Actor.__collection_name)) {
+      logger('Finding for not updated actors...');
+      actorsIds = await localRepos.knex
+        .select('id')
+        .from(Actor.__collection_name)
+        .whereNull('__updated_at')
+        .orWhere('__updated_at', '<', dayjs().subtract(1, 'day').toDate());
+    }
+
     writeBatchSize = omitBy(writeBatchSize, isNil);
 
+    logger('Getting resources metadata...');
     const resourcesInfo = await mapSeries(resources, async (info) => {
       const [meta] = await localRepos.metadata.findByRepository(
         repo?.id as string,
@@ -120,7 +146,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
 
     let current = resourcesInfo.reduce((acc, p) => acc + (p.total && p.cachedCount), 0);
 
-    const total = resourcesInfo.reduce((acc, p) => acc + p.total, 0);
+    const total = resourcesInfo.reduce((acc, p) => acc + p.total + (actorsIds?.length || 0), 0);
     if (opts.onProgress) opts.onProgress({ current, total });
 
     const iterator = localService.resources(repo.id, resourcesInfo, {
@@ -130,13 +156,37 @@ export async function updater(name: string, opts: UpdaterOpts) {
         : parseInt(process.env.CLI_WRITE_BATCH || '') || undefined,
     });
 
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      const { done, value } = await iterator.next();
-      if (done) break;
-      resourcesInfo.forEach((_, index) => (current += value[index].items.length));
-      if (opts.onProgress) opts.onProgress({ current: (current += value.length), total });
-    }
+    const actorsUpdatePromise = withDatabase('public', async (publicActorsRepos) => {
+      if (!actorsIds?.length) return;
+      logger(`Updating ${actorsIds.length} actors...`);
+      const actorsProxy = new ProxyService(opts.httpClient, publicActorsRepos);
+      for (const { id } of actorsIds) {
+        try {
+          const actor = await actorsProxy.getActor(id);
+          if (actor) localRepos.actors.upsert(actor);
+        } finally {
+          if (opts.onProgress) opts.onProgress({ current: (current += 1), total });
+        }
+      }
+    });
+
+    const resourcesUpdatePromise = new Promise<void>((resolve, reject) =>
+      (async () => {
+        logger('Iterating over resources...');
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          const { done, value } = await iterator.next();
+          if (done) break;
+          resourcesInfo.forEach((_, index) => (current += value[index].items.length));
+          if (opts.onProgress) opts.onProgress({ current: (current += value.length), total });
+        }
+      })()
+        .then(resolve)
+        .catch(reject),
+    );
+
+    logger('Waiting update process to finish...');
+    return Promise.all([actorsUpdatePromise, resourcesUpdatePromise]);
   });
 }
 
@@ -279,7 +329,7 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
     .addOption(
       new Option('-r, --resources [string...]', 'Resources to update')
         .choices(
-          [Stargazer, Tag, Release, Watcher, Dependency, Issue, PullRequest]
+          [Stargazer, Tag, Release, Watcher, Dependency, Issue, PullRequest, Actor]
             .map((r) => r.__collection_name)
             .concat(['all']),
         )

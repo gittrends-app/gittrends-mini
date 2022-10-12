@@ -1,4 +1,4 @@
-import { RepositoryResource } from '@gittrends/entities';
+import { Actor, RepositoryResource } from '@gittrends/entities';
 import { Dependency, Issue, PullRequest, Release, Repository, Stargazer, Tag, Watcher } from '@gittrends/entities';
 
 import { IActorsRepository, IMetadataRepository, IRepositoriesRepository, IResourceRepository } from '../Repositories';
@@ -27,6 +27,10 @@ export class LocalService implements Service {
 
   async get(id: string): Promise<Repository | undefined> {
     return this.persistence.repositories.findById(id, { resolve: ['owner'] });
+  }
+
+  async getActor(id: string): Promise<Actor | undefined> {
+    return this.persistence.actors.findById(id);
   }
 
   async find(name: string): Promise<Repository | undefined> {

@@ -2,7 +2,7 @@ import { each } from 'bluebird';
 
 import { HttpClient } from '@gittrends/github';
 
-import { Metadata, Repository, RepositoryResource } from '@gittrends/entities';
+import { Actor, Metadata, Repository, RepositoryResource } from '@gittrends/entities';
 import { debug } from '@gittrends/helpers';
 
 import { GitHubService } from './GithubService';
@@ -39,6 +39,18 @@ export class ProxyService implements Service {
 
   async get(id: string, opts: { noCache: boolean } = { noCache: false }): Promise<Repository | undefined> {
     return this.generic('get', id, opts);
+  }
+
+  async getActor(id: string, opts?: { noCache: boolean }): Promise<Actor | undefined> {
+    if (opts?.noCache !== true) {
+      const cachedActor = await this.cacheService.getActor(id);
+      if (cachedActor) return cachedActor;
+    }
+
+    const actor = await this.githubService.getActor(id);
+    if (actor) await this.persistence.actors.upsert(actor);
+
+    return actor;
   }
 
   async find(name: string, opts: { noCache: boolean } = { noCache: false }): Promise<Repository | undefined> {
