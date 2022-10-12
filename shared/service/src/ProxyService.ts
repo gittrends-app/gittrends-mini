@@ -1,4 +1,5 @@
 import { each } from 'bluebird';
+import { compact } from 'lodash';
 
 import { HttpClient } from '@gittrends/github';
 
@@ -54,10 +55,7 @@ export class ProxyService implements Service {
 
     const pendingIds = ids.filter((id) => !actors.find((a) => a?.id === id));
 
-    const newActors = await this.githubService
-      .getActors(pendingIds)
-      .then((actors) => actors.filter((actor) => actor !== undefined) as Actor[]);
-
+    const newActors = await this.githubService.getActors(pendingIds).then(compact);
     if (newActors.length) {
       actors.push(...newActors);
       await this.persistence.actors.upsert(newActors);
