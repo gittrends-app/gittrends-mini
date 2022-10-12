@@ -6,7 +6,7 @@
   "license": "MIT",
   "scripts": {
     "cli": "node --expose-gc -r @gittrends/env dist/cli.js",
-    "cli-nodemon": "nodemon --expose-gc -r @gittrends/env dist/cli.js -- ",
+    "cli-runtime": "pm2-runtime dist/cli.js --node-args=\"--expose-gc -r @gittrends/env\" --stop-exit-codes=0 --",
     "build": "yarn install && rm -rf dist tsconfig.tsbuildinfo && tsc",
     "eslint": "eslint --color",
     "add-repositories": "node -r @gittrends/env dist/scripts/add-repositories.js",
@@ -40,6 +40,7 @@
     "lodash": "^4.17.21",
     "nodemon": "^2.0.20",
     "pg": "^8.8.0",
+    "pm2": "^5.2.0",
     "prettyjson": "^1.2.5",
     "winston": "^3.8.2"
   },
@@ -52,6 +53,7 @@
     "@types/inquirer": "^9.0.2",
     "@types/prettyjson": "^0.0.30",
     "clinic": "^12.0.0",
+    "nodemon": "^2.0.20",
     "sync-dotenv": "^2.7.0"
   }
 }
