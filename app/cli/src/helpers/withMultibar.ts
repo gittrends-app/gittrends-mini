@@ -35,6 +35,7 @@ export async function withMultibar<T>(context: (multibar: MultiBar) => Promise<T
       autopadding: true,
       hideCursor: true,
       emptyOnZero: true,
+      noTTYOutput: !process.stdout.isTTY,
     },
     Presets.rect,
   );
