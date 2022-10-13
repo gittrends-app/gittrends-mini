@@ -4,7 +4,6 @@ import { Queue, QueueEvents } from 'bullmq';
 import { MultiBar, SingleBar } from 'cli-progress';
 import { Argument, Option, program } from 'commander';
 import consola, { WinstonReporter } from 'consola';
-import dayjs from 'dayjs';
 import { chunk, compact, get, isNil, omitBy, pick, size, sum, values } from 'lodash';
 import path, { extname } from 'node:path';
 import readline from 'node:readline';
@@ -124,11 +123,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
     let actorsIds: Array<{ id: string }> | undefined;
     if (includesAll || opts.resources.includes(Actor.__collection_name)) {
       logger('Finding for not updated actors...');
-      actorsIds = await localRepos.knex
-        .select('id')
-        .from(Actor.__collection_name)
-        .whereNull('__updated_at')
-        .orWhere('__updated_at', '<', dayjs().subtract(1, 'day').toDate());
+      actorsIds = await localRepos.knex.select('id').from(Actor.__collection_name).whereNull('__updated_at');
     }
 
     writeBatchSize = omitBy(writeBatchSize, isNil);
