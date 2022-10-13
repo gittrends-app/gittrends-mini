@@ -159,7 +159,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
     const actorsUpdatePromise = withDatabase('public', async (publicActorsRepos) => {
       if (!actorsIds?.length) return;
       const actorsProxy = new ProxyService(opts.httpClient, publicActorsRepos);
-      for (const [index, iChunk] of chunk(actorsIds, 100).entries()) {
+      for (const [index, iChunk] of chunk(actorsIds, 10).entries()) {
         logger(`Updating ${iChunk.length * index + iChunk.length} (of ${actorsIds.length}) actors...`);
         try {
           const ids = iChunk.map((i) => i.id);
