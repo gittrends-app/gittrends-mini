@@ -1,8 +1,8 @@
 import { Job, Queue, QueueEvents, Worker } from 'bullmq';
 
 const REDIS_HOST = process.env.CLI_REDIS_HOST || 'localhost';
-const REDIS_PORT = process.env.CLI_REDIS_PORT || 6379;
-const REDIS_DB = process.env.CLI_REDIS_DB || 0;
+const REDIS_PORT = parseInt(process.env.CLI_REDIS_PORT || '6379');
+const REDIS_DB = parseInt(process.env.CLI_REDIS_DB || '0');
 
 type JobType = {
   id: string;

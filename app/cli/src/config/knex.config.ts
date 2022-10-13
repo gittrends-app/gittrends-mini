@@ -85,7 +85,7 @@ function getConnectionSettings(repo: string): Knex.Config<any> {
       client: 'pg',
       connection: {
         host: process.env.CLI_DATABASE_HOST ?? '127.0.0.1',
-        port: process.env.CLI_DATABASE_PORT ?? 5432,
+        port: parseInt(process.env.CLI_DATABASE_PORT ?? '5432'),
         user: process.env.CLI_DATABASE_USERNAME ?? 'root',
         password: process.env.CLI_DATABASE_PASSWORD ?? 'root',
         database: process.env.CLI_DATABASE_DB ?? 'gittrends.app',

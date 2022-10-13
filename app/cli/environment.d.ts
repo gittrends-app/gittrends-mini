@@ -12,7 +12,7 @@ declare global {
 
       CLI_DATABASE?: 'sqlite' | 'postgres' | string;
       CLI_DATABASE_HOST?: string;
-      CLI_DATABASE_PORT?: number;
+      CLI_DATABASE_PORT?: string;
       CLI_DATABASE_USERNAME?: string;
       CLI_DATABASE_PASSWORD?: string;
       CLI_DATABASE_DB?: string;
@@ -20,8 +20,8 @@ declare global {
       CLI_DATABASE_POOL_MAX?: string;
 
       CLI_REDIS_HOST?: string;
-      CLI_REDIS_PORT?: number;
-      CLI_REDIS_DB?: number;
+      CLI_REDIS_PORT?: string;
+      CLI_REDIS_DB?: string;
 
       CLI_MIGRATIONS_WORKERS?: string;
 
@@ -29,13 +29,14 @@ declare global {
       CLI_SCHEDULER_ATTEMPS?: string;
 
       CLI_WRITE_BATCH?: string;
-      CLI_WRITE_BATCH_STARGAZERS?: number;
-      CLI_WRITE_BATCH_WATCHERS?: number;
-      CLI_WRITE_BATCH_TAGS?: number;
-      CLI_WRITE_BATCH_RELEASES?: number;
-      CLI_WRITE_BATCH_DEPENDENCIES?: number;
-      CLI_WRITE_BATCH_ISSUES?: number;
-      CLI_WRITE_BATCH_PULL_REQUESTS?: number;
+      CLI_WRITE_BATCH_ACTORS?: string;
+      CLI_WRITE_BATCH_STARGAZERS?: string;
+      CLI_WRITE_BATCH_WATCHERS?: string;
+      CLI_WRITE_BATCH_TAGS?: string;
+      CLI_WRITE_BATCH_RELEASES?: string;
+      CLI_WRITE_BATCH_DEPENDENCIES?: string;
+      CLI_WRITE_BATCH_ISSUES?: string;
+      CLI_WRITE_BATCH_PULL_REQUESTS?: string;
     }
   }
 }
