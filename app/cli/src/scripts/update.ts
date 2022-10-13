@@ -164,7 +164,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
         try {
           const ids = iChunk.map((i) => i.id);
           const actors = await actorsProxy.getActors(ids).then(compact);
-          localRepos.actors.upsert(actors);
+          await localRepos.actors.upsert(actors);
         } finally {
           if (opts.onProgress) opts.onProgress({ current: (current += iChunk.length), total });
         }
