@@ -141,7 +141,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
 
     let current = resourcesInfo.reduce((acc, p) => acc + (p.total && p.cachedCount), 0);
 
-    const total = resourcesInfo.reduce((acc, p) => acc + p.total + (actorsIds?.length || 0), 0);
+    const total = resourcesInfo.reduce((acc, p) => acc + p.total, 0) + (actorsIds?.length || 0);
     if (opts.onProgress) opts.onProgress({ current, total });
 
     const iterator = localService.resources(repo.id, resourcesInfo, {
