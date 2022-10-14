@@ -21,6 +21,8 @@ async function forEach(queueFunction: AsyncWorker<string>) {
     ),
   );
 
+  q.push('public');
+
   await q.drain();
 
   consola.success('Done!');

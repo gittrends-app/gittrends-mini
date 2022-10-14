@@ -30,8 +30,8 @@ export async function schedule(hours = 24, drain = false, obliterate = false) {
 
         const priority = Resources.reduce((acc, resource) => {
           const meta = metadata.find((m) => m.resource === resource);
-          if (!meta) return acc;
-          else if (dayjs(meta.updated_at).isBefore(dayjs().subtract(hours, 'hour'))) return acc + 2;
+          if (!meta || !meta.finished_at) return acc;
+          else if (dayjs(meta.finished_at).isBefore(dayjs().subtract(hours, 'hour'))) return acc + 2;
           else return acc + 4;
         }, 1);
 

@@ -179,16 +179,16 @@ class ProxiedIterator implements Iterable<RepositoryResource> {
           logger(`Persisting ${arrayRef.items.length} ${(this.resources[index].resource as any).__collection_name}...`);
           await repository
             .save(arrayRef.items)
-            .then(() =>
-              this.opts.repos.metadata.save(
-                new Metadata({
-                  repository: this.repositoryId,
-                  end_cursor: arrayRef.endCursor,
-                  resource: (this.resources[index].resource as any).__collection_name,
-                  updated_at: new Date(),
-                }),
-              ),
-            )
+            .then(() => {
+              const data: Partial<Metadata> = {
+                repository: this.repositoryId,
+                end_cursor: arrayRef.endCursor,
+                resource: (this.resources[index].resource as any).__collection_name,
+                updated_at: new Date(),
+              };
+              if (!result.hasNextPage) data.finished_at = new Date();
+              return this.opts.repos.metadata.upsert(new Metadata(data));
+            })
             .then(() => (arrayRef.items = []));
         }
       },

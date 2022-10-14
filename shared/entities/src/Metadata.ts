@@ -17,6 +17,7 @@ export class Metadata extends Entity<Metadata> implements RepositoryResource {
   resource_id?: string;
   end_cursor?: string;
   updated_at?: Date;
+  finished_at?: Date;
 
   [key: string]: unknown;
 
@@ -26,6 +27,7 @@ export class Metadata extends Entity<Metadata> implements RepositoryResource {
       resource: Joi.string().required(),
       end_cursor: Joi.string(),
       updated_at: Joi.date(),
+      finished_at: Joi.date(),
     }).custom((value) => Object.assign(new Metadata(), value));
   }
 }
