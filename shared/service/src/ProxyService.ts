@@ -42,26 +42,29 @@ export class ProxyService implements Service {
     return this.generic('get', id, opts);
   }
 
-  async getActor(id: string): Promise<Actor | undefined> {
-    return this.getActors([id]).then((response) => response.at(0));
-  }
+  async getActor(id: string): Promise<Actor | undefined>;
+  async getActor(ids: string[], opts?: { noCache: boolean }): Promise<(Actor | undefined)[]>;
+  async getActor(id: any, opts?: { noCache: boolean }): Promise<any> {
+    const ids = Array.isArray(id) ? id : [id];
 
-  async getActors(ids: string[], opts?: { noCache: boolean }): Promise<(Actor | undefined)[]> {
-    const actors: (Actor | undefined)[] = [];
+    const actors: Actor[] = [];
 
     if (opts?.noCache !== true) {
-      actors.push(...(await this.cacheService.getActors(ids)));
+      await this.cacheService
+        .getActor(ids)
+        .then(compact)
+        .then((_actors) => actors.push(..._actors));
     }
 
     const pendingIds = ids.filter((id) => !actors.find((a) => a?.id === id));
 
-    const newActors = await this.githubService.getActors(pendingIds).then(compact);
+    const newActors = await this.githubService.getActor(pendingIds).then(compact);
     if (newActors.length) {
       actors.push(...newActors);
       await this.persistence.actors.upsert(newActors);
     }
 
-    return ids.map((id) => actors.find((a) => a?.id === id));
+    return Array.isArray(id) ? ids.map((id) => actors.find((a) => a?.id === id)) : actors.at(0);
   }
 
   async find(name: string, opts: { noCache: boolean } = { noCache: false }): Promise<Repository | undefined> {

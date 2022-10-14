@@ -29,12 +29,10 @@ export class LocalService implements Service {
     return this.persistence.repositories.findById(id, { resolve: ['owner'] });
   }
 
-  async getActor(id: string): Promise<Actor | undefined> {
+  async getActor(id: string): Promise<Actor | undefined>;
+  async getActor(id: string[]): Promise<(Actor | undefined)[]>;
+  async getActor(id: any): Promise<any> {
     return this.persistence.actors.findById(id);
-  }
-
-  async getActors(ids: string[]): Promise<(Actor | undefined)[]> {
-    return this.persistence.actors.findById(ids);
   }
 
   async find(name: string): Promise<Repository | undefined> {

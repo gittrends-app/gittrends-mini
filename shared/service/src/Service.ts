@@ -10,10 +10,12 @@ export interface Service {
   get(id: string): Promise<Repository | undefined>;
   find(name: string): Promise<Repository | undefined>;
   search?(opts: SearchComponentQuery): Iterable<Repository>;
+
   resources(
     repositoryId: string,
     resources: { resource: Constructor<RepositoryResource>; endCursor?: string; hasNextPage?: boolean }[],
   ): Iterable<RepositoryResource>;
+
   getActor(id: string): Promise<Actor | undefined>;
-  getActors(ids: string[]): Promise<(Actor | undefined)[]>;
+  getActor(ids: string[]): Promise<(Actor | undefined)[]>;
 }

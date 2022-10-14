@@ -194,27 +194,29 @@ export class GitHubService implements Service {
       );
   }
 
-  async getActor(id: string): Promise<Actor | undefined> {
-    return this.getActors([id]).then((response) => response.at(0));
-  }
+  async getActor(id: string): Promise<Actor | undefined>;
+  async getActor(ids: string[]): Promise<(Actor | undefined)[]>;
+  async getActor(id: any): Promise<any> {
+    const ids = Array.isArray(id) ? id : [id];
 
-  async getActors(ids: string[]): Promise<(Actor | undefined)[]> {
-    if (ids.length > 25) return flatten(await mapSeries(chunk(ids, 25), (iChunk) => this.getActors(iChunk)));
+    if (ids.length > 25) return flatten(await mapSeries(chunk(ids, 25), (iChunk) => this.getActor(iChunk)));
 
     const components = ids.map((id, index) => new ActorComponent(id).setAlias(`actor_${index}`));
 
-    return Query.create(this.httpClient)
+    const actors = await Query.create(this.httpClient)
       .compose(...components)
       .run()
       .then((result) => components.map((comp) => (result[comp.alias] ? Actor.from(result[comp.alias]) : undefined)))
       .catch(async (error) => {
         if (error instanceof Error && [GithubRequestError.name, ServerRequestError.name].includes(error.name)) {
           if (ids.length > 1)
-            return flatten(await mapSeries(chunk(ids, ids.length / 2), (aChunk) => this.getActors(aChunk)));
+            return flatten(await mapSeries(chunk(ids, ids.length / 2), (aChunk) => this.getActor(aChunk)));
           else return [undefined];
         }
         throw error;
       });
+
+    return Array.isArray(id) ? actors : actors.at(0);
   }
 
   async find(name: string): Promise<Repository | undefined> {

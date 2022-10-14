@@ -159,8 +159,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
         logger(`Updating ${iChunk.length * index + iChunk.length} (of ${actorsIds.length}) actors...`);
         try {
           const ids = iChunk.map((i) => i.id);
-          const actors = await actorsProxy.getActors(ids).then(compact);
-          await localRepos.actors.upsert(actors);
+          await localRepos.actors.upsert(await actorsProxy.getActor(ids).then(compact));
         } finally {
           if (opts.onProgress) opts.onProgress({ current: (current += iChunk.length), total });
         }
