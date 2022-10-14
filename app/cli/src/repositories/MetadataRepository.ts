@@ -23,10 +23,10 @@ export class MetadataRepository implements IMetadataRepository {
     const metas = Array.isArray(metadata) ? metadata : [metadata];
 
     await each(metas, (meta) => {
-      const { repository, resource, end_cursor, updated_at, ...payload } = meta;
+      const { repository, resource, end_cursor, updated_at, finished_at, ...payload } = meta;
       return this.db
         .table(Metadata.__collection_name)
-        .insertEntity({ repository, resource, end_cursor, updated_at, payload: payload })
+        .insertEntity({ repository, resource, end_cursor, updated_at, finished_at, payload: payload })
         .onConflict(['repository', 'resource'])
         ?.[upsert ? 'merge' : 'ignore']()
         .transacting(transaction);
