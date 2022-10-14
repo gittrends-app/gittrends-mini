@@ -9,9 +9,18 @@ import { Actor } from '@gittrends/entities';
 export class ActorsRepository implements IActorsRepository {
   constructor(private db: Knex) {}
 
-  async findById(id: string): Promise<Actor | undefined> {
-    const actor = await this.db.table(Actor.__collection_name).select('*').where('id', id).first();
-    return actor && actor.__updated_at ? Actor.from(actor) : undefined;
+  async findById(id: string): Promise<Actor | undefined>;
+  async findById(id: string[]): Promise<(Actor | undefined)[]>;
+  async findById(id: any): Promise<any> {
+    const ids = Array.isArray(id) ? id : [id];
+
+    const actors = await this.db
+      .table(Actor.__collection_name)
+      .select('*')
+      .whereIn('id', ids)
+      .then((actors) => actors.map((actor) => (actor && actor.__updated_at ? Actor.from(actor) : undefined)));
+
+    return Array.isArray(id) ? ids.map((id) => actors.find((actor) => actor?.id === id)) : actors.at(0);
   }
 
   async findByLogin(login: string): Promise<Actor | undefined> {

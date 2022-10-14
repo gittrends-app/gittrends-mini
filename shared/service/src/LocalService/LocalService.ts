@@ -1,5 +1,3 @@
-import { mapSeries } from 'bluebird';
-
 import { Actor, RepositoryResource } from '@gittrends/entities';
 import { Dependency, Issue, PullRequest, Release, Repository, Stargazer, Tag, Watcher } from '@gittrends/entities';
 
@@ -36,7 +34,7 @@ export class LocalService implements Service {
   }
 
   async getActors(ids: string[]): Promise<(Actor | undefined)[]> {
-    return mapSeries(ids, (id) => this.persistence.actors.findById(id));
+    return this.persistence.actors.findById(ids);
   }
 
   async find(name: string): Promise<Repository | undefined> {
