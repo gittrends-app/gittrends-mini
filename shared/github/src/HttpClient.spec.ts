@@ -48,7 +48,7 @@ test('it should retry the request when it fails with 6xx or no status', async ()
   scope.post('/graphql').reply(() => (count += 1) && [600]);
 
   await expect(client.request('')).rejects.toThrowError();
-  expect(count).toEqual(client.retries + 1);
+  expect(count).toEqual(client.retries);
 });
 
 test("it shouldn't retry the request when it fails with 4xx", async () => {
@@ -75,5 +75,5 @@ test('it should abort long time running requests', async () => {
     .reply(() => (count += 1) && [200]);
 
   await expect(client.request('')).rejects.toThrowError();
-  expect(count).toEqual(client.retries + 1);
+  expect(count).toEqual(client.retries);
 });

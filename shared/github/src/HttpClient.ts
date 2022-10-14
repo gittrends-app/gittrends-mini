@@ -42,8 +42,6 @@ export class HttpClient {
     this.retries = opts.retries || 0;
     this.baseUrl = new URL(`${opts.protocol}://${opts.host}:${opts.port || ''}`).toString();
 
-    rax.attach();
-
     this.client = axios.create({
       baseURL: this.baseUrl,
       headers: {
@@ -60,11 +58,14 @@ export class HttpClient {
       raxConfig: {
         retry: this.retries,
         retryDelay: 100,
+        httpMethodsToRetry: ['GET', 'POST'],
         shouldRetry(err) {
           return !/^[3-5]\d{2}$/.test(`${err.response?.status}` || '');
         },
       },
     });
+
+    rax.attach(this.client);
   }
 
   async request(data: string | Record<string, unknown>): Promise<HttpClientResponse> {
