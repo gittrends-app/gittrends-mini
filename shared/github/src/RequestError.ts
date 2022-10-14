@@ -17,6 +17,7 @@ export class RequestError extends BaseError {
   readonly response?: { message: string; status?: number; data?: any };
   readonly components?: any[];
 
+  static create(cause: Error): RequestError;
   static create(cause: Error, opts?: RequestErrorOptions): RequestError;
   static create(cause: Error & HttpClientResponse, opts?: RequestErrorOptions): RequestError {
     const status = `${cause.status || opts?.status}`;
@@ -42,6 +43,7 @@ export class RequestError extends BaseError {
 export class ServerRequestError extends RequestError {
   readonly type: 'BAD_GATEWAY' | 'INTERNAL_SERVER' | 'UNKNOWN';
 
+  constructor(cause: Error);
   constructor(cause: Error, opts?: RequestErrorOptions);
   constructor(cause: Error & HttpClientResponse, opts?: RequestErrorOptions) {
     super(cause, opts);
@@ -67,6 +69,7 @@ type GithubRequestErrorType =
 export class GithubRequestError extends RequestError {
   readonly type: GithubRequestErrorType[] = [];
 
+  constructor(cause: Error);
   constructor(cause: Error, opts?: RequestErrorOptions);
   constructor(cause: Error & HttpClientResponse, opts?: RequestErrorOptions) {
     super(cause, opts);
