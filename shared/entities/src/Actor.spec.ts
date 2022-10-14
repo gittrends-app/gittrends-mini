@@ -1,15 +1,15 @@
-import Joi from 'joi';
-
-import { Actor, Organization, User } from './Actor';
+import { Actor, Bot, Organization, User } from './Actor';
+import { EntityValidationError } from './Entity';
 
 it('should validate simple Actor entity', () => {
   const value = Actor.validate({ id: 'custom_id', login: 'login', type: 'Bot', additional: 1 });
-  expect(value).toStrictEqual({ id: 'custom_id', login: 'login', type: 'Bot' });
+  expect(value).toBeInstanceOf(Bot);
+  expect(value).toEqual({ id: 'custom_id', login: 'login', type: 'Bot' });
 });
 
 it('should not validate Actor entity when missing required fields', () => {
   const validate = () => Actor.validate({ login: 'login', type: 'Bot', additional: 1 });
-  expect(validate).toThrowError(Joi.ValidationError);
+  expect(validate).toThrowError(EntityValidationError);
 });
 
 it('should transform User entity', () => {
