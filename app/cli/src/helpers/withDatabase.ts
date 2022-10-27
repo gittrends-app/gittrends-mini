@@ -25,12 +25,25 @@ type Repositories = {
   pull_requests: PullRequestsRepository;
 };
 
+export async function withDatabase<T>(context: (repos: Repositories) => Promise<T>): Promise<T>;
+export async function withDatabase<T>(db: string, context: (repos: Repositories) => Promise<T>): Promise<T>;
 export async function withDatabase<T>(
-  db: string | { name: string; migrate?: boolean },
+  config: { name: string; migrate?: boolean },
   context: (repos: Repositories) => Promise<T>,
-): Promise<T> {
-  const { name, migrate } = typeof db === 'string' ? { name: db, migrate: false } : db;
-  const knex = await createOrConnectDatabase(name, migrate);
+): Promise<T>;
+export async function withDatabase<T>(db: any, context?: any): Promise<T> {
+  let config: { name: string; migrate?: boolean } = { name: 'public', migrate: false };
+  let callback: (repos: Repositories) => Promise<any>;
+
+  if (typeof db !== 'function') {
+    if (typeof db === 'string') config.name = db;
+    else if (typeof db === 'object') config = db;
+    callback = context;
+  } else {
+    callback = db;
+  }
+
+  const knex = await createOrConnectDatabase(config.name, config.migrate);
 
   const repos: Repositories = {
     knex,
@@ -46,7 +59,5 @@ export async function withDatabase<T>(
     pull_requests: new PullRequestsRepository(knex),
   };
 
-  return context(repos).finally(() => {
-    knex.destroy();
-  });
+  return callback(repos).finally(() => knex.destroy());
 }

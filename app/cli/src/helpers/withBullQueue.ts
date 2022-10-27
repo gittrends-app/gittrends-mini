@@ -10,20 +10,24 @@ type JobType = {
   url?: string;
 };
 
-export async function withBullQueue<T>(callback: (queue: Queue<JobType>) => Promise<T>): Promise<T> {
+export async function withBullQueue<T = any>(callback: (queue: Queue) => Promise<T>): Promise<T>;
+export function withBullQueue(): Queue;
+export function withBullQueue(callback?: any): any {
   const queue = new Queue<JobType>('@gittrends/cli', {
     connection: { host: REDIS_HOST, port: REDIS_PORT, db: REDIS_DB },
   });
 
-  return callback(queue).finally(() => queue.close());
+  return callback ? callback(queue).finally(() => queue.close()) : queue;
 }
 
-export async function withBullEvents<T = any>(callback: (queue: QueueEvents) => Promise<T>): Promise<T> {
+export async function withBullEvents<T = any>(callback: (queue: QueueEvents) => Promise<T>): Promise<T>;
+export function withBullEvents(): QueueEvents;
+export function withBullEvents(callback?: any): any {
   const queue = new QueueEvents('@gittrends/cli', {
     connection: { host: REDIS_HOST, port: REDIS_PORT, db: REDIS_DB },
   });
 
-  return callback(queue).finally(() => queue.close());
+  return callback ? callback(queue).finally(() => queue.close()) : queue;
 }
 
 export async function withBullWorker(worker: (job: Job<JobType>) => Promise<void>, concurrency: number): Promise<void> {
