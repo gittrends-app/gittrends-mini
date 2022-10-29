@@ -67,32 +67,30 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
         authToken: opts.token,
       });
 
+      const multibar = repo ? undefined : await withMultibar();
+
       consola.info('Opening local database...');
       await withDatabase({ name: 'public', migrate: true }, async ({ repositories: publicRepos }) => {
-        consola.info('Creating progress bar...');
-        await withMultibar(async (multibar) => {
-          const progressBar = multibar.create(opts.limit, 0, { resource: 'search' });
+        consola.info('Preparing progress bar...');
 
-          consola.info('Finding and persisting repositories...\n');
-          const entityList = await multiFind(3, { httpClient, progressBar, repository: repo, ...opts });
+        const progressBar = multibar?.create(opts.limit, 0, { resource: 'search' });
 
-          progressBar.update(0, { resource: 'Persisting...' });
+        consola.info('Finding and persisting repositories...');
+        const entityList = await multiFind(3, { httpClient, progressBar, repository: repo, ...opts });
 
-          for (const entity of entityList) {
-            await withDatabase({ name: entity.name_with_owner, migrate: true }, ({ repositories }) =>
-              Promise.all([
-                publicRepos.save(entity, { onConflict: 'ignore' }),
-                repositories.save(entity, { onConflict: 'ignore' }),
-              ]),
-            ).then(() => progressBar.increment(1, { resource: entity.name_with_owner }));
-          }
+        progressBar?.update(0, { resource: 'Persisting...' });
 
-          setTimeout(
-            () => consola.success(`Done! ${progressBar.getProgress() * progressBar.getTotal()} repositories added.`),
-            1000,
-          );
-        });
-      });
+        for (const entity of entityList) {
+          await withDatabase({ name: entity.name_with_owner, migrate: true }, ({ repositories }) =>
+            Promise.all([
+              publicRepos.save(entity, { onConflict: 'ignore' }),
+              repositories.save(entity, { onConflict: 'ignore' }),
+            ]),
+          ).then(() => progressBar?.increment(1, { resource: entity.name_with_owner }));
+        }
+
+        setTimeout(() => consola.success(`Done! ${entityList.length} repositories added.`), 1000);
+      }).finally(() => multibar?.stop());
     })
     .helpOption(true)
     .version(version)

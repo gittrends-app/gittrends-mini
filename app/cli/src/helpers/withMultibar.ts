@@ -6,7 +6,9 @@ const clearLastLine = () => {
   process.stdout.clearLine(1); // from cursor to end
 };
 
-export async function withMultibar<T>(context: (multibar: MultiBar) => Promise<T>): Promise<T> {
+export async function withMultibar(): Promise<MultiBar>;
+export async function withMultibar<T>(context: (multibar: MultiBar) => Promise<T>): Promise<T>;
+export async function withMultibar(callback?: any): Promise<any> {
   let maxProgressDetails = 0;
   const multibar = new MultiBar(
     {
@@ -40,8 +42,14 @@ export async function withMultibar<T>(context: (multibar: MultiBar) => Promise<T
     Presets.rect,
   );
 
-  return context(multibar).finally(() => {
-    clearLastLine();
-    multibar.stop();
+  let newLineWriten = false;
+  multibar.on('update-pre', () => {
+    if (newLineWriten) return;
+    newLineWriten = true;
+    process.stdout.write('\n');
   });
+
+  multibar.on('stop', () => (newLineWriten ? clearLastLine() : null));
+
+  return callback ? callback(multibar).finally(() => multibar.stop()) : multibar;
 }
