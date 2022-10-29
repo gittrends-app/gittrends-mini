@@ -51,10 +51,24 @@ export const errorLogger = consola.create({
   ],
 });
 
+export type UpdatableResource =
+  | typeof Stargazer
+  | typeof Tag
+  | typeof Release
+  | typeof Watcher
+  | typeof Dependency
+  | typeof Issue
+  | typeof PullRequest
+  | typeof Actor;
+
+export const UpdatebleResourcesList = [Stargazer, Tag, Release, Watcher, Dependency, Issue, PullRequest, Actor];
+
+type ResourceProgress = Record<string, { done: boolean; current: number; total: number }>;
+
 type UpdaterOpts = {
   httpClient: HttpClient;
-  resources: string[];
-  onProgress?: (progress: { current: number; total: number }) => void;
+  resources: UpdatableResource[];
+  onProgress?: (progress: ResourceProgress) => void;
 };
 
 export async function updater(name: string, opts: UpdaterOpts) {
@@ -74,54 +88,54 @@ export async function updater(name: string, opts: UpdaterOpts) {
     await withDatabase('public', ({ repositories }) => (repo ? repositories.save(repo) : Promise.reject()));
 
     logger('Preparing resources metadata...');
-    const resources = [];
-    const includesAll = opts.resources.includes('all');
     let writeBatchSize: Record<string, number | undefined> = {};
 
-    if (includesAll || opts.resources.includes(Stargazer.__collection_name)) {
+    const resources = [];
+
+    if (opts.resources.includes(Stargazer)) {
       resources.push({ resource: Stargazer, repository: localRepos.stargazers });
       writeBatchSize[Stargazer.__collection_name] =
         parseInt(process.env[`CLI_WRITE_BATCH_${Stargazer.__collection_name}`.toUpperCase()] || '') || undefined;
     }
 
-    if (includesAll || opts.resources.includes(Tag.__collection_name)) {
+    if (opts.resources.includes(Tag)) {
       resources.push({ resource: Tag, repository: localRepos.tags });
       writeBatchSize[Tag.__collection_name] =
         parseInt(process.env[`CLI_WRITE_BATCH_${Tag.__collection_name}`.toUpperCase()] || '') || undefined;
     }
 
-    if (includesAll || opts.resources.includes(Release.__collection_name)) {
+    if (opts.resources.includes(Release)) {
       resources.push({ resource: Release, repository: localRepos.releases });
       writeBatchSize[Release.__collection_name] =
         parseInt(process.env[`CLI_WRITE_BATCH_${Release.__collection_name}`.toUpperCase()] || '') || undefined;
     }
 
-    if (includesAll || opts.resources.includes(Watcher.__collection_name)) {
+    if (opts.resources.includes(Watcher)) {
       resources.push({ resource: Watcher, repository: localRepos.watchers });
       writeBatchSize[Watcher.__collection_name] =
         parseInt(process.env[`CLI_WRITE_BATCH_${Watcher.__collection_name}`.toUpperCase()] || '') || undefined;
     }
 
-    if (includesAll || opts.resources.includes(Dependency.__collection_name)) {
+    if (opts.resources.includes(Dependency)) {
       resources.push({ resource: Dependency, repository: localRepos.dependencies });
       writeBatchSize[Dependency.__collection_name] =
         parseInt(process.env[`CLI_WRITE_BATCH_${Dependency.__collection_name}`.toUpperCase()] || '') || undefined;
     }
 
-    if (includesAll || opts.resources.includes(Issue.__collection_name)) {
+    if (opts.resources.includes(Issue)) {
       resources.push({ resource: Issue, repository: localRepos.issues });
       writeBatchSize[Issue.__collection_name] =
         parseInt(process.env[`CLI_WRITE_BATCH_${Issue.__collection_name}`.toUpperCase()] || '') || undefined;
     }
 
-    if (includesAll || opts.resources.includes(PullRequest.__collection_name)) {
+    if (opts.resources.includes(PullRequest)) {
       resources.push({ resource: PullRequest, repository: localRepos.pull_requests });
       writeBatchSize[PullRequest.__collection_name] =
         parseInt(process.env[`CLI_WRITE_BATCH_${PullRequest.__collection_name}`.toUpperCase()] || '') || undefined;
     }
 
     let actorsIds: Array<{ id: string }> | undefined;
-    if (includesAll || opts.resources.includes(Actor.__collection_name)) {
+    if (opts.resources.includes(Actor)) {
       logger('Finding for not updated actors...');
       actorsIds = await localRepos.knex.select('id').from(Actor.__collection_name).whereNull('__updated_at');
     }
@@ -129,22 +143,30 @@ export async function updater(name: string, opts: UpdaterOpts) {
     writeBatchSize = omitBy(writeBatchSize, isNil);
 
     logger('Getting resources metadata...');
-    const resourcesInfo = await mapSeries(resources, async (info) => {
+    const repoResourcesInfo = await mapSeries(resources, async (info) => {
       const [meta] = await localRepos.metadata.findByRepository(
         repo?.id as string,
         info.resource.__collection_name as any,
       );
       const cachedCount = await info.repository.countByRepository(repo?.id as string);
       const total = get(repo, info.resource.__collection_name, 0);
-      return { resource: info.resource, endCursor: meta?.end_cursor, total, cachedCount };
+      return { resource: info.resource, done: false, current: cachedCount, total, endCursor: meta?.end_cursor };
     });
 
-    let current = resourcesInfo.reduce((acc, p) => acc + (p.total && p.cachedCount), 0);
+    const usersResourceInfo = { resource: Actor, done: false, current: 0, total: actorsIds?.length || 0 };
 
-    const total = resourcesInfo.reduce((acc, p) => acc + p.total, 0) + (actorsIds?.length || 0);
-    if (opts.onProgress) opts.onProgress({ current, total });
+    const reportCurrentProgress = function () {
+      if (!opts.onProgress) return;
 
-    const iterator = localService.resources(repo.id, resourcesInfo, {
+      return opts.onProgress(
+        [...repoResourcesInfo, usersResourceInfo].reduce(
+          (progress, { resource, ...info }) => ({ ...progress, [resource.__collection_name]: info }),
+          {},
+        ),
+      );
+    };
+
+    const iterator = localService.resources(repo.id, repoResourcesInfo, {
       ignoreCache: true,
       persistenceBatchSize: size(writeBatchSize)
         ? (writeBatchSize as Record<string, number>)
@@ -161,9 +183,12 @@ export async function updater(name: string, opts: UpdaterOpts) {
           const ids = iChunk.map((i) => i.id);
           await localRepos.actors.upsert(await actorsProxy.getActor(ids).then(compact));
         } finally {
-          if (opts.onProgress) opts.onProgress({ current: (current += iChunk.length), total });
+          usersResourceInfo.current += iChunk.length;
+          reportCurrentProgress();
         }
       }
+      usersResourceInfo.done = true;
+      reportCurrentProgress();
       logger(`${actorsIds.length} actors updated...`);
     });
 
@@ -174,8 +199,11 @@ export async function updater(name: string, opts: UpdaterOpts) {
         while (true) {
           const { done, value } = await iterator.next();
           if (done) break;
-          resourcesInfo.forEach((_, index) => (current += value[index].items.length));
-          if (opts.onProgress) opts.onProgress({ current: (current += value.length), total });
+          repoResourcesInfo.forEach((info, index) => {
+            info.done = !value[index].hasNextPage;
+            info.current += value[index].items.length;
+          });
+          reportCurrentProgress();
         }
       })()
         .then(resolve)
@@ -189,7 +217,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
 
 async function asyncQueue(
   names: string[],
-  opts: { resources: string[]; workers: number; httpClient: HttpClient; multibar?: MultiBar },
+  opts: { resources: UpdatableResource[]; workers: number; httpClient: HttpClient; multibar?: MultiBar },
 ) {
   consola.info('Preparing processing queue ....');
   const queueRef = queue(
@@ -214,7 +242,6 @@ async function asyncQueue(
 }
 
 export async function redisQueue(opts: {
-  resources: string[];
   httpClient: HttpClient;
   workers: number;
   threads?: number;
@@ -261,7 +288,6 @@ export async function redisQueue(opts: {
     const worker = new Worker(workerFile, {
       workerData: {
         concurrency: concurrency,
-        resources: opts.resources,
         httpClientOpts: opts.httpClient.toJSON(),
       },
     });
@@ -319,67 +345,68 @@ export async function redisQueue(opts: {
 }
 
 export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void> {
+  type CliOptions = {
+    token?: string;
+    apiUrl?: string;
+    resources: UpdatableResource[];
+    progress: boolean;
+    schedule: boolean;
+    workers: number;
+    threads: number;
+  };
+
   await program
     .addArgument(new Argument('[repo...]', 'Repository name with format <owner/name>'))
     .addOption(new Option('--token [string]', 'Github access token').env('CLI_ACCESS_TOKEN').conflicts('api-url'))
     .addOption(new Option('--api-url [string]', 'URL of the target API').env('CLI_API_URL').conflicts('token'))
     .addOption(
       new Option('-r, --resources [string...]', 'Resources to update')
-        .choices(
-          [Stargazer, Tag, Release, Watcher, Dependency, Issue, PullRequest, Actor]
-            .map((r) => r.__collection_name)
-            .concat(['all']),
+        .choices(UpdatebleResourcesList.map((r) => r.__collection_name))
+        .argParser<Partial<typeof UpdatebleResourcesList>>((value, resources) =>
+          compact([...(resources || []), UpdatebleResourcesList.find((ur) => ur.__collection_name === value)]),
         )
-        .default(['all']),
+        .default([]),
     )
     .addOption(new Option('--no-progress', 'Disable progress bars'))
     .addOption(new Option('--schedule', 'Schedule repositories before updating').default(false))
     .addOption(new Option('--workers [number]', 'Number of workers per thread').default(1).argParser(Number))
     .addOption(new Option('--threads [number]', 'Use threads processing').default(1).argParser(Number))
-    .action(
-      async (
-        names: string[],
-        opts: {
-          token?: string;
-          apiUrl?: string;
-          resources: string[];
-          progress: boolean;
-          schedule: boolean;
-          workers: number;
-          threads: number;
-        },
-      ) => {
-        if (!opts.apiUrl && !opts.token) program.error('--token or --api-url is mandatory!');
+    .action(async (names: string[], opts: CliOptions) => {
+      if (!opts.apiUrl && !opts.token) program.error('--token or --api-url is mandatory!');
 
-        consola.info('Running updater with the following parameters: ');
-        consola.log(`\n${prettyjson.render({ names, opts }, { inlineArrays: true })}\n`);
+      consola.info('Running updater with the following parameters: ');
+      consola.log(
+        `\n${prettyjson.render(
+          { names, opts: { ...opts, resources: opts.resources.map((r) => r.__collection_name) } },
+          { inlineArrays: true },
+        )}\n`,
+      );
 
-        const apiURL = new URL((opts.token ? 'https://api.github.com' : opts.apiUrl) as string);
+      const apiURL = new URL((opts.token ? 'https://api.github.com' : opts.apiUrl) as string);
 
-        const httpClient = new HttpClient({
-          host: apiURL.hostname,
-          protocol: apiURL.protocol.slice(0, -1),
-          port: parseInt(apiURL.port),
-          authToken: opts.token,
-          timeout: 60000,
-          retries: 2,
-        });
+      const httpClient = new HttpClient({
+        host: apiURL.hostname,
+        protocol: apiURL.protocol.slice(0, -1),
+        port: parseInt(apiURL.port),
+        authToken: opts.token,
+        timeout: 60000,
+        retries: 2,
+      });
 
-        await withMultibar(async (multibar) => {
-          const processorOpts = { ...opts, httpClient, multibar: opts.progress ? multibar : undefined };
-          if (names.length) {
-            return asyncQueue(names, processorOpts);
-          } else {
-            if (opts.schedule) {
-              consola.info('Scheduling repositories ...');
-              await schedule(24);
-            }
-            consola.info('Processing repositories ...\n');
-            return redisQueue(processorOpts);
+      await withMultibar(async (multibar) => {
+        const processorOpts = { ...opts, httpClient, multibar: opts.progress ? multibar : undefined };
+        if (names.length) {
+          return asyncQueue(names, processorOpts);
+        } else {
+          if (opts.schedule) {
+            consola.info('Scheduling repositories ...');
+            await schedule(24);
           }
-        });
-      },
-    )
+          consola.info('Processing repositories ...\n');
+          return redisQueue(processorOpts);
+        }
+      });
+    })
     .helpOption(true)
     .version(version)
     .parseAsync(args, { from })

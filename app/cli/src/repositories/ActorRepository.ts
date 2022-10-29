@@ -1,6 +1,6 @@
 import { each } from 'bluebird';
 import { Knex } from 'knex';
-import { uniqBy } from 'lodash';
+import { cloneDeep, uniqBy } from 'lodash';
 
 import { IActorsRepository } from '@gittrends/service';
 
@@ -18,7 +18,12 @@ export class ActorsRepository implements IActorsRepository {
       .table(Actor.__collection_name)
       .select('*')
       .whereIn('id', ids)
-      .then((actors) => actors.map((actor) => (actor && actor.__updated_at ? Actor.from(actor) : undefined)));
+      .then((actors) =>
+        ids.map((id) => {
+          const actor = actors.find((actor) => actor.id === id);
+          return actor ? Actor.from(actor) : undefined;
+        }),
+      );
 
     return Array.isArray(id) ? ids.map((id) => actors.find((actor) => actor?.id === id)) : actors.at(0);
   }
@@ -31,7 +36,7 @@ export class ActorsRepository implements IActorsRepository {
   async save<T extends Actor>(user: T | T[], trx?: Knex.Transaction): Promise<void> {
     const transaction = trx || (await this.db.transaction());
 
-    const actors = uniqBy(Array.isArray(user) ? user : [user], 'id');
+    const actors = uniqBy(Array.isArray(user) ? user : [user], 'id').map(cloneDeep);
 
     await each(actors, (actor) =>
       this.db

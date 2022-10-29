@@ -1,5 +1,6 @@
 import { all, each } from 'bluebird';
 import { Knex } from 'knex';
+import { cloneDeep } from 'lodash';
 
 import { IResourceRepository } from '@gittrends/service';
 
@@ -35,7 +36,7 @@ export class ReactionsRepository implements IResourceRepository<Reaction> {
   }
 
   async save(reaction: Reaction | Reaction[], trx?: Knex.Transaction): Promise<void> {
-    const reactions = Array.isArray(reaction) ? reaction : [reaction];
+    const reactions = (Array.isArray(reaction) ? reaction : [reaction]).map(cloneDeep);
     const actors = extractEntityInstances<Actor>(reactions, Actor as any);
 
     const transaction = trx || (await this.db.transaction());

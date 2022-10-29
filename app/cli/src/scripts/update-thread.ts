@@ -1,10 +1,16 @@
-import { round } from 'lodash';
+import { compact, round } from 'lodash';
 import { isMainThread, parentPort, workerData } from 'node:worker_threads';
 
 import { HttpClient } from '@gittrends/github';
 
 import { withBullWorker } from '../helpers/withBullQueue';
-import { errorLogger, updater } from './update';
+import { UpdatebleResourcesList, errorLogger, updater } from './update';
+
+function objectToString(object: Record<string, any>) {
+  return Object.keys(object)
+    .map((key) => `${key}: ${object[key]}`)
+    .join(', ');
+}
 
 if (!isMainThread) {
   withBullWorker(async (job) => {
@@ -13,10 +19,31 @@ if (!isMainThread) {
     parentPort?.postMessage({ event: 'started', name: job.data.name_with_owner });
     await updater(job.data.name_with_owner, {
       httpClient: new HttpClient(workerData.httpClientOpts),
-      resources: workerData.resources,
+      resources: compact(
+        job.data.pending_resources.map((r) => UpdatebleResourcesList.find((ur) => ur.__collection_name === r)),
+      ),
       onProgress: (progress) => {
-        parentPort?.postMessage({ event: 'updated', name: job.data.name_with_owner, ...progress });
-        job.updateProgress(round((progress.current / progress.total) * 100, 1));
+        const [current, total] = Object.values(progress).reduce(
+          ([current, total], rp) => [current + rp.current, total + rp.total],
+          [0, 0],
+        );
+        parentPort?.postMessage({ event: 'updated', name: job.data.name_with_owner, current, total });
+        const finishedResources = compact(
+          Object.keys(progress).map((resource) =>
+            job.data.pending_resources.includes(resource) && progress[resource].done ? resource : undefined,
+          ),
+        );
+        Promise.all([
+          job.updateProgress(round((current / total) * 100, 1)),
+          job.update({
+            ...job.data,
+            updated_resources: Object.keys(progress).filter((res) => progress[res].done),
+            pending_resources: Object.keys(progress).filter((res) => !progress[res].done),
+          }),
+          ...finishedResources.map((resource) =>
+            job.log(`${Date.now()} | ${resource} -> ${objectToString(progress[resource])}`),
+          ),
+        ]);
       },
     })
       .catch((error: Error) => {

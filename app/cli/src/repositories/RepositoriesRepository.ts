@@ -1,6 +1,6 @@
 import { all, each } from 'bluebird';
 import { Knex } from 'knex';
-import { uniqBy } from 'lodash';
+import { cloneDeep, uniqBy } from 'lodash';
 
 import { IRepositoriesRepository } from '@gittrends/service';
 
@@ -39,17 +39,14 @@ export class RepositoriesRepository implements IRepositoriesRepository {
   }
 
   async findByName(name: string, opts?: { resolve?: ['owner'] }): Promise<Repository | undefined> {
-    return this.find(
-      this.db.whereRaw('UPPER(name_with_owner) LIKE ?', name.toUpperCase()).first(),
-      opts?.resolve !== undefined,
-    );
+    return this.find(this.db.whereRaw('UPPER(name_with_owner) LIKE ?', name.toUpperCase()).first(), !!opts?.resolve);
   }
 
   async save(
     repo: Repository | Repository[],
     opts?: { trx?: Knex.Transaction; onConflict: 'merge' | 'ignore' },
   ): Promise<void> {
-    const repos = uniqBy(Array.isArray(repo) ? repo : [repo], 'id');
+    const repos = uniqBy(Array.isArray(repo) ? repo : [repo], 'id').map(cloneDeep);
     const actors = extractEntityInstances<Actor>(repos, Actor as any);
 
     const transaction = opts?.trx || (await this.db.transaction());
