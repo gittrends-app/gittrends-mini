@@ -37,7 +37,7 @@ export class TagsRepository implements IResourceRepository<Tag> {
   }
 
   async save(tag: Tag | Tag[], trx?: Knex.Transaction): Promise<void> {
-    const tags = (Array.isArray(tag) ? tag : [tag]).map(cloneDeep);
+    const tags = cloneDeep(Array.isArray(tag) ? tag : [tag]);
     const actors = extractEntityInstances<Actor>(tags, Actor as any);
 
     const transaction = trx || (await this.db.transaction());
@@ -45,12 +45,7 @@ export class TagsRepository implements IResourceRepository<Tag> {
     await all([
       this.actorsRepo.save(actors, transaction),
       each(tags, (tag) =>
-        this.db
-          .table(Tag.__collection_name)
-          .insertEntity(tag.toJSON())
-          .onConflict(['id'])
-          .ignore()
-          .transacting(transaction),
+        this.db.table(Tag.__collection_name).insertEntity(tag).onConflict(['id']).ignore().transacting(transaction),
       ),
     ])
       .then(async () => (!trx ? transaction.commit() : null))

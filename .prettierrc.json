@@ -6,5 +6,6 @@
   "printWidth": 120,
   "importOrder": ["@gittrends/github", "@gittrends/service", "@gittrends/*", "^[./]"],
   "importOrderSeparation": true,
-  "importOrderSortSpecifiers": true
+  "importOrderSortSpecifiers": true,
+  "importOrderParserPlugins": ["typescript", "decorators-legacy"]
 }

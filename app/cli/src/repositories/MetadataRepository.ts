@@ -1,6 +1,5 @@
 import { each } from 'bluebird';
 import { Knex } from 'knex';
-import { cloneDeep } from 'lodash';
 
 import { IMetadataRepository } from '@gittrends/service';
 
@@ -19,9 +18,9 @@ export class MetadataRepository implements IMetadataRepository {
   }
 
   async save(metadata: Metadata | Metadata[], trx?: Knex.Transaction, upsert = false): Promise<void> {
-    const transaction = trx || (await this.db.transaction());
+    const metas = Array.isArray(metadata) ? metadata : [metadata];
 
-    const metas = (Array.isArray(metadata) ? metadata : [metadata]).map(cloneDeep);
+    const transaction = trx || (await this.db.transaction());
 
     await each(metas, (meta) => {
       const { repository, resource, end_cursor, updated_at, finished_at, ...payload } = meta;

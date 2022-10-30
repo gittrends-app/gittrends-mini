@@ -1,6 +1,5 @@
 import { each } from 'bluebird';
 import { Knex } from 'knex';
-import { cloneDeep } from 'lodash';
 
 import { IResourceRepository } from '@gittrends/service';
 
@@ -34,14 +33,14 @@ export class DependenciesRepository implements IResourceRepository<Dependency> {
   }
 
   async save(dependency: Dependency | Dependency[], trx?: Knex.Transaction): Promise<void> {
-    const dependencies = (Array.isArray(dependency) ? dependency : [dependency]).map(cloneDeep);
+    const dependencies = Array.isArray(dependency) ? dependency : [dependency];
 
     const transaction = trx || (await this.db.transaction());
 
     await each(dependencies, (dep) =>
       this.db
         .table(Dependency.__collection_name)
-        .insertEntity(dep.toJSON())
+        .insertEntity(dep)
         .onConflict(['repository', 'manifest', 'package_name', 'requirements'])
         .ignore()
         .transacting(transaction),

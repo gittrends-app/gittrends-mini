@@ -1,6 +1,5 @@
 import { each } from 'bluebird';
 import { Knex } from 'knex';
-import { cloneDeep, uniqBy } from 'lodash';
 
 import { IActorsRepository } from '@gittrends/service';
 
@@ -36,15 +35,10 @@ export class ActorsRepository implements IActorsRepository {
   async save<T extends Actor>(user: T | T[], trx?: Knex.Transaction): Promise<void> {
     const transaction = trx || (await this.db.transaction());
 
-    const actors = uniqBy(Array.isArray(user) ? user : [user], 'id').map(cloneDeep);
+    const actors = Array.isArray(user) ? user : [user];
 
     await each(actors, (actor) =>
-      this.db
-        .table(Actor.__collection_name)
-        .insertEntity(actor.toJSON())
-        .onConflict('id')
-        .ignore()
-        .transacting(transaction),
+      this.db.table(Actor.__collection_name).insertEntity(actor).onConflict('id').ignore().transacting(transaction),
     )
       .then(async () => (!trx ? transaction.commit() : null))
       .catch(async (error) => {
@@ -54,14 +48,14 @@ export class ActorsRepository implements IActorsRepository {
   }
 
   async upsert<T extends Actor>(user: T | T[], trx?: Knex.Transaction): Promise<void> {
-    const transaction = trx || (await this.db.transaction());
+    const actors = Array.isArray(user) ? user : [user];
 
-    const actors = uniqBy(Array.isArray(user) ? user : [user], 'id');
+    const transaction = trx || (await this.db.transaction());
 
     await each(actors, (actor) =>
       this.db
         .table(Actor.__collection_name)
-        .insertEntity({ ...actor.toJSON(), __updated_at: new Date() })
+        .insertEntity(Object.assign(actor, { __updated_at: new Date() }))
         .onConflict('id')
         .merge()
         .transacting(transaction),

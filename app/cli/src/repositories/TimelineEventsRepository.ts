@@ -42,8 +42,8 @@ export class TimelineEventsRepository implements IResourceRepository<TimelineEve
   }
 
   async save<T extends TimelineEvent>(event: T | T[], trx?: Knex.Transaction): Promise<void> {
-    const events = (Array.isArray(event) ? event : [event]).map((event) => {
-      const { id, repository, type, issue, ...payload } = cloneDeep(event);
+    const events = cloneDeep(Array.isArray(event) ? event : [event]).map((event) => {
+      const { id, repository, type, issue, ...payload } = event;
       return { id, repository, type, issue, payload: size(payload) > 0 ? payload : undefined };
     });
 

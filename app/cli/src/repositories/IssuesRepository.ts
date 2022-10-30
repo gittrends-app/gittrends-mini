@@ -42,8 +42,8 @@ class IssueOrPullRepository<T extends IssueOrPull> implements IResourceRepositor
   }
 
   async save(issue: T | T[], trx?: Knex.Transaction): Promise<void> {
-    const data = (Array.isArray(issue) ? issue : [issue]).map((issue) => {
-      const { reactions, timeline_items, ...otherFields } = cloneDeep(issue);
+    const data = cloneDeep(Array.isArray(issue) ? issue : [issue]).map((issue) => {
+      const { reactions, timeline_items, ...otherFields } = issue;
       const actors = extractEntityInstances<Actor>(otherFields, Actor as any);
       if (Array.isArray(issue.reactions)) issue.reactions = issue.reactions.length;
       if (Array.isArray(issue.timeline_items)) issue.timeline_items = issue.timeline_items.length;
@@ -65,7 +65,7 @@ class IssueOrPullRepository<T extends IssueOrPull> implements IResourceRepositor
         this.eventsRepo.save(timeline_items, transaction),
         this.db
           .table((this.IssueOrPullClass as any).__collection_name)
-          .insertEntity(issue.toJSON())
+          .insertEntity(issue)
           .onConflict('id')
           .merge()
           .transacting(transaction),

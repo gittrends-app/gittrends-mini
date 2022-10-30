@@ -6,6 +6,12 @@ import { cloneDeep, omit, snakeCase } from 'lodash';
 import { BaseError } from 'make-error-cause';
 import { plural } from 'pluralize';
 
+function enumerable(value: boolean) {
+  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+    descriptor.enumerable = value;
+  };
+}
+
 export abstract class Entity<T = any> {
   static readonly __schema: Joi.ObjectSchema<Entity>;
   static readonly __strip_unknown: boolean = true;
@@ -19,6 +25,7 @@ export abstract class Entity<T = any> {
     if (object) Object.assign(this, (this.constructor as unknown as typeof Entity).validate(object));
   }
 
+  @enumerable(false)
   public toJSON(): Record<any, unknown> {
     return omit(cloneDeep(this), ['toJSON']);
   }

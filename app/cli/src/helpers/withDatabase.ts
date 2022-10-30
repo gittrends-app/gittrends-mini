@@ -35,12 +35,12 @@ export async function withDatabase<T>(db: any, context?: any): Promise<T> {
   let config: { name: string; migrate?: boolean } = { name: 'public', migrate: false };
   let callback: (repos: Repositories) => Promise<any>;
 
-  if (typeof db !== 'function') {
-    if (typeof db === 'string') config.name = db;
-    else if (typeof db === 'object') config = db;
-    callback = context;
-  } else {
+  if (typeof db === 'function') {
     callback = db;
+  } else {
+    if (typeof db === 'string') config.name = db;
+    else config = db;
+    callback = context;
   }
 
   const knex = await createOrConnectDatabase(config.name).then(async (conn) => {

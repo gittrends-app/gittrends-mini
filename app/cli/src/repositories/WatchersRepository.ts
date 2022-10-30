@@ -36,7 +36,7 @@ export class WatchersRepository implements IResourceRepository<Watcher> {
   }
 
   async save(watcher: Watcher | Watcher[], trx?: Knex.Transaction): Promise<void> {
-    const watchers = (Array.isArray(watcher) ? watcher : [watcher]).map(cloneDeep);
+    const watchers = cloneDeep(Array.isArray(watcher) ? watcher : [watcher]);
     const actors = extractEntityInstances<Actor>(watchers, Actor as any);
 
     const transaction = trx || (await this.db.transaction());
@@ -46,7 +46,7 @@ export class WatchersRepository implements IResourceRepository<Watcher> {
       each(watchers, (watcher) =>
         this.db
           .table(Watcher.__collection_name)
-          .insertEntity(watcher.toJSON())
+          .insertEntity(watcher)
           .onConflict(['repository', 'user'])
           .ignore()
           .transacting(transaction),

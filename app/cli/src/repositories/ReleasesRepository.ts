@@ -40,7 +40,7 @@ export class ReleasesRepository implements IResourceRepository<Release> {
   }
 
   async save(release: Release | Release[], trx?: Knex.Transaction): Promise<void> {
-    const releases = (Array.isArray(release) ? release : [release]).map(cloneDeep);
+    const releases = cloneDeep(Array.isArray(release) ? release : [release]);
 
     const actors = extractEntityInstances<Actor>(releases, Actor as any);
     const reactions = extractEntityInstances<Reaction>(releases, Reaction);
@@ -55,10 +55,10 @@ export class ReleasesRepository implements IResourceRepository<Release> {
           if (Array.isArray(rel.reactions)) rel.reactions = rel.reactions.length;
           return rel;
         }),
-        (rel) =>
+        (release) =>
           this.db
             .table(Release.__collection_name)
-            .insertEntity(rel.toJSON())
+            .insertEntity(release)
             .onConflict(['id'])
             .ignore()
             .transacting(transaction),

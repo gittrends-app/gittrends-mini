@@ -1,6 +1,6 @@
 import { all, each } from 'bluebird';
 import { Knex } from 'knex';
-import { cloneDeep, uniqBy } from 'lodash';
+import { cloneDeep } from 'lodash';
 
 import { IRepositoriesRepository } from '@gittrends/service';
 
@@ -46,7 +46,7 @@ export class RepositoriesRepository implements IRepositoriesRepository {
     repo: Repository | Repository[],
     opts?: { trx?: Knex.Transaction; onConflict: 'merge' | 'ignore' },
   ): Promise<void> {
-    const repos = uniqBy(Array.isArray(repo) ? repo : [repo], 'id').map(cloneDeep);
+    const repos = cloneDeep(Array.isArray(repo) ? repo : [repo]);
     const actors = extractEntityInstances<Actor>(repos, Actor as any);
 
     const transaction = opts?.trx || (await this.db.transaction());
@@ -56,7 +56,7 @@ export class RepositoriesRepository implements IRepositoriesRepository {
       each(repos, (repo) =>
         this.db
           .table(Repository.__collection_name)
-          .insertEntity(repo.toJSON())
+          .insertEntity(repo)
           .onConflict('id')
           ?.[opts?.onConflict || 'merge']()
           .transacting(transaction),

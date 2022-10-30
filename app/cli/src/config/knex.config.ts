@@ -68,12 +68,12 @@ function knexResponseParser(result: any) {
 }
 
 function getDatabasePath(repo: string) {
-  if (targetDatabase === 'postgres') return repo.replace(/\./g, '[dot]').slice(0, 63);
+  if (targetDatabase === 'postgres') return repo.toLocaleLowerCase().replace(/\./g, '[dot]').slice(0, 63);
   else if (targetDatabase === 'sqlite') return resolve(baseDir, ...repo.toLowerCase().split('/')) + '.sqlite';
   else throw new Error(`Invalid target database "${targetDatabase}"!`);
 }
 
-function getConnectionSettings(repo: string): Knex.Config<any> {
+function getConnectionSettings(repo: string): Knex.Config & Knex.MigratorConfig {
   if (targetDatabase === 'postgres') {
     return {
       client: 'pg',
@@ -84,10 +84,14 @@ function getConnectionSettings(repo: string): Knex.Config<any> {
         password: process.env.CLI_DATABASE_PASSWORD ?? 'root',
         database: process.env.CLI_DATABASE_DB ?? 'gittrends.app',
       },
-      searchPath: [getDatabasePath(repo), 'public'], // postgres limita a 63 chars nome de schemas
+      searchPath: [repo], // postgres limita a 63 chars nome de schemas
       pool: {
         min: repo.toLowerCase() === 'public' ? 0 : parseInt(process.env.CLI_DATABASE_POOL_MIN || '1'),
         max: repo.toLowerCase() === 'public' ? 1 : parseInt(process.env.CLI_DATABASE_POOL_MAX || '3'),
+      },
+      migrations: {
+        schemaName: repo,
+        disableTransactions: false,
       },
     };
   }
@@ -107,9 +111,12 @@ function getConnectionSettings(repo: string): Knex.Config<any> {
 }
 
 export async function createOrConnectDatabase(repo: string) {
+  const schemaOrDbName = getDatabasePath(repo);
+  const config = getConnectionSettings(schemaOrDbName);
   const conn = knex({
-    ...getConnectionSettings(repo.toLowerCase()),
+    ...config,
     migrations: {
+      ...config.migrations,
       directory: resolve(__dirname, 'migrations'),
       tableName: '_migrations',
       loadExtensions: [extname(__filename)],
@@ -120,7 +127,7 @@ export async function createOrConnectDatabase(repo: string) {
     },
   });
 
-  if (targetDatabase === 'postgres') await conn.schema.createSchemaIfNotExists(getDatabasePath(repo));
+  if (targetDatabase === 'postgres') await conn.schema.createSchemaIfNotExists(schemaOrDbName);
 
   return conn;
 }

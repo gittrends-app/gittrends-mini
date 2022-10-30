@@ -37,7 +37,7 @@ export class StargazersRepository implements IResourceRepository<Stargazer> {
   }
 
   async save(stargazer: Stargazer | Stargazer[], trx?: Knex.Transaction): Promise<void> {
-    const stars = (Array.isArray(stargazer) ? stargazer : [stargazer]).map(cloneDeep);
+    const stars = cloneDeep(Array.isArray(stargazer) ? stargazer : [stargazer]);
     const actors = extractEntityInstances<Actor>(stars, Actor as any);
 
     const transaction = trx || (await this.db.transaction());
@@ -47,7 +47,7 @@ export class StargazersRepository implements IResourceRepository<Stargazer> {
       each(stars, (star) =>
         this.db
           .table(Stargazer.__collection_name)
-          .insertEntity(star.toJSON())
+          .insertEntity(star)
           .onConflict(['repository', 'user', 'starred_at'])
           .ignore()
           .transacting(transaction),
