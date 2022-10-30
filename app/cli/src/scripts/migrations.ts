@@ -1,5 +1,5 @@
 import { AsyncWorker, queue } from 'async';
-import { Command, program } from 'commander';
+import { Argument, Command, program } from 'commander';
 import consola from 'consola';
 
 import { Repository } from '@gittrends/entities';
@@ -17,7 +17,7 @@ async function forEach(queueFunction: AsyncWorker<string>) {
       knex
         .from(Repository.__collection_name)
         .select('name_with_owner')
-        .then((repos) => repos.map((repo) => repo.name_with_owner)),
+        .then((repos: { name_with_owner: string }[]) => repos.map((repo) => repo.name_with_owner)),
     ),
   );
 
@@ -31,14 +31,24 @@ async function forEach(queueFunction: AsyncWorker<string>) {
 export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void> {
   await program
     .addCommand(
-      new Command('migrate').action(async () =>
-        forEach((db: string, callback) => {
-          consola.log(`-> migrating ${db}`);
-          return migrate(db)
-            .then(() => callback())
-            .catch((error) => callback(error));
+      new Command('migrate')
+        .addArgument(new Argument('[repo...]', 'Repository names to run migrations').default(undefined))
+        .action(async (repos?: string[]) => {
+          async function migrateRepo(db: string): Promise<void> {
+            consola.log(`-> migrating ${db}`);
+            return migrate(db);
+          }
+
+          if (repos?.length) {
+            return Promise.all(repos.map(migrateRepo)).then(() => undefined);
+          }
+
+          return forEach((name, callback) =>
+            migrateRepo(name)
+              .then(() => callback())
+              .catch(callback),
+          );
         }),
-      ),
     )
     .addCommand(
       new Command('rollback').action(async () =>
@@ -54,7 +64,7 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
       new Command('unlock').action(() =>
         forEach((db: string, callback) => {
           consola.log(`-> unlocking ${db}`);
-          return createOrConnectDatabase(db, false)
+          return createOrConnectDatabase(db)
             .then((conn) => conn.migrate.forceFreeMigrationsLock().finally(() => conn.destroy()))
             .then(() => callback())
             .catch((error) => callback(error));

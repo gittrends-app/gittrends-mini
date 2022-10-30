@@ -15,7 +15,6 @@ import {
 } from '@gittrends/entities';
 import { debug } from '@gittrends/helpers';
 
-import { getRepositoriesList } from '../config/knex.config';
 import { CliJobType, withBullQueue } from '../helpers/withBullQueue';
 import { withDatabase } from '../helpers/withDatabase';
 import { version } from '../package.json';
@@ -81,9 +80,14 @@ export async function schedule(hours = 24, drain = false, obliterate = false) {
     }
 
     logger('Getting repositories list...');
-    const list = await getRepositoriesList();
-    logger(`Iterating over repositories list (total: ${list.length})...`);
+    const list = await withDatabase(({ knex }) =>
+      knex
+        .select('name_with_owner')
+        .from(Repository.__collection_name)
+        .then((records: { name_with_owner: string }[]) => records.map((record) => record.name_with_owner)),
+    );
 
+    logger(`Iterating over repositories list (total: ${list.length})...`);
     return new Promise<void>((resolve, reject) => {
       parallelLimit(
         list.map((name, index) => (callback) => {

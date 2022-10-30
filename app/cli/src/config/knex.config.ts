@@ -4,8 +4,6 @@ import { isNil, mapValues, omitBy, size } from 'lodash';
 import { homedir } from 'os';
 import { dirname, extname, resolve } from 'path';
 
-import { Repository } from '@gittrends/entities';
-
 type TargetDatabase = 'sqlite' | 'postgres';
 
 if (!process.env.NODE_ENV) process.env.NODE_ENV = 'development';
@@ -45,16 +43,6 @@ knex.QueryBuilder.extend('insertEntity', function (value: Record<string, unknown
   return this.insert(sqliteFormattedValue as any);
 });
 
-export async function getRepositoriesList(): Promise<string[]> {
-  return createOrConnectDatabase('public').then((conn) =>
-    conn
-      .from(Repository.__collection_name)
-      .select('name_with_owner')
-      .then((repos) => repos.map((repo) => repo.name_with_owner))
-      .finally(() => conn.destroy()),
-  );
-}
-
 function knexResponseParser(result: any) {
   if (!result) return result;
   if (result.command && result.rows) return result;
@@ -79,6 +67,12 @@ function knexResponseParser(result: any) {
   throw new Error(`Invalid target database "${targetDatabase}"!`);
 }
 
+function getDatabasePath(repo: string) {
+  if (targetDatabase === 'postgres') return repo.replace(/\./g, '[dot]').slice(0, 63);
+  else if (targetDatabase === 'sqlite') return resolve(baseDir, ...repo.toLowerCase().split('/')) + '.sqlite';
+  else throw new Error(`Invalid target database "${targetDatabase}"!`);
+}
+
 function getConnectionSettings(repo: string): Knex.Config<any> {
   if (targetDatabase === 'postgres') {
     return {
@@ -90,7 +84,7 @@ function getConnectionSettings(repo: string): Knex.Config<any> {
         password: process.env.CLI_DATABASE_PASSWORD ?? 'root',
         database: process.env.CLI_DATABASE_DB ?? 'gittrends.app',
       },
-      searchPath: [repo.replace(/\./g, '[dot]').slice(0, 63)], // postgres limita a 63 chars nome de schemas
+      searchPath: [getDatabasePath(repo), 'public'], // postgres limita a 63 chars nome de schemas
       pool: {
         min: repo.toLowerCase() === 'public' ? 0 : parseInt(process.env.CLI_DATABASE_POOL_MIN || '1'),
         max: repo.toLowerCase() === 'public' ? 1 : parseInt(process.env.CLI_DATABASE_POOL_MAX || '3'),
@@ -99,7 +93,7 @@ function getConnectionSettings(repo: string): Knex.Config<any> {
   }
 
   if (targetDatabase === 'sqlite') {
-    const databaseFile = resolve(baseDir, ...repo.toLowerCase().split('/')) + '.sqlite';
+    const databaseFile = getDatabasePath(repo);
     mkdirSync(dirname(databaseFile), { recursive: true });
     return {
       client: 'better-sqlite3',
@@ -112,7 +106,7 @@ function getConnectionSettings(repo: string): Knex.Config<any> {
   throw new Error(`Invalid target database "${targetDatabase}"!`);
 }
 
-export async function createOrConnectDatabase(repo: string, _migrate = true) {
+export async function createOrConnectDatabase(repo: string) {
   const conn = knex({
     ...getConnectionSettings(repo.toLowerCase()),
     migrations: {
@@ -126,11 +120,7 @@ export async function createOrConnectDatabase(repo: string, _migrate = true) {
     },
   });
 
-  if (_migrate) {
-    if (targetDatabase === 'postgres')
-      await conn.schema.createSchemaIfNotExists(repo.replace(/\./g, '[dot]').toLowerCase());
-    await conn.migrate.latest();
-  }
+  if (targetDatabase === 'postgres') await conn.schema.createSchemaIfNotExists(getDatabasePath(repo));
 
   return conn;
 }
@@ -138,8 +128,6 @@ export async function createOrConnectDatabase(repo: string, _migrate = true) {
 export async function migrate(db: string | Knex): Promise<void> {
   if (typeof db === 'string') {
     const conn = await createOrConnectDatabase(db);
-    if (targetDatabase === 'postgres')
-      await conn.schema.createSchemaIfNotExists(db.replace(/\./g, '[dot]').toLowerCase().slice(0, 63)); // postgres limita a 63 chars nome de schemas
     return migrate(conn).finally(() => conn.destroy());
   }
 
@@ -149,8 +137,6 @@ export async function migrate(db: string | Knex): Promise<void> {
 export async function rollback(db: string | Knex): Promise<void> {
   if (typeof db === 'string') {
     const conn = await createOrConnectDatabase(db);
-    if (targetDatabase === 'postgres')
-      await conn.schema.createSchemaIfNotExists(db.replace(/\./g, '[dot]').toLowerCase().slice(0, 63)); // postgres limita a 63 chars nome de schemas
     return rollback(conn).finally(() => conn.destroy());
   }
 

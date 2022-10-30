@@ -1,6 +1,6 @@
 import { Knex } from 'knex';
 
-import { createOrConnectDatabase } from '../config/knex.config';
+import { createOrConnectDatabase, migrate } from '../config/knex.config';
 import { ActorsRepository } from '../repositories/ActorRepository';
 import { DependenciesRepository } from '../repositories/DependenciesRepository';
 import { IssuesRepository, PullRequestsRepository } from '../repositories/IssuesRepository';
@@ -43,7 +43,16 @@ export async function withDatabase<T>(db: any, context?: any): Promise<T> {
     callback = db;
   }
 
-  const knex = await createOrConnectDatabase(config.name, config.migrate);
+  const knex = await createOrConnectDatabase(config.name).then(async (conn) => {
+    if (config.migrate) {
+      await migrate(conn);
+    } else {
+      const [, pending] = await conn.migrate.list();
+      if (pending.length)
+        throw new Error(`Database schema from "${config.name}" is not updated! See "migrations" information.`);
+    }
+    return conn;
+  });
 
   const repos: Repositories = {
     knex,
