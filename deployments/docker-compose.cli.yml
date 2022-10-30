@@ -15,14 +15,26 @@ services:
     command: -c 'config_file=/etc/postgresql/postgresql.conf'
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER-root}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD-root}
-      POSTGRES_DB: ${POSTGRES_DB-gittrends.app}
+      POSTGRES_USER: ${POSTGRES_USER:-root}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-root}
+      POSTGRES_DB: ${POSTGRES_DB:-gittrends.app}
     ports:
       - 5432:5432
     volumes:
       - db:/var/lib/postgresql/data
 
+  pgAdmin:
+    image: dpage/pgadmin4:latest
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: root@email.com
+      PGADMIN_DEFAULT_PASSWORD: root
+    ports:
+      - 5433:80
+    volumes:
+      - ./pgadmin/servers.json:/pgadmin4/servers.json
+    depends_on:
+      - postgres
 volumes:
   db:
     driver: local
