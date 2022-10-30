@@ -13,6 +13,8 @@ function objectToString(object: Record<string, any>) {
 }
 
 if (!isMainThread) {
+  const interval = setInterval(() => globalThis.gc && globalThis.gc(), 5000);
+
   withBullWorker(async (job) => {
     if (!job.data.name_with_owner) throw new Error('Invlaid job:id!');
 
@@ -55,5 +57,5 @@ if (!isMainThread) {
         if (globalThis.gc) globalThis.gc();
         parentPort?.postMessage({ event: 'finished', name: job.data.name_with_owner });
       });
-  }, workerData.concurrency);
+  }, workerData.concurrency).finally(() => clearInterval(interval));
 }
