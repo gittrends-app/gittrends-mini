@@ -86,8 +86,8 @@ function getConnectionSettings(repo: string): Knex.Config & Knex.MigratorConfig 
       },
       searchPath: [repo], // postgres limita a 63 chars nome de schemas
       pool: {
-        min: repo.toLowerCase() === 'public' ? 0 : parseInt(process.env.CLI_DATABASE_POOL_MIN || '1'),
-        max: repo.toLowerCase() === 'public' ? 1 : parseInt(process.env.CLI_DATABASE_POOL_MAX || '3'),
+        min: repo === 'public' ? 0 : parseInt(process.env.CLI_DATABASE_POOL_MIN || '1'),
+        max: repo === 'public' ? 1 : parseInt(process.env.CLI_DATABASE_POOL_MAX || '3'),
       },
       migrations: {
         schemaName: repo,
