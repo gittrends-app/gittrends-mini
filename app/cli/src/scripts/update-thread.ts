@@ -13,29 +13,35 @@ function objectToString(object: Record<string, any>) {
 }
 
 if (!isMainThread) {
-  const interval = setInterval(() => globalThis.gc && globalThis.gc(), 5000);
+  const httpClient = new HttpClient(workerData.httpClientOpts);
 
   withBullWorker(async (job) => {
-    if (!job.data.name_with_owner) throw new Error('Invlaid job:id!');
+    if (!job.data.name_with_owner) throw new Error('Invlaid job id!');
 
     parentPort?.postMessage({ event: 'started', name: job.data.name_with_owner });
+
+    const resources = compact(
+      job.data.pending_resources.map((r) => UpdatebleResourcesList.find((ur) => ur.__collection_name === r)),
+    );
+
     await updater(job.data.name_with_owner, {
-      httpClient: new HttpClient(workerData.httpClientOpts),
-      resources: compact(
-        job.data.pending_resources.map((r) => UpdatebleResourcesList.find((ur) => ur.__collection_name === r)),
-      ),
-      onProgress: (progress) => {
+      httpClient: httpClient,
+      resources: resources,
+      onProgress: async (progress) => {
         const [current, total] = Object.values(progress).reduce(
           ([current, total], rp) => [current + rp.current, total + rp.total],
           [0, 0],
         );
+
         parentPort?.postMessage({ event: 'updated', name: job.data.name_with_owner, current, total });
+
         const finishedResources = compact(
           Object.keys(progress).map((resource) =>
             job.data.pending_resources.includes(resource) && progress[resource].done ? resource : undefined,
           ),
         );
-        Promise.all([
+
+        await Promise.all([
           job.updateProgress(round((current / total) * 100, 1)),
           job.update({
             ...job.data,
@@ -57,5 +63,5 @@ if (!isMainThread) {
         if (globalThis.gc) globalThis.gc();
         parentPort?.postMessage({ event: 'finished', name: job.data.name_with_owner });
       });
-  }, workerData.concurrency).finally(() => clearInterval(interval));
+  }, workerData.concurrency);
 }

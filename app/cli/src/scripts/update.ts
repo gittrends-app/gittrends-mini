@@ -4,7 +4,7 @@ import { Queue, QueueEvents } from 'bullmq';
 import { MultiBar, SingleBar } from 'cli-progress';
 import { Argument, Option, program } from 'commander';
 import consola, { WinstonReporter } from 'consola';
-import { chunk, compact, get, isNil, omitBy, pick, size, sum, values } from 'lodash';
+import { chunk, compact, get, pick, sum, values } from 'lodash';
 import path, { extname } from 'node:path';
 import readline from 'node:readline';
 import { clearInterval } from 'node:timers';
@@ -68,7 +68,7 @@ type ResourceProgress = Record<string, { done: boolean; current: number; total: 
 type UpdaterOpts = {
   httpClient: HttpClient;
   resources: UpdatableResource[];
-  onProgress?: (progress: ResourceProgress) => void;
+  onProgress?: (progress: ResourceProgress) => void | Promise<void>;
 };
 
 export async function updater(name: string, opts: UpdaterOpts) {
@@ -85,62 +85,16 @@ export async function updater(name: string, opts: UpdaterOpts) {
     if (!repo) throw new Error(`Repository ${name} not found!`);
 
     logger('Updating local data...');
-    await withDatabase('public', ({ repositories }) => (repo ? repositories.save(repo) : Promise.reject()));
+    await withDatabase('public', async ({ repositories }) => repo && repositories.save(repo));
 
     logger('Preparing resources metadata...');
-    let writeBatchSize: Record<string, number | undefined> = {};
-
-    const resources = [];
-
-    if (opts.resources.includes(Stargazer)) {
-      resources.push({ resource: Stargazer, repository: localRepos.stargazers });
-      writeBatchSize[Stargazer.__collection_name] =
-        parseInt(process.env[`CLI_WRITE_BATCH_${Stargazer.__collection_name}`.toUpperCase()] || '') || undefined;
-    }
-
-    if (opts.resources.includes(Tag)) {
-      resources.push({ resource: Tag, repository: localRepos.tags });
-      writeBatchSize[Tag.__collection_name] =
-        parseInt(process.env[`CLI_WRITE_BATCH_${Tag.__collection_name}`.toUpperCase()] || '') || undefined;
-    }
-
-    if (opts.resources.includes(Release)) {
-      resources.push({ resource: Release, repository: localRepos.releases });
-      writeBatchSize[Release.__collection_name] =
-        parseInt(process.env[`CLI_WRITE_BATCH_${Release.__collection_name}`.toUpperCase()] || '') || undefined;
-    }
-
-    if (opts.resources.includes(Watcher)) {
-      resources.push({ resource: Watcher, repository: localRepos.watchers });
-      writeBatchSize[Watcher.__collection_name] =
-        parseInt(process.env[`CLI_WRITE_BATCH_${Watcher.__collection_name}`.toUpperCase()] || '') || undefined;
-    }
-
-    if (opts.resources.includes(Dependency)) {
-      resources.push({ resource: Dependency, repository: localRepos.dependencies });
-      writeBatchSize[Dependency.__collection_name] =
-        parseInt(process.env[`CLI_WRITE_BATCH_${Dependency.__collection_name}`.toUpperCase()] || '') || undefined;
-    }
-
-    if (opts.resources.includes(Issue)) {
-      resources.push({ resource: Issue, repository: localRepos.issues });
-      writeBatchSize[Issue.__collection_name] =
-        parseInt(process.env[`CLI_WRITE_BATCH_${Issue.__collection_name}`.toUpperCase()] || '') || undefined;
-    }
-
-    if (opts.resources.includes(PullRequest)) {
-      resources.push({ resource: PullRequest, repository: localRepos.pull_requests });
-      writeBatchSize[PullRequest.__collection_name] =
-        parseInt(process.env[`CLI_WRITE_BATCH_${PullRequest.__collection_name}`.toUpperCase()] || '') || undefined;
-    }
+    const resources = opts.resources.map((resource) => ({ resource, repository: localRepos.get(resource as any) }));
 
     let actorsIds: Array<{ id: string }> | undefined;
     if (opts.resources.includes(Actor)) {
       logger('Finding for not updated actors...');
       actorsIds = await localRepos.knex.select('id').from(Actor.__collection_name).whereNull('__updated_at');
     }
-
-    writeBatchSize = omitBy(writeBatchSize, isNil);
 
     logger('Getting resources metadata...');
     const repoResourcesInfo = await mapSeries(resources, async (info) => {
@@ -166,18 +120,12 @@ export async function updater(name: string, opts: UpdaterOpts) {
       );
     };
 
-    const iterator = localService.resources(repo.id, repoResourcesInfo, {
-      ignoreCache: true,
-      persistenceBatchSize: size(writeBatchSize)
-        ? (writeBatchSize as Record<string, number>)
-        : parseInt(process.env.CLI_WRITE_BATCH || '') || undefined,
-    });
+    const iterator = localService.resources(repo.id, repoResourcesInfo, { ignoreCache: true });
 
     const actorsUpdatePromise = withDatabase('public', async (publicActorsRepos) => {
       if (!actorsIds?.length) return;
-      const chunkSize = parseInt(process.env.CLI_WRITE_BATCH_ACTORS || '100');
       const actorsProxy = new ProxyService(opts.httpClient, publicActorsRepos);
-      for (const [index, iChunk] of chunk(actorsIds, chunkSize).entries()) {
+      for (const [index, iChunk] of chunk(actorsIds, 100).entries()) {
         logger(`Updating ${iChunk.length * index + iChunk.length} (of ${actorsIds.length}) actors...`);
         try {
           const ids = iChunk.map((i) => i.id);

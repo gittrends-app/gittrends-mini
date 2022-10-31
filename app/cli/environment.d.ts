@@ -27,16 +27,6 @@ declare global {
 
       CLI_SCHEDULER_WORKERS?: string;
       CLI_SCHEDULER_ATTEMPS?: string;
-
-      CLI_WRITE_BATCH?: string;
-      CLI_WRITE_BATCH_ACTORS?: string;
-      CLI_WRITE_BATCH_STARGAZERS?: string;
-      CLI_WRITE_BATCH_WATCHERS?: string;
-      CLI_WRITE_BATCH_TAGS?: string;
-      CLI_WRITE_BATCH_RELEASES?: string;
-      CLI_WRITE_BATCH_DEPENDENCIES?: string;
-      CLI_WRITE_BATCH_ISSUES?: string;
-      CLI_WRITE_BATCH_PULL_REQUESTS?: string;
     }
   }
 }

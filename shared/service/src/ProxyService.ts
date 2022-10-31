@@ -26,7 +26,7 @@ export class ProxyService implements Service {
   resources(
     repositoryId: string,
     resources: { resource: Constructor<RepositoryResource>; endCursor?: string; hasNextPage?: boolean }[],
-    opts?: { persistenceBatchSize?: number | Record<string, number>; ignoreCache?: boolean },
+    opts?: { ignoreCache?: boolean },
   ): Iterable<RepositoryResource> {
     logger(`Creating ProxiedIterator for ${repositoryId} (${resources.map((r) => r.resource.name).join(', ')})`);
     return new ProxiedIterator(repositoryId, resources, {
@@ -34,7 +34,6 @@ export class ProxyService implements Service {
       local: this.cacheService,
       repos: this.persistence,
       ignoreCache: opts?.ignoreCache,
-      persistenceBatchSize: opts?.persistenceBatchSize,
     });
   }
 
@@ -101,7 +100,6 @@ class ProxiedIterator implements Iterable<RepositoryResource> {
   private localIterables?: Iterable<RepositoryResource>;
   private githubIterables?: Iterable<RepositoryResource>;
   private done = false;
-  private resourcesBatch: { items: RepositoryResource[]; endCursor?: string }[];
 
   constructor(
     private repositoryId: string,
@@ -110,12 +108,9 @@ class ProxiedIterator implements Iterable<RepositoryResource> {
       local: LocalService;
       github: GitHubService;
       repos: ServiceOpts;
-      persistenceBatchSize?: number | Record<string, number>;
       ignoreCache?: boolean;
     },
-  ) {
-    this.resourcesBatch = resources.map(() => ({ items: [] }));
-  }
+  ) {}
 
   [Symbol.asyncIterator]() {
     return this;
@@ -158,39 +153,21 @@ class ProxiedIterator implements Iterable<RepositoryResource> {
     await each(
       (githubResults.value || []) as { items: RepositoryResource[]; endCursor?: string; hasNextPage: boolean }[],
       async (result, index) => {
-        const persistenceBatchSize = !this.opts.persistenceBatchSize
-          ? undefined
-          : typeof this.opts.persistenceBatchSize === 'number'
-          ? this.opts.persistenceBatchSize
-          : this.opts.persistenceBatchSize[(this.resources[index].resource as any).__collection_name];
-
         const repository: IResourceRepository<RepositoryResource> = (this.opts.repos as any)[
           (this.resources[index].resource as any).__collection_name
         ];
 
-        const arrayRef = this.resourcesBatch[index];
-        arrayRef.items.push(...result.items);
-        arrayRef.endCursor = result.endCursor;
-
-        if (
-          (persistenceBatchSize && arrayRef.items.length >= persistenceBatchSize) ||
-          (!result.hasNextPage && arrayRef.items.length > 0)
-        ) {
-          logger(`Persisting ${arrayRef.items.length} ${(this.resources[index].resource as any).__collection_name}...`);
-          await repository
-            .save(arrayRef.items)
-            .then(() => {
-              const data: Partial<Metadata> = {
-                repository: this.repositoryId,
-                end_cursor: arrayRef.endCursor,
-                resource: (this.resources[index].resource as any).__collection_name,
-                updated_at: new Date(),
-              };
-              if (!result.hasNextPage) data.finished_at = new Date();
-              return this.opts.repos.metadata.upsert(new Metadata(data));
-            })
-            .then(() => (arrayRef.items = []));
-        }
+        logger(`Persisting ${result.items.length} ${(this.resources[index].resource as any).__collection_name}...`);
+        await (result.items.length > 0 ? repository.save(result.items) : Promise.resolve()).then(() => {
+          const data: Partial<Metadata> = {
+            repository: this.repositoryId,
+            end_cursor: result.endCursor,
+            resource: (this.resources[index].resource as any).__collection_name,
+            updated_at: new Date(),
+          };
+          if (!result.hasNextPage) data.finished_at = new Date();
+          return this.opts.repos.metadata.upsert(new Metadata(data));
+        });
       },
     );
 
