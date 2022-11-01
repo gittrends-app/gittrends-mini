@@ -7,6 +7,8 @@ import {
   Actor,
   Dependency,
   EntityValidationError,
+  Issue,
+  PullRequest,
   Release,
   Repository,
   Stargazer,
@@ -19,7 +21,7 @@ import { CliJobType, withBullQueue } from '../helpers/withBullQueue';
 import { withDatabase } from '../helpers/withDatabase';
 import { version } from '../package.json';
 
-const Resources = [Actor, Repository, Stargazer, Watcher, Tag, Release, Dependency].map(
+const Resources = [Actor, Repository, Stargazer, Watcher, Tag, Release, Dependency, Issue, PullRequest].map(
   (entity) => entity.__collection_name,
 );
 
