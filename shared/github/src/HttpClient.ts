@@ -35,11 +35,13 @@ export class HttpClient {
         host: 'api.github.com',
         protocol: 'https',
         authToken: opts,
+        timeout: 15000,
+        retries: 5,
       };
     }
 
-    this.timeout = opts.timeout || 15000;
-    this.retries = opts.retries || 0;
+    this.timeout = opts.timeout ?? 15000;
+    this.retries = opts.retries ?? 5;
     this.baseUrl = new URL(`${opts.protocol}://${opts.host}:${opts.port || ''}`).toString();
 
     this.client = axios.create({
