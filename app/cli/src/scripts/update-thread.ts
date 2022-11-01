@@ -3,8 +3,10 @@ import { isMainThread, parentPort, workerData } from 'node:worker_threads';
 
 import { HttpClient } from '@gittrends/github';
 
+import { Entity } from '@gittrends/entities';
+
 import { withBullWorker } from '../helpers/withBullQueue';
-import { UpdatebleResourcesList, errorLogger, updater } from './update';
+import { UpdatableResource, UpdatebleResourcesList, errorLogger, updater } from './update';
 
 function objectToString(object: Record<string, any>) {
   return Object.keys(object)
@@ -22,7 +24,7 @@ if (!isMainThread) {
 
     const resources = compact(
       job.data.pending_resources.map((r) => UpdatebleResourcesList.find((ur) => ur.__collection_name === r)),
-    );
+    ) as (typeof Entity & ThisType<UpdatableResource>)[];
 
     await updater(job.data.name_with_owner, {
       httpClient: httpClient,

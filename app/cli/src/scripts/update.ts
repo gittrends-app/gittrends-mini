@@ -1,6 +1,7 @@
 import { queue } from 'async';
 import { mapSeries } from 'bluebird';
 import { Queue, QueueEvents } from 'bullmq';
+import { red } from 'chalk';
 import { MultiBar, SingleBar } from 'cli-progress';
 import { Argument, Option, program } from 'commander';
 import consola, { WinstonReporter } from 'consola';
@@ -18,7 +19,18 @@ import { HttpClient } from '@gittrends/github';
 
 import { ProxyService } from '@gittrends/service';
 
-import { Actor, Dependency, Issue, PullRequest, Release, Stargazer, Tag, Watcher } from '@gittrends/entities';
+import {
+  Actor,
+  Dependency,
+  Entity,
+  Issue,
+  PullRequest,
+  Release,
+  RepositoryResource,
+  Stargazer,
+  Tag,
+  Watcher,
+} from '@gittrends/entities';
 import { debug } from '@gittrends/helpers';
 
 import { withBullEvents, withBullQueue } from '../helpers/withBullQueue';
@@ -51,15 +63,10 @@ export const errorLogger = consola.create({
   ],
 });
 
-export type UpdatableResource =
-  | typeof Stargazer
-  | typeof Tag
-  | typeof Release
-  | typeof Watcher
-  | typeof Dependency
-  | typeof Issue
-  | typeof PullRequest
-  | typeof Actor;
+export type UpdatableRepositoryResource = typeof Entity &
+  ThisType<Stargazer | Tag | Release | Watcher | Dependency | Issue | PullRequest>;
+
+export type UpdatableResource = UpdatableRepositoryResource | (typeof Entity & ThisType<Actor>);
 
 export const UpdatebleResourcesList = [Stargazer, Tag, Release, Watcher, Dependency, Issue, PullRequest, Actor];
 
@@ -72,7 +79,7 @@ type UpdaterOpts = {
 };
 
 export async function updater(name: string, opts: UpdaterOpts) {
-  logger(`Starting updater for ${name} (resources: ${opts.resources.join(', ')})`);
+  logger(`Starting updater for ${name} (resources: ${opts.resources.map((r) => r.__collection_name).join(', ')})`);
   return withDatabase(name, async (localRepos) => {
     const localService = new ProxyService(opts.httpClient, localRepos);
 
@@ -88,7 +95,12 @@ export async function updater(name: string, opts: UpdaterOpts) {
     await withDatabase('public', async ({ repositories }) => repo && repositories.save(repo));
 
     logger('Preparing resources metadata...');
-    const resources = opts.resources.map((resource) => ({ resource, repository: localRepos.get(resource as any) }));
+    const repositoryResources = opts.resources
+      .filter((r) => r !== Actor)
+      .map((resource) => ({
+        resource,
+        repository: localRepos.get<RepositoryResource>(resource),
+      }));
 
     let actorsIds: Array<{ id: string }> | undefined;
     if (opts.resources.includes(Actor)) {
@@ -97,49 +109,54 @@ export async function updater(name: string, opts: UpdaterOpts) {
     }
 
     logger('Getting resources metadata...');
-    const repoResourcesInfo = await mapSeries(resources, async (info) => {
-      const [meta] = await localRepos.metadata.findByRepository(
-        repo?.id as string,
-        info.resource.__collection_name as any,
-      );
+    const repositoryResourcesMeta = await mapSeries(repositoryResources, async (info) => {
+      const [meta] = await localRepos.metadata.findByRepository(repo?.id as string, info.resource.__collection_name);
       const cachedCount = await info.repository.countByRepository(repo?.id as string);
       const total = get(repo, info.resource.__collection_name, 0);
+
       return { resource: info.resource, done: false, current: cachedCount, total, endCursor: meta?.end_cursor };
     });
 
-    const usersResourceInfo = { resource: Actor, done: false, current: 0, total: actorsIds?.length || 0 };
+    logger('Getting actors metadata...');
+    const usersResourceInfo = opts.resources.includes(Actor)
+      ? { resource: Actor, done: false, current: 0, total: actorsIds?.length || 0 }
+      : undefined;
 
     const reportCurrentProgress = function () {
       if (!opts.onProgress) return;
 
       return opts.onProgress(
-        [...repoResourcesInfo, usersResourceInfo].reduce(
+        [...repositoryResourcesMeta, ...(usersResourceInfo ? [usersResourceInfo] : [])].reduce(
           (progress, { resource, ...info }) => ({ ...progress, [resource.__collection_name]: info }),
           {},
         ),
       );
     };
 
-    const iterator = localService.resources(repo.id, repoResourcesInfo, { ignoreCache: true });
+    const iterator = localService.resources(repo.id, repositoryResourcesMeta, { ignoreCache: true });
 
-    const actorsUpdatePromise = withDatabase('public', async (publicActorsRepos) => {
-      if (!actorsIds?.length) return;
-      const actorsProxy = new ProxyService(opts.httpClient, publicActorsRepos);
-      for (const [index, iChunk] of chunk(actorsIds, 100).entries()) {
-        logger(`Updating ${iChunk.length * index + iChunk.length} (of ${actorsIds.length}) actors...`);
-        try {
-          const ids = iChunk.map((i) => i.id);
-          await localRepos.actors.upsert(await actorsProxy.getActor(ids).then(compact));
-        } finally {
-          usersResourceInfo.current += iChunk.length;
+    logger('Starting actors update...');
+    const actorsUpdatePromise = usersResourceInfo
+      ? withDatabase('public', async (publicActorsRepos) => {
+          if (!actorsIds?.length) return;
+          const actorsProxy = new ProxyService(opts.httpClient, publicActorsRepos);
+          for (const [index, iChunk] of chunk(actorsIds, 100).entries()) {
+            logger(`Updating ${iChunk.length * index + iChunk.length} (of ${actorsIds.length}) actors...`);
+            try {
+              const ids = iChunk.map((i) => i.id);
+              await localRepos.actors.upsert(await actorsProxy.getActor(ids).then(compact));
+            } finally {
+              usersResourceInfo.current += iChunk.length;
+              reportCurrentProgress();
+            }
+          }
+          usersResourceInfo.done = true;
           reportCurrentProgress();
-        }
-      }
-      usersResourceInfo.done = true;
-      reportCurrentProgress();
-      logger(`${actorsIds.length} actors updated...`);
-    });
+          logger(`${actorsIds.length} actors updated...`);
+        })
+      : Promise.resolve();
 
+    logger('Starting resources update...');
     const resourcesUpdatePromise = new Promise<void>((resolve, reject) =>
       (async () => {
         logger('Iterating over resources...');
@@ -147,7 +164,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
         while (true) {
           const { done, value } = await iterator.next();
           if (done) break;
-          repoResourcesInfo.forEach((info, index) => {
+          repositoryResourcesMeta.forEach((info, index) => {
             info.done = !value[index].hasNextPage;
             info.current += value[index].items.length;
           });
@@ -160,12 +177,20 @@ export async function updater(name: string, opts: UpdaterOpts) {
 
     logger('Waiting update process to finish...');
     return Promise.all([actorsUpdatePromise, resourcesUpdatePromise]);
+  }).catch((error) => {
+    logger(red(error.message));
+    throw error;
   });
 }
 
 async function asyncQueue(
   names: string[],
-  opts: { resources: UpdatableResource[]; workers: number; httpClient: HttpClient; multibar?: MultiBar },
+  opts: {
+    resources: (typeof Entity & ThisType<UpdatableResource>)[];
+    workers: number;
+    httpClient: HttpClient;
+    multibar?: MultiBar;
+  },
 ) {
   consola.info('Preparing processing queue ....');
   const queueRef = queue(
@@ -296,7 +321,7 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
   type CliOptions = {
     token?: string;
     apiUrl?: string;
-    resources: UpdatableResource[];
+    resources: (typeof Entity & ThisType<UpdatableResource>)[];
     progress: boolean;
     schedule: boolean;
     workers: number;

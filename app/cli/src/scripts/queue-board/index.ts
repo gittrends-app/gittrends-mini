@@ -7,6 +7,7 @@ import { JobType } from 'bullmq';
 import { Option, program } from 'commander';
 import consola from 'consola';
 import express from 'express';
+import internalIP from 'internal-ip';
 import { compact } from 'lodash';
 import morgan from 'morgan';
 import { resolve } from 'node:path';
@@ -36,10 +37,11 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
 
       app.use('/bull-queue', serverAdapter.getRouter());
 
+      const ip = await internalIP.v4();
+
       // other configurations of your server
       const server = app.listen(opts.port, () => {
-        consola.success(`Running on ${opts.port}...`);
-        consola.success(`For the UI, open http://localhost:${opts.port}/`);
+        consola.success(`For the UI, open http://${ip || '127.0.0.1'}:${opts.port}/`);
       });
 
       app.get('/', (_, res) => res.redirect('/public/queue-board.html'));

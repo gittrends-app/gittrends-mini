@@ -1,4 +1,3 @@
-import { all, each } from 'bluebird';
 import { Knex } from 'knex';
 import { cloneDeep } from 'lodash';
 
@@ -6,6 +5,7 @@ import { IResourceRepository } from '@gittrends/service';
 
 import { Actor, Stargazer } from '@gittrends/entities';
 
+import { asyncIterator } from '../config/knex.config';
 import { extractEntityInstances } from '../helpers/extract';
 import { ActorsRepository } from './ActorRepository';
 
@@ -42,9 +42,9 @@ export class StargazersRepository implements IResourceRepository<Stargazer> {
 
     const transaction = trx || (await this.db.transaction());
 
-    await all([
+    await Promise.all([
       this.actorsRepo.save(actors, transaction),
-      each(stars, (star) =>
+      asyncIterator(stars, (star) =>
         this.db
           .table(Stargazer.__collection_name)
           .insertEntity(star)

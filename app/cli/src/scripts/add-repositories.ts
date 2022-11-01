@@ -2,7 +2,7 @@ import { map } from 'bluebird';
 import { SingleBar } from 'cli-progress';
 import { Argument, Command, Option, program } from 'commander';
 import consola from 'consola';
-import { flatten, isNil, orderBy, range, uniqBy } from 'lodash';
+import { chunk, flatten, isNil, orderBy, range, uniqBy } from 'lodash';
 
 import { HttpClient } from '@gittrends/github';
 
@@ -80,13 +80,17 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
 
         progressBar?.update(0, { resource: 'Persisting...' });
 
-        for (const entity of entityList) {
-          await withDatabase({ name: entity.name_with_owner, migrate: true }, ({ repositories }) =>
-            Promise.all([
-              publicRepos.save(entity, { onConflict: 'ignore' }),
-              repositories.save(entity, { onConflict: 'ignore' }),
-            ]),
-          ).then(() => progressBar?.increment(1, { resource: entity.name_with_owner }));
+        for (const entityChunk of chunk(entityList, 25)) {
+          await Promise.all(
+            entityChunk.map((entity) =>
+              withDatabase({ name: entity.name_with_owner, migrate: true }, ({ repositories }) =>
+                Promise.all([
+                  publicRepos.save(entity, { onConflict: 'ignore' }),
+                  repositories.save(entity, { onConflict: 'ignore' }),
+                ]),
+              ).then(() => progressBar?.increment(1, { resource: entity.name_with_owner })),
+            ),
+          );
         }
 
         setTimeout(() => consola.success(`Done! ${entityList.length} repositories added.`), 1000);

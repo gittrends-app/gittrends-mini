@@ -1,9 +1,10 @@
-import { each } from 'bluebird';
 import { Knex } from 'knex';
 
 import { IActorsRepository } from '@gittrends/service';
 
 import { Actor } from '@gittrends/entities';
+
+import { asyncIterator } from '../config/knex.config';
 
 export class ActorsRepository implements IActorsRepository {
   constructor(private db: Knex) {}
@@ -37,7 +38,7 @@ export class ActorsRepository implements IActorsRepository {
 
     const actors = Array.isArray(user) ? user : [user];
 
-    await each(actors, (actor) =>
+    await asyncIterator(actors, (actor) =>
       this.db.table(Actor.__collection_name).insertEntity(actor).onConflict('id').ignore().transacting(transaction),
     )
       .then(async () => (!trx ? transaction.commit() : null))
@@ -52,7 +53,7 @@ export class ActorsRepository implements IActorsRepository {
 
     const transaction = trx || (await this.db.transaction());
 
-    await each(actors, (actor) =>
+    await asyncIterator(actors, (actor) =>
       this.db
         .table(Actor.__collection_name)
         .insertEntity(Object.assign(actor, { __updated_at: new Date() }))

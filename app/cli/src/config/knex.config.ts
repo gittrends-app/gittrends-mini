@@ -1,3 +1,4 @@
+import { all, each } from 'bluebird';
 import { mkdirSync } from 'fs';
 import knex, { Knex } from 'knex';
 import { isNil, mapValues, omitBy, size } from 'lodash';
@@ -149,3 +150,5 @@ export async function rollback(db: string | Knex): Promise<void> {
 
   return db.migrate.rollback();
 }
+
+export const asyncIterator = targetDatabase === 'postgres' ? all : each;

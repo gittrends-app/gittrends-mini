@@ -1,4 +1,3 @@
-import { all, each } from 'bluebird';
 import { Knex } from 'knex';
 import { cloneDeep } from 'lodash';
 
@@ -6,6 +5,7 @@ import { IRepositoriesRepository } from '@gittrends/service';
 
 import { Actor, Repository } from '@gittrends/entities';
 
+import { asyncIterator } from '../config/knex.config';
 import { extractEntityInstances } from '../helpers/extract';
 import { ActorsRepository } from './ActorRepository';
 import { MetadataRepository } from './MetadataRepository';
@@ -51,9 +51,9 @@ export class RepositoriesRepository implements IRepositoriesRepository {
 
     const transaction = opts?.trx || (await this.db.transaction());
 
-    await all([
+    await Promise.all([
       this.actorRepo.save(actors, transaction),
-      each(repos, (repo) =>
+      asyncIterator(repos, (repo) =>
         this.db
           .table(Repository.__collection_name)
           .insertEntity(repo)

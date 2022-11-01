@@ -1,9 +1,10 @@
-import { each } from 'bluebird';
 import { Knex } from 'knex';
 
 import { IMetadataRepository } from '@gittrends/service';
 
 import { Metadata } from '@gittrends/entities';
+
+import { asyncIterator } from '../config/knex.config';
 
 export class MetadataRepository implements IMetadataRepository {
   constructor(private db: Knex) {}
@@ -22,7 +23,7 @@ export class MetadataRepository implements IMetadataRepository {
 
     const transaction = trx || (await this.db.transaction());
 
-    await each(metas, (meta) => {
+    await asyncIterator(metas, (meta) => {
       const { repository, resource, end_cursor, updated_at, finished_at, ...payload } = meta;
       return this.db
         .table(Metadata.__collection_name)

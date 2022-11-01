@@ -19,7 +19,9 @@ import { CliJobType, withBullQueue } from '../helpers/withBullQueue';
 import { withDatabase } from '../helpers/withDatabase';
 import { version } from '../package.json';
 
-const Resources = [Repository, Stargazer, Watcher, Tag, Release, Dependency].map((entity) => entity.__collection_name);
+const Resources = [Actor, Repository, Stargazer, Watcher, Tag, Release, Dependency].map(
+  (entity) => entity.__collection_name,
+);
 
 const logger = debug('schedule');
 

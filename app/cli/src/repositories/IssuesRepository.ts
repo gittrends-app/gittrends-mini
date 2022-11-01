@@ -1,4 +1,3 @@
-import { all, each } from 'bluebird';
 import { Knex } from 'knex';
 import { cloneDeep } from 'lodash';
 
@@ -6,6 +5,7 @@ import { IResourceRepository } from '@gittrends/service';
 
 import { Actor, Issue, IssueOrPull, PullRequest } from '@gittrends/entities';
 
+import { asyncIterator } from '../config/knex.config';
 import { extractEntityInstances } from '../helpers/extract';
 import { ActorsRepository } from './ActorRepository';
 import { ReactionsRepository } from './ReactionsRepository';
@@ -58,8 +58,8 @@ class IssueOrPullRepository<T extends IssueOrPull> implements IResourceRepositor
 
     const transaction = trx || (await this.db.transaction());
 
-    await each(data, async ({ issue, actors, reactions, timeline_items }) =>
-      all([
+    await asyncIterator(data, async ({ issue, actors, reactions, timeline_items }) =>
+      Promise.all<void>([
         this.actorsRepo.save(actors, transaction),
         this.reactionsRepo.save(reactions, transaction),
         this.eventsRepo.save(timeline_items, transaction),

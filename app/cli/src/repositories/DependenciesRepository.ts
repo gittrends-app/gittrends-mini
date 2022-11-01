@@ -1,9 +1,10 @@
-import { each } from 'bluebird';
 import { Knex } from 'knex';
 
 import { IResourceRepository } from '@gittrends/service';
 
 import { Dependency } from '@gittrends/entities';
+
+import { asyncIterator } from '../config/knex.config';
 
 export class DependenciesRepository implements IResourceRepository<Dependency> {
   constructor(private db: Knex) {}
@@ -37,7 +38,7 @@ export class DependenciesRepository implements IResourceRepository<Dependency> {
 
     const transaction = trx || (await this.db.transaction());
 
-    await each(dependencies, (dep) =>
+    await asyncIterator(dependencies, (dep) =>
       this.db
         .table(Dependency.__collection_name)
         .insertEntity(dep)
