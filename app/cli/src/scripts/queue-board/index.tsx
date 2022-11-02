@@ -1,9 +1,17 @@
-import GitHubIcon from '@mui/icons-material/GitHub';
-import { Box, Chip, LinearProgress, LinearProgressProps, Link, Typography } from '@mui/material';
+import CodeIcon from '@mui/icons-material/Code';
+import ForkRightIcon from '@mui/icons-material/ForkRight';
+import StarIcon from '@mui/icons-material/Star';
+import type { LinearProgressProps } from '@mui/material';
+import Avatar from '@mui/material/Avatar';
+import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
+import LinearProgress from '@mui/material/LinearProgress';
+import Typography from '@mui/material/Typography';
 import { DataGrid, GridColDef, GridRenderCellParams, GridSortItem } from '@mui/x-data-grid';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { orderBy } from 'lodash';
+import orderBy from 'lodash/orderBy';
+import numeral from 'numeral';
 import React from 'react';
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -15,8 +23,15 @@ type DataType = {
   name_with_owner: string;
   url: string;
   state: string;
-  processedOn: number;
+  timestamp: number;
   progress: number;
+  avatar_url?: string;
+  description?: string;
+  primary_language?: string;
+  stargazers?: number;
+  forks?: number;
+  pending_resources?: string[];
+  updated_resources?: string[];
 };
 
 function LinearProgressWithLabel(props: LinearProgressProps & { value: number }) {
@@ -45,8 +60,7 @@ function App() {
           orderBy(
             response.map((job) => ({
               ...job.data,
-              finishedOn: job.finishedOn,
-              processedOn: job.processedOn,
+              timestamp: job.timestamp || job.processedOn || job.finishedOn,
               state: job.state,
               progress: job.progress,
             })),
@@ -72,30 +86,76 @@ function App() {
   }
 
   const columns: GridColDef[] = [
-    { field: 'id', headerName: 'id', width: 175 },
     {
       field: 'name_with_owner',
       headerName: 'Repository',
       flex: 1,
       renderCell(params: GridRenderCellParams<string, DataType>) {
         return (
-          <Link href={params.row.url} style={{ display: 'flex', columnGap: '10px' }} color="inherit" target="_blank">
-            <GitHubIcon /> {params.value}
-          </Link>
+          <div style={{ display: 'flex', alignItems: 'center', columnGap: 10, width: '100%', fontSize: '0.85em' }}>
+            <div style={{ margin: '5px 10px' }}>
+              <Avatar alt={params.value} src={params.row.avatar_url} />
+            </div>
+            <div style={{ flexGrow: 1, display: 'flex' }}>
+              <div style={{ flexGrow: 1 }}>
+                <a
+                  href={params.row.url}
+                  target="_blank"
+                  style={{ color: 'inherit', textDecoration: 'none', fontSize: '1rem', fontWeight: 'normal' }}
+                >
+                  {params.value}
+                </a>
+                <br />
+                <span style={{ fontWeight: 'lighter', color: 'gray' }}>ID: {params.row.id}</span>
+                <br />
+                <span style={{ fontWeight: 'lighter', color: 'gray' }}>
+                  Resources: {params.row.pending_resources?.join(', ')}
+                  {params.row.updated_resources?.length ? ', ' : ''}
+                  <span style={{ textDecoration: 'line-through' }}>{params.row.updated_resources?.join(', ')}</span>
+                </span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'right', columnGap: 5 }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <StarIcon style={{ fontSize: '1rem', marginRight: 2, color: 'gold' }} />{' '}
+                {numeral(params.row.stargazers).format('0.[0]a')}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <ForkRightIcon style={{ fontSize: '1rem', marginRight: 2 }} />{' '}
+                {numeral(params.row.forks).format('0.[0]a')}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <CodeIcon style={{ fontSize: '1rem', marginRight: 2 }} /> {params.row.primary_language}
+              </div>
+            </div>
+          </div>
         );
       },
     },
     {
-      field: 'finishedOn',
-      headerName: 'Finished',
+      field: 'timestamp',
+      headerName: 'Timestamp',
+      type: 'dateTime',
+      valueGetter(params) {
+        return new Date(params.value);
+      },
       renderCell(params: GridRenderCellParams<string, DataType>) {
-        return params.value ? dayjs(params.value).fromNow() : '--';
+        const prefix =
+          params.row.state === 'completed' ? 'finished' : params.row.state === 'active' ? 'started' : 'added';
+        return (
+          <span style={{ textAlign: 'center', fontSize: '0.9em' }}>
+            {prefix}
+            <br />
+            {dayjs(params.value).fromNow()}
+          </span>
+        );
       },
     },
     {
       field: 'progress',
       headerName: 'Progress',
-      width: 225,
+      width: 185,
+      type: 'number',
       renderCell(params: GridRenderCellParams<number, DataType>) {
         return (
           <Box sx={{ width: '100%' }}>
@@ -115,6 +175,8 @@ function App() {
       renderCell(params: GridRenderCellParams<string>) {
         return <Chip label={params.value} variant="outlined" color={color(params.value) || 'default'} size="small" />;
       },
+      type: 'singleSelect',
+      valueOptions: ['active', 'completed', 'failed', 'waiting'],
     },
   ];
 
@@ -123,10 +185,10 @@ function App() {
       <DataGrid
         rows={jobs}
         columns={columns}
-        rowHeight={36}
+        rowHeight={68}
         initialState={{
           sorting: { sortModel: sort },
-          filter: { filterModel: { items: [{ columnField: 'state', operatorValue: 'contains', value: 'active' }] } },
+          // filter: { filterModel: { items: [{ columnField: 'state', operatorValue: 'is', value: 'active' }] } },
         }}
         onSortModelChange={([sortItem]) =>
           sortItem ? setSort([...sort.filter((s) => s.field !== sortItem.field), sortItem]) : setSort(sort.slice(0, -1))

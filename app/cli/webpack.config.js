@@ -1,7 +1,10 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 const path = require('path');
 
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
 module.exports = {
+  mode: isDevelopment ? 'development' : 'production',
   entry: './src/scripts/queue-board/index.tsx',
   module: {
     rules: [
@@ -29,5 +32,6 @@ module.exports = {
     compress: true,
     port: 3001,
     proxy: { '/api': 'http://localhost:3000' },
+    hot: true,
   },
 };
