@@ -30,8 +30,8 @@ module.exports = {
   devServer: {
     static: path.resolve(__dirname, 'assets'),
     compress: true,
-    port: 3001,
-    proxy: { '/api': 'http://localhost:3000' },
+    port: process.env.DEV_SERVER_PORT || 8081,
+    proxy: { '/api': process.env.BULL_BOARD_URL || 'http://localhost:8080' },
     hot: true,
   },
 };
