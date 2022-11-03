@@ -8,15 +8,12 @@ import { Actor, Repository } from '@gittrends/entities';
 import { asyncIterator } from '../config/knex.config';
 import { extractEntityInstances } from '../helpers/extract';
 import { ActorsRepository } from './ActorRepository';
-import { MetadataRepository } from './MetadataRepository';
 
 export class RepositoriesRepository implements IRepositoriesRepository {
   private readonly actorRepo: ActorsRepository;
-  private readonly metaRepo: MetadataRepository;
 
   constructor(private db: Knex) {
     this.actorRepo = new ActorsRepository(db);
-    this.metaRepo = new MetadataRepository(db);
   }
 
   private async find(query: Knex.QueryBuilder, resolve = false): Promise<Repository | undefined> {
@@ -52,7 +49,7 @@ export class RepositoriesRepository implements IRepositoriesRepository {
     const transaction = opts?.trx || (await this.db.transaction());
 
     await Promise.all([
-      this.actorRepo.save(actors, transaction),
+      this.actorRepo.save(actors, { onConflict: 'ignore' }, transaction),
       asyncIterator(repos, (repo) =>
         this.db
           .table(Repository.__collection_name)

@@ -42,7 +42,7 @@ export class WatchersRepository implements IResourceRepository<Watcher> {
     const transaction = trx || (await this.db.transaction());
 
     await Promise.all([
-      this.actorsRepo.save(actors, transaction),
+      this.actorsRepo.save(actors, { onConflict: 'ignore' }, transaction),
       asyncIterator(watchers, (watcher) =>
         this.db
           .table(Watcher.__collection_name)

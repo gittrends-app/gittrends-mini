@@ -53,7 +53,7 @@ export class TimelineEventsRepository implements IResourceRepository<TimelineEve
     const transaction = trx || (await this.db.transaction());
 
     await Promise.all([
-      this.actorsRepo.save(actors, transaction),
+      this.actorsRepo.save(actors, { onConflict: 'ignore' }, transaction),
       this.reactionsRepo.save(reactables, transaction),
       asyncIterator(events, (event) =>
         this.db

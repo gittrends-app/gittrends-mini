@@ -144,7 +144,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
             const actors = await actorsProxy.getActor(iChunk.map((i) => i.id)).then(compact);
             if (iChunk.length > actors.length)
               logger(`${iChunk.length - actors.length} actors could not be resolved...`);
-            await localRepos.actors.upsert(actors).finally(async () => {
+            await localRepos.actors.save(actors, { onConflict: 'merge' }).finally(async () => {
               usersResourceInfo.current += iChunk.length;
               return reportCurrentProgress();
             });

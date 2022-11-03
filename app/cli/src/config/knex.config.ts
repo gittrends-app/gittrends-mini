@@ -1,4 +1,4 @@
-import { all, each } from 'bluebird';
+import { map, mapSeries } from 'bluebird';
 import { mkdirSync } from 'fs';
 import knex, { Knex } from 'knex';
 import { isNil, mapValues, omitBy, size } from 'lodash';
@@ -18,7 +18,7 @@ const targetDatabase = (process.env.CLI_DATABASE || 'sqlite') as TargetDatabase;
 const baseDir = resolve(homedir(), '.gittrends', process.env.NODE_ENV);
 
 knex.QueryBuilder.extend('insertEntity', function (value: Record<string, unknown>) {
-  const sqliteFormattedValue = mapValues(value, (value) => {
+  const formattedValue = mapValues(value, (value) => {
     if (targetDatabase === 'postgres') {
       // eslint-disable-next-line no-control-regex
       if (typeof value === 'string') return value.replace(/\u0000/g, '\\u0000');
@@ -41,7 +41,7 @@ knex.QueryBuilder.extend('insertEntity', function (value: Record<string, unknown
     return value;
   });
 
-  return this.insert(sqliteFormattedValue as any);
+  return this.insert(formattedValue as any);
 });
 
 function knexResponseParser(result: any) {
@@ -90,10 +90,7 @@ function getConnectionSettings(repo: string): Knex.Config & Knex.MigratorConfig 
         min: repo === 'public' ? 0 : parseInt(process.env.CLI_DATABASE_POOL_MIN || '1'),
         max: repo === 'public' ? 1 : parseInt(process.env.CLI_DATABASE_POOL_MAX || '3'),
       },
-      migrations: {
-        schemaName: repo,
-        disableTransactions: false,
-      },
+      migrations: { schemaName: repo },
     };
   }
 
@@ -121,6 +118,7 @@ export async function createOrConnectDatabase(repo: string) {
       directory: resolve(__dirname, 'migrations'),
       tableName: '_migrations',
       loadExtensions: [extname(__filename)],
+      disableMigrationsListValidation: process.env.CLI_MIGRATIONS_DISABLE_VALIDATION?.toLowerCase() === 'true',
     },
     postProcessResponse(result) {
       if (Array.isArray(result)) return result.map(knexResponseParser);
@@ -151,4 +149,4 @@ export async function rollback(db: string | Knex): Promise<void> {
   return db.migrate.rollback();
 }
 
-export const asyncIterator = targetDatabase === 'postgres' ? all : each;
+export const asyncIterator = targetDatabase === 'postgres' ? map : mapSeries;

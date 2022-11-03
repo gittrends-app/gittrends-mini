@@ -24,6 +24,7 @@ declare global {
       CLI_REDIS_DB?: string;
 
       CLI_MIGRATIONS_WORKERS?: string;
+      CLI_MIGRATIONS_DISABLE_VALIDATION?: string;
 
       CLI_SCHEDULER_WORKERS?: string;
       CLI_SCHEDULER_ATTEMPS?: string;

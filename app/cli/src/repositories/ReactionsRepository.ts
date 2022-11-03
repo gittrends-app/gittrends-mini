@@ -42,7 +42,7 @@ export class ReactionsRepository implements IResourceRepository<Reaction> {
     const transaction = trx || (await this.db.transaction());
 
     await Promise.all([
-      this.actorsRepo.save(actors, transaction),
+      this.actorsRepo.save(actors, { onConflict: 'ignore' }, transaction),
       asyncIterator(reactions, (reaction) => {
         return this.db
           .table(Reaction.__collection_name)

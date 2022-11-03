@@ -60,7 +60,7 @@ class IssueOrPullRepository<T extends IssueOrPull> implements IResourceRepositor
 
     await asyncIterator(data, async ({ issue, actors, reactions, timeline_items }) =>
       Promise.all<void>([
-        this.actorsRepo.save(actors, transaction),
+        this.actorsRepo.save(actors, { onConflict: 'ignore' }, transaction),
         this.reactionsRepo.save(reactions, transaction),
         this.eventsRepo.save(timeline_items, transaction),
         this.db

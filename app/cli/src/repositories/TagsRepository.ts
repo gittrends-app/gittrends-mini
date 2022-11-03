@@ -43,7 +43,7 @@ export class TagsRepository implements IResourceRepository<Tag> {
     const transaction = trx || (await this.db.transaction());
 
     await Promise.all([
-      this.actorsRepo.save(actors, transaction),
+      this.actorsRepo.save(actors, { onConflict: 'ignore' }, transaction),
       asyncIterator(tags, (tag) =>
         this.db.table(Tag.__collection_name).insertEntity(tag).onConflict(['id']).ignore().transacting(transaction),
       ),

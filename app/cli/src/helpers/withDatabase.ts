@@ -66,7 +66,7 @@ export async function withDatabase<T>(db: any, context?: any): Promise<T> {
   const knex = await createOrConnectDatabase(config.name).then(async (conn) => {
     if (config.migrate) {
       await migrate(conn);
-    } else {
+    } else if (process.env.CLI_MIGRATIONS_DISABLE_VALIDATION?.toLowerCase() !== 'true') {
       const [, pending] = await conn.migrate.list();
       if (pending.length)
         throw new Error(`Database schema from "${config.name}" is not updated! See "migrations" information.`);
