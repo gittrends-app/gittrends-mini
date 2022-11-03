@@ -203,8 +203,10 @@ async function asyncQueue(
   consola.info('Pushing repositories to queue ....');
   queueRef.push(names);
 
-  consola.info('Waiting process to finish ....\n');
-  return queueRef.drain();
+  consola.info('Waiting process to finish ....');
+  await queueRef.drain();
+
+  consola.info(`Update process finished (${names.length} repositories updated)`);
 }
 
 export async function redisQueue(opts: {
@@ -315,6 +317,7 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
     token?: string;
     apiUrl?: string;
     resources: (typeof Entity & ThisType<UpdatableResource>)[];
+    allResources: boolean;
     progress: boolean;
     schedule: boolean;
     workers: number;
@@ -333,7 +336,8 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
         )
         .default([]),
     )
-    .addOption(new Option('--no-progress', 'Disable progress bars'))
+    .addOption(new Option('--all-resources', 'Update all resources').default(false))
+    .addOption(new Option('--no-progress', 'Disable progress bars').default(false))
     .addOption(new Option('--schedule', 'Schedule repositories before updating').default(false))
     .addOption(new Option('--workers [number]', 'Number of workers per thread').default(1).argParser(Number))
     .addOption(new Option('--threads [number]', 'Use threads processing').default(1).argParser(Number))
@@ -341,6 +345,7 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
       const interval = setInterval(() => globalThis.gc && globalThis.gc(), 5000);
 
       if (!opts.apiUrl && !opts.token) program.error('--token or --api-url is mandatory!');
+      if (opts.allResources) UpdatebleResourcesList.forEach((res) => opts.resources.push(res as any));
 
       consola.info('Running updater with the following parameters: ');
       consola.log(
