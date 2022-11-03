@@ -141,13 +141,11 @@ export async function updater(name: string, opts: UpdaterOpts) {
           const actorsProxy = new ProxyService(opts.httpClient, publicActorsRepos);
           for (const [index, iChunk] of chunk(actorsIds, 100).entries()) {
             logger(`Updating ${iChunk.length * index + iChunk.length} (of ${actorsIds.length}) actors...`);
-            try {
-              const actors = await actorsProxy.getActor(iChunk.map((i) => i.id)).then(compact);
-              await localRepos.actors.upsert(actors);
-            } finally {
+            const actors = await actorsProxy.getActor(iChunk.map((i) => i.id)).then(compact);
+            await localRepos.actors.upsert(actors).finally(async () => {
               usersResourceInfo.current += iChunk.length;
-              await reportCurrentProgress();
-            }
+              return reportCurrentProgress();
+            });
           }
           usersResourceInfo.done = true;
           logger(`${actorsIds.length} actors updated...`);
