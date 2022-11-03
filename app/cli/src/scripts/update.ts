@@ -368,7 +368,7 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
         } else {
           if (opts.schedule) {
             consola.info('Scheduling repositories ...');
-            await schedule(24);
+            await schedule({ wait: 24 });
           }
           consola.info('Processing repositories ...\n');
           return redisQueue(processorOpts);
