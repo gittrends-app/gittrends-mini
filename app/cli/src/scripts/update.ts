@@ -142,8 +142,8 @@ export async function updater(name: string, opts: UpdaterOpts) {
           for (const [index, iChunk] of chunk(actorsIds, 100).entries()) {
             logger(`Updating ${iChunk.length * index + iChunk.length} (of ${actorsIds.length}) actors...`);
             try {
-              const ids = iChunk.map((i) => i.id);
-              await localRepos.actors.upsert(await actorsProxy.getActor(ids).then(compact));
+              const actors = await actorsProxy.getActor(iChunk.map((i) => i.id)).then(compact);
+              await localRepos.actors.upsert(actors);
             } finally {
               usersResourceInfo.current += iChunk.length;
               await reportCurrentProgress();
@@ -170,7 +170,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
     })();
 
     logger('Waiting update process to finish...');
-    await Promise.all(
+    await Promise.allSettled(
       [actorsUpdatePromise, resourcesUpdatePromise].map((promise) => promise.finally(() => reportCurrentProgress())),
     );
   });

@@ -33,13 +33,18 @@ export class ActorsRepository implements IActorsRepository {
     return actor && actor.__updated_at ? Actor.from(actor) : undefined;
   }
 
-  async save<T extends Actor>(user: T | T[], trx?: Knex.Transaction): Promise<void> {
+  async save<T extends Actor>(user: T | T[], trx?: Knex.Transaction, upsert = false): Promise<void> {
     const transaction = trx || (await this.db.transaction());
 
     const actors = Array.isArray(user) ? user : [user];
 
     await asyncIterator(actors, (actor) =>
-      this.db.table(Actor.__collection_name).insertEntity(actor).onConflict('id').ignore().transacting(transaction),
+      this.db
+        .table(Actor.__collection_name)
+        .insertEntity(Object.assign(actor, { __updated_at: new Date() }))
+        .onConflict('id')
+        ?.[upsert ? 'merge' : 'ignore']()
+        .transacting(transaction),
     )
       .then(async () => (!trx ? transaction.commit() : null))
       .catch(async (error) => {
@@ -49,22 +54,6 @@ export class ActorsRepository implements IActorsRepository {
   }
 
   async upsert<T extends Actor>(user: T | T[], trx?: Knex.Transaction): Promise<void> {
-    const actors = Array.isArray(user) ? user : [user];
-
-    const transaction = trx || (await this.db.transaction());
-
-    await asyncIterator(actors, (actor) =>
-      this.db
-        .table(Actor.__collection_name)
-        .insertEntity(Object.assign(actor, { __updated_at: new Date() }))
-        .onConflict('id')
-        .merge()
-        .transacting(transaction),
-    )
-      .then(async () => (!trx ? transaction.commit() : null))
-      .catch(async (error) => {
-        if (!trx) await transaction.rollback(error);
-        throw error;
-      });
+    return this.save(user, trx, true);
   }
 }
