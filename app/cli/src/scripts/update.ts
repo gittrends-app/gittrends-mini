@@ -142,6 +142,8 @@ export async function updater(name: string, opts: UpdaterOpts) {
           for (const [index, iChunk] of chunk(actorsIds, 100).entries()) {
             logger(`Updating ${iChunk.length * index + iChunk.length} (of ${actorsIds.length}) actors...`);
             const actors = await actorsProxy.getActor(iChunk.map((i) => i.id)).then(compact);
+            if (iChunk.length > actors.length)
+              logger(`${iChunk.length - actors.length} actors could not be resolved...`);
             await localRepos.actors.upsert(actors).finally(async () => {
               usersResourceInfo.current += iChunk.length;
               return reportCurrentProgress();
