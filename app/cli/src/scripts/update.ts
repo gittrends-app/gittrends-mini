@@ -1,7 +1,6 @@
 import { queue } from 'async';
 import { mapSeries } from 'bluebird';
 import { Queue, QueueEvents } from 'bullmq';
-import { red } from 'chalk';
 import { MultiBar, SingleBar } from 'cli-progress';
 import { Argument, Option, program } from 'commander';
 import consola, { WinstonReporter } from 'consola';
@@ -80,7 +79,7 @@ type UpdaterOpts = {
 
 export async function updater(name: string, opts: UpdaterOpts) {
   logger(`Starting updater for ${name} (resources: ${opts.resources.map((r) => r.__collection_name).join(', ')})`);
-  return withDatabase(name, async (localRepos) => {
+  await withDatabase(name, async (localRepos) => {
     const localService = new ProxyService(opts.httpClient, localRepos);
 
     logger('Finding repository localy...');
@@ -122,7 +121,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
       ? { resource: Actor, done: false, current: 0, total: actorsIds?.length || 0 }
       : undefined;
 
-    const reportCurrentProgress = function () {
+    const reportCurrentProgress = async function () {
       if (!opts.onProgress) return;
 
       return opts.onProgress(
@@ -147,39 +146,33 @@ export async function updater(name: string, opts: UpdaterOpts) {
               await localRepos.actors.upsert(await actorsProxy.getActor(ids).then(compact));
             } finally {
               usersResourceInfo.current += iChunk.length;
-              reportCurrentProgress();
+              await reportCurrentProgress();
             }
           }
           usersResourceInfo.done = true;
-          reportCurrentProgress();
           logger(`${actorsIds.length} actors updated...`);
         })
       : Promise.resolve();
 
     logger('Starting resources update...');
-    const resourcesUpdatePromise = new Promise<void>((resolve, reject) =>
-      (async () => {
-        logger('Iterating over resources...');
-        // eslint-disable-next-line no-constant-condition
-        while (true) {
-          const { done, value } = await iterator.next();
-          if (done) break;
-          repositoryResourcesMeta.forEach((info, index) => {
-            info.done = !value[index].hasNextPage;
-            info.current += value[index].items.length;
-          });
-          reportCurrentProgress();
-        }
-      })()
-        .then(resolve)
-        .catch(reject),
-    );
+    const resourcesUpdatePromise = (async () => {
+      logger('Iterating over resources...');
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { done, value } = await iterator.next();
+        if (done) break;
+        repositoryResourcesMeta.forEach((info, index) => {
+          info.done = !value[index].hasNextPage;
+          info.current += value[index].items.length;
+        });
+        await reportCurrentProgress();
+      }
+    })();
 
     logger('Waiting update process to finish...');
-    return Promise.all([actorsUpdatePromise, resourcesUpdatePromise]);
-  }).catch((error) => {
-    logger(red(error.message));
-    throw error;
+    await Promise.all(
+      [actorsUpdatePromise, resourcesUpdatePromise].map((promise) => promise.finally(() => reportCurrentProgress())),
+    );
   });
 }
 
