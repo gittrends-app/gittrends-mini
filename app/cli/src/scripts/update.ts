@@ -336,9 +336,9 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
         )
         .default([]),
     )
-    .addOption(new Option('--all-resources', 'Update all resources').default(false))
-    .addOption(new Option('--no-progress', 'Disable progress bars').default(false))
-    .addOption(new Option('--schedule', 'Schedule repositories before updating').default(false))
+    .addOption(new Option('--all-resources', 'Update all resources'))
+    .addOption(new Option('--no-progress', 'Disable progress bars'))
+    .addOption(new Option('--schedule', 'Schedule repositories before updating'))
     .addOption(new Option('--workers [number]', 'Number of workers per thread').default(1).argParser(Number))
     .addOption(new Option('--threads [number]', 'Use threads processing').default(1).argParser(Number))
     .action(async (names: string[], opts: CliOptions) => {
