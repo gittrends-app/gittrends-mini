@@ -1,5 +1,5 @@
 import { parallelLimit } from 'async';
-import { Option, program } from 'commander';
+import { Argument, Option, program } from 'commander';
 import dayjs from 'dayjs';
 import { compact } from 'lodash';
 
@@ -27,11 +27,11 @@ const Resources = [Actor, Repository, Stargazer, Watcher, Tag, Release, Dependen
 
 const logger = debug('schedule');
 
-export async function schedule(hours = 24, drain = false, obliterate = false) {
+export async function schedule(args: CliOptions & { repos?: string[] }) {
   logger('Connecting to redis server...');
   await withBullQueue(async (queue) => {
-    if (obliterate) await queue.obliterate({ force: true });
-    else if (drain) await queue.drain();
+    if (args.obliterate) await queue.obliterate({ force: true });
+    else if (args.drain) await queue.drain();
 
     async function _schedule(repo: string) {
       await withDatabase(repo, async (repos) => {
@@ -44,7 +44,7 @@ export async function schedule(hours = 24, drain = false, obliterate = false) {
           Resources.map((resource) => {
             const meta = metadata.find((m) => m.resource === resource);
             if (!meta || !meta.finished_at) return { resource, priority: 0 };
-            else if (dayjs(meta.finished_at).isBefore(dayjs().subtract(hours, 'hour')))
+            else if (dayjs(meta.finished_at).isBefore(dayjs().subtract(args.wait, 'hour')))
               return { resource, priority: 2 };
             else return null;
           }),
@@ -84,12 +84,14 @@ export async function schedule(hours = 24, drain = false, obliterate = false) {
     }
 
     logger('Getting repositories list...');
-    const list = await withDatabase(({ knex }) =>
-      knex
-        .select('name_with_owner')
-        .from(Repository.__collection_name)
-        .then((records: { name_with_owner: string }[]) => records.map((record) => record.name_with_owner)),
-    );
+    const list = args.repos?.length
+      ? args.repos
+      : await withDatabase(({ knex }) =>
+          knex
+            .select('name_with_owner')
+            .from(Repository.__collection_name)
+            .then((records: { name_with_owner: string }[]) => records.map((record) => record.name_with_owner)),
+        );
 
     logger(`Iterating over repositories list (total: ${list.length})...`);
     return new Promise<void>((resolve, reject) => {
@@ -108,12 +110,15 @@ export async function schedule(hours = 24, drain = false, obliterate = false) {
   logger('Repositories scheduled.');
 }
 
+type CliOptions = { wait: number; drain?: boolean; obliterate?: boolean };
+
 export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void> {
   await program
     .addOption(new Option('-w, --wait [hours]', 'Number of hours before updating').default(24))
     .addOption(new Option('--drain', 'Remove all pending jobs on queue before proceeding'))
     .addOption(new Option('--obliterate', 'Remove all jobs on queue (including the active ones)'))
-    .action((opts) => schedule(opts.wait, opts.drain, opts.obliterate))
+    .addArgument(new Argument('[repo...]', 'Repositories to schedule').default([]))
+    .action((repos: string[], opts: CliOptions) => schedule({ ...opts, repos }))
     .helpOption(true)
     .version(version)
     .parseAsync(args, { from });
