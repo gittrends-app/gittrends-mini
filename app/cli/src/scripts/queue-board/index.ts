@@ -27,6 +27,8 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
       const queue = withBullQueue();
       const events = withBullEvents();
 
+      const apiCacheMiddleware = apicache.middleware('5 seconds');
+
       const serverAdapter = new ExpressAdapter();
       serverAdapter.setBasePath('/bull-queue');
 
@@ -46,7 +48,7 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
 
       app.get('/', (_, res) => res.redirect('/public/queue-board.html'));
 
-      app.get('/api/jobs', apicache.middleware('2 seconds'), async (req, res) => {
+      app.get('/api/jobs', apiCacheMiddleware, async (req, res) => {
         const state = (req.query.state?.toString().toLowerCase() || undefined) as JobType;
 
         res.json(
@@ -57,7 +59,7 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
         );
       });
 
-      app.get('/api/jobs-count', apicache.middleware('2 seconds'), async (req, res) => {
+      app.get('/api/jobs-count', apiCacheMiddleware, async (req, res) => {
         res.json(await queue.getJobCounts());
       });
 
