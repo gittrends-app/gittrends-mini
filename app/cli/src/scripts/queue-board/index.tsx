@@ -1,6 +1,6 @@
 import { Code as CodeIcon, ForkRight as ForkRightIcon, Star as StarIcon } from '@mui/icons-material';
 import type { LinearProgressProps } from '@mui/material';
-import { Avatar, Box, Chip, LinearProgress, Typography } from '@mui/material';
+import { Avatar, Box, Chip, Divider, LinearProgress, Typography } from '@mui/material';
 import {
   DataGrid,
   GridColDef,
@@ -11,11 +11,11 @@ import {
 } from '@mui/x-data-grid';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { countBy, orderBy } from 'lodash';
+import { orderBy, pickBy } from 'lodash';
 import numeral from 'numeral';
-import React, { useCallback, useMemo } from 'react';
-import { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import swr from 'swr';
 
 dayjs.extend(relativeTime);
 
@@ -39,11 +39,9 @@ type JobType = {
   };
 };
 
-type DataType = JobType['data'] & Omit<JobType, 'data'>;
+type DataType = JobType['data'] & Omit<JobType, 'data' | 'finishedOn' | 'processedOn'>;
 
 function color(state?: JobType['state']) {
-  console.log(state);
-
   let color: 'info' | 'success' | 'error' | undefined = undefined;
   if (state === 'active') color = 'info';
   if (state === 'completed') color = 'success';
@@ -54,7 +52,7 @@ function color(state?: JobType['state']) {
 function LinearProgressWithLabel(props: LinearProgressProps & { value: number }) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', flexDirection: 'column' }}>
-      <Typography variant="body2" color="text.secondary">{`${Math.round(props.value)}%`}</Typography>
+      <Typography variant="body2" color="text.secondary">{`${props.value}%`}</Typography>
       <Box sx={{ width: '100%', mr: 1 }}>
         <LinearProgress variant="determinate" {...props} />
       </Box>
@@ -62,20 +60,27 @@ function LinearProgressWithLabel(props: LinearProgressProps & { value: number })
   );
 }
 
-function CustomFooter(props: { [key in JobType['state']]: number }) {
+function CustomFooter(props: { [key in JobType['state']]: number } & { onClick?: (state?: string) => void }) {
+  const { onClick, ...states } = props;
   return (
     <GridFooterContainer>
       <Box sx={{ display: 'flex', columnGap: 1, paddingLeft: 2 }}>
-        {Object.keys(props).map((key) => {
+        <Chip
+          label={`Total: ${Object.values(states).reduce((sum, val) => sum + val, 0)}`}
+          sx={{ fontWeight: 'bold' }}
+          onClick={() => onClick && onClick(undefined)}
+        />
+        <Divider orientation="vertical" />
+        {Object.keys(states).map((key) => {
           return (
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Chip
-                label={`${key}: ${numeral(props[key]).format('0,[0]')}`}
-                variant="outlined"
-                color={color(key as JobType['state']) || 'default'}
-                sx={{ fontWeight: 'bold' }}
-              />
-            </Box>
+            <Chip
+              key={key}
+              label={`${key}: ${numeral(states[key]).format('0,[0]')}`}
+              variant="outlined"
+              color={color(key as JobType['state']) || 'default'}
+              sx={{ fontWeight: 'bold' }}
+              onClick={() => onClick && onClick(key)}
+            />
           );
         })}
       </Box>
@@ -85,37 +90,47 @@ function CustomFooter(props: { [key in JobType['state']]: number }) {
 }
 
 function App() {
-  const [jobs, setJobs] = useState<DataType[]>([]);
+  const [refreshInterval] = useState<number>(5000);
+  const [state, setState] = useState<string | undefined>('active');
 
-  const count = useMemo(() => countBy(jobs, 'state'), [jobs]);
+  // const [jobs, setJobs] = useState<DataType[]>([]);
+  const [sort, setSort] = useState<GridSortItem[]>([{ field: 'progress', sort: 'desc' }]);
 
-  const [sort, setSort] = useState<GridSortItem[]>([
-    { field: 'state', sort: 'asc' },
-    { field: 'timestamp', sort: 'desc' },
-  ]);
+  const { data: count } = swr(
+    '/api/jobs-count',
+    (url: string) =>
+      globalThis
+        .fetch(url)
+        .then((res) => res.json())
+        .then((data) => pickBy(data, (val) => val > 0)),
+    { refreshInterval },
+  );
 
-  const fetch = useCallback(async () => {
-    const response = await globalThis.fetch(`/api/jobs`).then((res) => res.json());
+  const { data: jobs } = swr(
+    ['/api/jobs', state],
+    async (url, state) => {
+      console.log(state);
 
-    setJobs(
-      orderBy(
-        response.map((job: JobType) => ({
-          ...job.data,
-          timestamp: job.finishedOn || job.processedOn || job.timestamp,
-          state: job.state,
-          progress: job.progress,
-        })),
-        sort.map((criterion) => criterion.field),
-        sort.map((criterion) => criterion.sort || true),
-      ),
-    );
-  }, [sort]);
-
-  useEffect(() => {
-    fetch();
-    const interval = setInterval(fetch, 2000);
-    return () => clearInterval(interval);
-  }, []);
+      return globalThis
+        .fetch(url + (state ? '?' + new URLSearchParams({ state }) : ''))
+        .then((res) => res.json())
+        .then((response: JobType[]) =>
+          orderBy(
+            response.map(
+              ({ data, ...job }): DataType => ({
+                ...data,
+                timestamp: job.finishedOn || job.processedOn || job.timestamp,
+                state: job.state,
+                progress: job.progress,
+              }),
+            ),
+            sort.map((criterion) => criterion.field),
+            sort.map((criterion) => criterion.sort || true),
+          ),
+        );
+    },
+    { refreshInterval },
+  );
 
   const columns: GridColDef[] = [
     {
@@ -216,26 +231,26 @@ function App() {
         );
       },
       type: 'singleSelect',
-      valueOptions: ['active', 'completed', 'failed', 'waiting'],
+      valueOptions: ['active', 'completed', 'waiting', 'failed'],
     },
   ];
 
   return (
     <DataGrid
-      rows={jobs}
+      rows={jobs || []}
       columns={columns}
       rowHeight={68}
-      initialState={
-        {
-          // sorting: { sortModel: sort },
-          // filter: { filterModel: { items: [{ columnField: 'state', operatorValue: 'is', value: 'active' }] } },
-        }
-      }
+      sortModel={sort.slice(-1)}
+      filterModel={{ items: [{ columnField: 'state', operatorValue: 'is', value: state }] }}
       onSortModelChange={([sortItem]) =>
         sortItem ? setSort([...sort.filter((s) => s.field !== sortItem.field), sortItem]) : setSort(sort.slice(0, -1))
       }
+      onFilterModelChange={(filter) => {
+        setState(filter.items.find((item) => item.columnField === 'state')?.value);
+      }}
       components={{ Footer: CustomFooter }}
-      componentsProps={{ footer: count }}
+      componentsProps={{ footer: { ...count, onClick: (state: string) => setState(state) } }}
+      disableSelectionOnClick
     />
   );
 }

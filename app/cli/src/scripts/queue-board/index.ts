@@ -57,6 +57,10 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
         );
       });
 
+      app.get('/api/jobs-count', apicache.middleware('2 seconds'), async (req, res) => {
+        res.json(await queue.getJobCounts());
+      });
+
       return new Promise<void>((resolve, reject) => {
         server.on('close', resolve);
         server.on('error', reject);
