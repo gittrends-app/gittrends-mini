@@ -9,7 +9,7 @@ import { Option, program } from 'commander';
 import consola from 'consola';
 import express from 'express';
 import internalIP from 'internal-ip';
-import { compact } from 'lodash';
+import { compact, range } from 'lodash';
 import morgan from 'morgan';
 import path, { extname, resolve } from 'node:path';
 import { SHARE_ENV, Worker } from 'node:worker_threads';
@@ -75,6 +75,8 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
       });
 
       app.post('/api/updater', async (req, res) => {
+        if (!process.env.CLI_API_URL) throw new Error('Environment variable CLI_API_URL is missing!');
+
         const params: { workers?: number; threads?: number } = req.body;
 
         console.log('/api/updater', req.body);
@@ -90,36 +92,37 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
           threads.splice(params.threads - threads.length);
         }
 
-        const workersPerThread = Math.ceil(params.workers / params.threads);
+        if (params.threads > 0) {
+          const concurrency = Math.ceil(params.workers / params.threads);
+          const { hostname, protocol, port } = new URL(process.env.CLI_API_URL as string);
 
-        for (let index = 0; index <= params.threads; index++) {
-          if (threads[index] && threads[index].concurrency < workersPerThread) {
-            threads[index].worker.postMessage({ concurrency: (threads[index].concurrency = workersPerThread) });
-          } else {
+          const httpClientOpts = new HttpClient({
+            host: hostname,
+            protocol: protocol.slice(0, -1),
+            port: parseInt(port),
+            timeout: 60000,
+            retries: 2,
+          }).toJSON();
+
+          await map(range(params.threads), async (index) => {
+            if (threads[index] && threads[index].concurrency < concurrency) {
+              threads[index].worker.postMessage({ concurrency: (threads[index].concurrency = concurrency) });
+              return;
+            }
+
             if (threads[index]) await threads[index].worker.terminate();
-
-            if (!process.env.CLI_API_URL) throw new Error('Environment variable CLI_API_URL is missing!');
-
-            const apiURL = new URL(process.env.CLI_API_URL);
 
             const worker = new Worker(path.resolve(__dirname, '..', 'update', `update-thread${extname(__filename)}`), {
               env: SHARE_ENV,
-              workerData: {
-                concurrency: workersPerThread,
-                httpClientOpts: new HttpClient({
-                  host: apiURL.hostname,
-                  protocol: apiURL.protocol.slice(0, -1),
-                  port: parseInt(apiURL.port),
-                  timeout: 60000,
-                  retries: 2,
-                }).toJSON(),
-              },
+              workerData: { concurrency, httpClientOpts },
             });
 
             worker.on('message', (message) => consola.log(`worker ${worker.threadId}: ${JSON.stringify(message)}`));
 
-            threads[index] = { worker, concurrency: workersPerThread };
-          }
+            threads[index] = { worker, concurrency: concurrency };
+
+            return new Promise((resolve) => worker.on('online', resolve));
+          });
         }
 
         res.json(threads.map(({ worker, ...data }) => ({ id: worker.threadId, ...data })));
