@@ -92,10 +92,12 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
 
         const workersPerThread = Math.ceil(params.workers / params.threads);
 
-        for (let index = 0; index < params.threads; index++) {
-          if (threads[index]) {
+        for (let index = 0; index <= params.threads; index++) {
+          if (threads[index] && threads[index].concurrency < workersPerThread) {
             threads[index].worker.postMessage({ concurrency: (threads[index].concurrency = workersPerThread) });
           } else {
+            if (threads[index]) await threads[index].worker.terminate();
+
             if (!process.env.CLI_API_URL) throw new Error('Environment variable CLI_API_URL is missing!');
 
             const apiURL = new URL(process.env.CLI_API_URL);
