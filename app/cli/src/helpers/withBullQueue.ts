@@ -43,19 +43,14 @@ export function withBullEvents(callback?: any): any {
   return callback ? callback(queue).finally(() => queue.close()) : queue;
 }
 
-export async function withBullWorker(
+export function withBullWorker(
   worker: (job: Job<CliJobType>) => Promise<void>,
   concurrency: number,
-): Promise<void> {
-  const queue = new Worker<CliJobType>('@gittrends/cli', worker, {
+): Worker<CliJobType> {
+  return new Worker<CliJobType>('@gittrends/cli', worker, {
     connection: { host: REDIS_HOST, port: REDIS_PORT, db: REDIS_DB },
     maxStalledCount: Number.MAX_SAFE_INTEGER,
     concurrency,
     autorun: true,
   });
-
-  return new Promise<void>((resolve, reject) => {
-    queue.on('closed', resolve);
-    queue.on('error', reject);
-  }).finally(() => queue.close());
 }

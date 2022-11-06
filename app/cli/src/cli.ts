@@ -12,7 +12,7 @@ program
   })
   .command('migrations', 'Run migrations script', { executableFile: resolve(__dirname, 'scripts', 'migrations') })
   .command('schedule', 'Run schedule script', { executableFile: resolve(__dirname, 'scripts', 'schedule') })
-  .command('update', 'Run update script', { executableFile: resolve(__dirname, 'scripts', 'update') })
+  .command('update', 'Run update script', { executableFile: resolve(__dirname, 'scripts', 'update', 'index') })
   .helpOption(true)
   .version(version)
   .parseAsync(process.argv);

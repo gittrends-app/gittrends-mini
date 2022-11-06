@@ -1,5 +1,11 @@
-import { Code as CodeIcon, ForkRight as ForkRightIcon, Star as StarIcon } from '@mui/icons-material';
-import type { LinearProgressProps } from '@mui/material';
+import {
+  Code as CodeIcon,
+  ExpandMore,
+  ForkRight as ForkRightIcon,
+  Handyman,
+  Star as StarIcon,
+} from '@mui/icons-material';
+import { Button, Drawer, LinearProgressProps, Stack } from '@mui/material';
 import { Avatar, Box, Chip, Divider, LinearProgress, Typography } from '@mui/material';
 import {
   DataGrid,
@@ -16,6 +22,9 @@ import numeral from 'numeral';
 import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import swr from 'swr';
+
+import { Accordion, AccordionDetails, AccordionSummary } from './components/Accordion';
+import { UpdaterAccordion } from './components/UpdaterAccordion';
 
 dayjs.extend(relativeTime);
 
@@ -62,8 +71,61 @@ function LinearProgressWithLabel(props: LinearProgressProps & { value: number })
 
 function CustomFooter(props: { [key in JobType['state']]: number } & { onClick?: (state?: string) => void }) {
   const { onClick, ...states } = props;
+
+  const [open, setOpen] = useState<boolean>(true);
+
   return (
     <GridFooterContainer>
+      <Box sx={{ display: 'flex', columnGap: 1, paddingLeft: 2 }}>
+        <Button startIcon={<Handyman />} onClick={() => setOpen(!open)}>
+          Tools
+        </Button>
+        <Drawer anchor="left" open={open} onClose={() => setOpen(false)}>
+          <Stack sx={{ width: '350px' }}>
+            <Typography
+              variant="h3"
+              component="h3"
+              sx={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                fontSize: '2em',
+                fontWeight: 'bold',
+                mb: 2,
+                mt: 2,
+              }}
+              color="secondary"
+            >
+              <Handyman /> Tools
+            </Typography>
+            <Box>
+              <UpdaterAccordion />
+              <Accordion disabled>
+                <AccordionSummary id="panel2a-header" expandIcon={<ExpandMore />} aria-controls="panel2a-content">
+                  <Typography sx={{ color: 'text.secondary' }}>Last scheduled at: xxxx</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Typography>
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse malesuada lacus ex, sit amet
+                    blandit leo lobortis eget.
+                  </Typography>
+                </AccordionDetails>
+              </Accordion>
+              <Accordion disabled>
+                <AccordionSummary id="panel3a-header" expandIcon={<ExpandMore />} aria-controls="panel3a-content">
+                  <Typography sx={{ color: 'text.secondary' }}>Add repositories from GitHub</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Typography>
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse malesuada lacus ex, sit amet
+                    blandit leo lobortis eget.
+                  </Typography>
+                </AccordionDetails>
+              </Accordion>
+            </Box>
+          </Stack>
+        </Drawer>
+      </Box>
       <Box sx={{ display: 'flex', columnGap: 1, paddingLeft: 2 }}>
         <Chip
           label={`Total: ${Object.values(states).reduce((sum, val) => sum + val, 0)}`}

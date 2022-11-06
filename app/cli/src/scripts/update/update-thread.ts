@@ -1,12 +1,16 @@
-import { compact, round } from 'lodash';
-import { isMainThread, parentPort, workerData } from 'node:worker_threads';
+import { compact, pickBy, round } from 'lodash';
+import { isMainThread, parentPort, threadId, workerData } from 'node:worker_threads';
 
 import { HttpClient } from '@gittrends/github';
 
 import { Entity } from '@gittrends/entities';
+import { debug } from '@gittrends/helpers';
 
-import { withBullWorker } from '../helpers/withBullQueue';
-import { UpdatableResource, UpdatebleResourcesList, errorLogger, updater } from './update';
+import { withBullWorker } from '../../helpers/withBullQueue';
+import { UpdatableResource, UpdatebleResourcesList } from './index';
+import { updater } from './update-worker';
+
+export const logger = debug('cli:update-thread');
 
 function objectToString(object: Record<string, any>) {
   return Object.keys(object)
@@ -15,9 +19,14 @@ function objectToString(object: Record<string, any>) {
 }
 
 if (!isMainThread) {
+  const cliEnvironment = pickBy(process.env, (_, key) => key.startsWith('CLI_') || ['DEBUG', 'NODE_ENV'].includes(key));
+
+  logger(`Thread ${threadId} data: ${JSON.stringify(workerData)}`);
+  logger(`Thread ${threadId} environment: ${JSON.stringify(cliEnvironment)}`);
+
   const httpClient = new HttpClient(workerData.httpClientOpts);
 
-  withBullWorker(async (job) => {
+  const worker = withBullWorker(async (job) => {
     if (!job.data.name_with_owner) throw new Error('Invlaid job id!');
 
     parentPort?.postMessage({ event: 'started', name: job.data.name_with_owner });
@@ -57,8 +66,7 @@ if (!isMainThread) {
       },
     })
       .catch((error: Error) => {
-        errorLogger.error('Metadata: ' + JSON.stringify({ repository: job.data.id, resources: workerData.resources }));
-        errorLogger.error(error);
+        parentPort?.postMessage({ event: 'error', name: job.data.name_with_owner, message: error.message });
         throw error;
       })
       .finally(() => {
@@ -66,4 +74,11 @@ if (!isMainThread) {
         parentPort?.postMessage({ event: 'finished', name: job.data.name_with_owner });
       });
   }, workerData.concurrency);
+
+  worker.on('closed', () => logger('Connection closed'));
+
+  parentPort?.on('message', (data) => {
+    if (data.concurrency) worker.concurrency = data.concurrency;
+    else logger(`Unknown message: ${JSON.stringify(data)}`);
+  });
 }

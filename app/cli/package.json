@@ -5,7 +5,7 @@
   "types": "dist",
   "license": "MIT",
   "scripts": {
-    "build": "yarn install && rm -rf dist tsconfig.tsbuildinfo && tsc && ln -s ./src/scripts/queue-board/index.html ./dist/scripts/queue-board/index.html ",
+    "build": "yarn install && rm -rf dist tsconfig.tsbuildinfo && tsc && ln -s ./src/scripts/queue-board/index.html ./dist/scripts/queue-board/index.html && webpack --mode production",
     "cli": "node --expose-gc -r @gittrends/env dist/cli.js",
     "cli-runtime": "pm2-runtime dist/cli.js --node-args=\"--expose-gc -r @gittrends/env\" --stop-exit-codes=0 --",
     "dev": "node --expose-gc -r ts-node/register -r tsconfig-paths/register -r @gittrends/env src/cli.ts",
@@ -26,6 +26,7 @@
     "async": "^3.2.4",
     "better-sqlite3": "^7.6.2",
     "bluebird": "^3.7.2",
+    "body-parser": "^1.20.1",
     "bullmq": "^2.1.3",
     "chalk": "^4.1.2",
     "cli-progress": "^3.11.2",
