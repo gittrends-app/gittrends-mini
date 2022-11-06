@@ -72,7 +72,7 @@ function LinearProgressWithLabel(props: LinearProgressProps & { value: number })
 function CustomFooter(props: { [key in JobType['state']]: number } & { onClick?: (state?: string) => void }) {
   const { onClick, ...states } = props;
 
-  const [open, setOpen] = useState<boolean>(true);
+  const [open, setOpen] = useState<boolean>(false);
 
   return (
     <GridFooterContainer>
