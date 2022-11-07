@@ -60,7 +60,7 @@ export class ProxyService implements Service {
     const newActors = await this.githubService.getActor(pendingIds).then(compact);
     if (newActors.length) {
       actors.push(...newActors);
-      await this.persistence.actors.save(newActors, { onConflict: 'merge' });
+      await this.persistence.actors.replace(newActors);
     }
 
     return Array.isArray(id) ? ids.map((id) => actors.find((a) => a?.id === id)) : actors.at(0);

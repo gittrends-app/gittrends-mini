@@ -43,12 +43,6 @@ export async function updater(name: string, opts: UpdaterOpts) {
         repository: localRepos.get<RepositoryResource>(resource),
       }));
 
-    let actorsIds: Array<{ id: string }> | undefined;
-    if (opts.resources.includes(Actor)) {
-      logger('Finding for not updated actors...');
-      actorsIds = await localRepos.knex.select('id').from(Actor.__collection_name).whereNull('__updated_at');
-    }
-
     logger('Getting resources metadata...');
     const repositoryResourcesMeta = await mapSeries(repositoryResources, async (info) => {
       const [meta] = await localRepos.metadata.findByRepository(repo?.id as string, info.resource.__collection_name);
@@ -59,9 +53,14 @@ export async function updater(name: string, opts: UpdaterOpts) {
     });
 
     logger('Getting actors metadata...');
-    const usersResourceInfo = opts.resources.includes(Actor)
-      ? { resource: Actor, done: false, current: 0, total: actorsIds?.length || 0 }
-      : undefined;
+    let actorsIds: Array<{ id: string }> | undefined;
+    let usersResourceInfo: { current: number; done: boolean; resource: typeof Actor; total: number } | undefined;
+
+    if (opts.resources.includes(Actor)) {
+      logger('Finding for not updated actors...');
+      actorsIds = await localRepos.knex.select('id').from(Actor.__collection_name).whereNull('__updated_at');
+      usersResourceInfo = { resource: Actor, done: false, current: 0, total: actorsIds?.length || 0 };
+    }
 
     const reportCurrentProgress = async function () {
       if (!opts.onProgress) return;
@@ -87,13 +86,13 @@ export async function updater(name: string, opts: UpdaterOpts) {
             if (iChunk.length > actors.length)
               logger(`${iChunk.length - actors.length} actors could not be resolved...`);
             await localRepos.actors.save(actors, { onConflict: 'merge' }).finally(async () => {
-              usersResourceInfo.current += iChunk.length;
+              if (usersResourceInfo) usersResourceInfo.current += iChunk.length;
               return reportCurrentProgress();
             });
           }
-          usersResourceInfo.done = true;
+          if (usersResourceInfo) usersResourceInfo.done = true;
           logger(`${actorsIds.length} actors updated...`);
-        })
+        }).finally(() => reportCurrentProgress())
       : Promise.resolve();
 
     logger('Starting resources update...');
@@ -109,11 +108,9 @@ export async function updater(name: string, opts: UpdaterOpts) {
         });
         await reportCurrentProgress();
       }
-    })();
+    })().finally(() => reportCurrentProgress());
 
     logger('Waiting update process to finish...');
-    await Promise.allSettled(
-      [actorsUpdatePromise, resourcesUpdatePromise].map((promise) => promise.finally(() => reportCurrentProgress())),
-    );
+    await Promise.allSettled([actorsUpdatePromise, resourcesUpdatePromise]);
   });
 }

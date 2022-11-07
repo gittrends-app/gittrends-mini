@@ -56,7 +56,9 @@ if (!isMainThread) {
           job.updateProgress(round((current / total) * 100, 1)),
           job.update({
             ...job.data,
-            updated_resources: Object.keys(progress).filter((res) => progress[res].done),
+            updated_resources: (job.data.updated_resources || []).concat(
+              Object.keys(progress).filter((res) => progress[res].done),
+            ),
             pending_resources: Object.keys(progress).filter((res) => !progress[res].done),
           }),
           ...finishedResources.map((resource) =>
