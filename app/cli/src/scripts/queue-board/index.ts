@@ -16,7 +16,7 @@ import { SHARE_ENV, Worker } from 'node:worker_threads';
 
 import { HttpClient } from '@gittrends/github/dist';
 
-import { withBullEvents, withBullQueue } from '../../helpers/withBullQueue';
+import { withBullEvents, withBullQueue, withBullWorker } from '../../helpers/withBullQueue';
 import { version } from '../../package.json';
 
 export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void> {
@@ -33,6 +33,7 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
 
       const queue = withBullQueue();
       const events = withBullEvents();
+      const monitor = withBullWorker(() => Promise.reject('monitor'), 0);
 
       const apiCacheMiddleware = apicache.middleware('5 seconds');
 
@@ -131,7 +132,7 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
       return new Promise<void>((resolve, reject) => {
         server.on('close', resolve);
         server.on('error', reject);
-      }).finally(() => Promise.all([queue.close(), events.close()]));
+      }).finally(() => Promise.all([queue.close(), events.close(), monitor.close()]));
     })
     .helpOption(true)
     .version(version)
