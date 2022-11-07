@@ -77,15 +77,13 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
       app.post('/api/updater', async (req, res) => {
         if (!process.env.CLI_API_URL) throw new Error('Environment variable CLI_API_URL is missing!');
 
-        const params: { workers?: number; threads?: number } = req.body;
-
-        console.log('/api/updater', req.body);
-
-        if (params.workers === undefined || params.threads === undefined)
+        if (req.body.workers === undefined || req.body.threads === undefined)
           return res.status(400).json({
             message: 'Number of threads and workers are mandatory!',
-            params,
+            params: req.body,
           });
+
+        const params: { workers: number; threads: number } = req.body;
 
         if (params.threads < threads.length) {
           await Promise.all(threads.slice(params.threads - threads.length).map((thread) => thread.worker.terminate()));
@@ -105,8 +103,10 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
           }).toJSON();
 
           await map(range(params.threads), async (index) => {
+            const diff = index === params.threads - 1 ? params.workers - concurrency * params.threads : 0;
+
             if (threads[index] && threads[index].concurrency < concurrency) {
-              threads[index].worker.postMessage({ concurrency: (threads[index].concurrency = concurrency) });
+              threads[index].worker.postMessage({ concurrency: (threads[index].concurrency = concurrency - diff) });
               return;
             }
 
@@ -114,12 +114,12 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
 
             const worker = new Worker(path.resolve(__dirname, '..', 'update', `update-thread${extname(__filename)}`), {
               env: SHARE_ENV,
-              workerData: { concurrency, httpClientOpts },
+              workerData: { concurrency: concurrency - diff, httpClientOpts },
             });
 
             worker.on('message', (message) => consola.log(`worker ${worker.threadId}: ${JSON.stringify(message)}`));
 
-            threads[index] = { worker, concurrency: concurrency };
+            threads[index] = { worker, concurrency: concurrency - diff };
 
             return new Promise((resolve) => worker.on('online', resolve));
           });
