@@ -1,7 +1,7 @@
 import { parallelLimit } from 'async';
 import { Argument, Option, program } from 'commander';
 import dayjs from 'dayjs';
-import { compact } from 'lodash';
+import { compact, difference } from 'lodash';
 
 import {
   Actor,
@@ -70,7 +70,10 @@ export async function schedule(args: CliOptions & { repos?: string[] }) {
             url: details.url,
             watchers: details.watchers,
 
-            updated_resources: [],
+            updated_resources: difference(
+              Resources,
+              priorities.map((p) => p.resource),
+            ),
             pending_resources: priorities.map((p) => p.resource),
           };
 

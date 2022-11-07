@@ -1,4 +1,4 @@
-import { compact, pickBy, round } from 'lodash';
+import { compact, pickBy, round, uniq } from 'lodash';
 import { isMainThread, parentPort, threadId, workerData } from 'node:worker_threads';
 
 import { HttpClient } from '@gittrends/github';
@@ -56,8 +56,8 @@ if (!isMainThread) {
           job.updateProgress(round((current / total) * 100, 1)),
           job.update({
             ...job.data,
-            updated_resources: (job.data.updated_resources || []).concat(
-              Object.keys(progress).filter((res) => progress[res].done),
+            updated_resources: uniq(
+              (job.data.updated_resources || []).concat(Object.keys(progress).filter((res) => progress[res].done)),
             ),
             pending_resources: Object.keys(progress).filter((res) => !progress[res].done),
           }),
