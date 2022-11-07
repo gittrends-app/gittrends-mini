@@ -103,7 +103,7 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
           }).toJSON();
 
           await map(range(params.threads), async (index) => {
-            const diff = index === params.threads - 1 ? params.workers - concurrency * params.threads : 0;
+            const diff = index === params.threads - 1 ? concurrency * params.threads - params.workers : 0;
 
             if (threads[index] && threads[index].concurrency < concurrency) {
               threads[index].worker.postMessage({ concurrency: (threads[index].concurrency = concurrency - diff) });
