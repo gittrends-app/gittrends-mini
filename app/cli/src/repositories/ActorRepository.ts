@@ -41,7 +41,7 @@ export class ActorsRepository implements IActorsRepository {
     await asyncIterator(actors, (actor) =>
       this.db
         .table(Actor.__collection_name)
-        .insertEntity(Object.assign(actor, { __updated_at: new Date() }))
+        .insertEntity(actor)
         .onConflict('id')
         ?.[opts?.onConflict || 'ignore']()
         .transacting(transaction),

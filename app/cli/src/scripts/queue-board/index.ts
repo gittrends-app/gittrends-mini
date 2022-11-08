@@ -35,7 +35,7 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
       const events = withBullEvents();
       const monitor = withBullWorker(() => Promise.reject('monitor'), 0);
 
-      const apiCacheMiddleware = apicache.middleware('5 seconds');
+      const apiCacheMiddleware = apicache.middleware('2 seconds');
 
       const serverAdapter = new ExpressAdapter();
       serverAdapter.setBasePath('/bull-queue');

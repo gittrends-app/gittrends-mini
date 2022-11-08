@@ -1,20 +1,6 @@
-import {
-  Code as CodeIcon,
-  ExpandMore,
-  ForkRight as ForkRightIcon,
-  Handyman,
-  Star as StarIcon,
-} from '@mui/icons-material';
-import { Button, Drawer, LinearProgressProps, Stack } from '@mui/material';
-import { Avatar, Box, Chip, Divider, LinearProgress, Typography } from '@mui/material';
-import {
-  DataGrid,
-  GridColDef,
-  GridFooter,
-  GridFooterContainer,
-  GridRenderCellParams,
-  GridSortItem,
-} from '@mui/x-data-grid';
+import { Code as CodeIcon, ForkRight as ForkRightIcon, Star as StarIcon } from '@mui/icons-material';
+import { Avatar, Box, Chip } from '@mui/material';
+import { DataGrid, GridColDef, GridRenderCellParams, GridSortItem } from '@mui/x-data-grid';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { orderBy, pickBy } from 'lodash';
@@ -23,34 +9,24 @@ import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import swr from 'swr';
 
-import { Accordion, AccordionDetails, AccordionSummary } from './components/Accordion';
-import { UpdaterAccordion } from './components/UpdaterAccordion';
+import type { CliJobType } from '../../helpers/withBullQueue';
+import { GridFooterContainer } from './components/GridFooterContainer';
+import { Progress } from './components/LinearProgressWithLabel';
 
 dayjs.extend(relativeTime);
 
-type JobType = {
+export type JobType = {
   state: 'active' | 'failed' | 'completed' | 'waiting';
-  progress: number;
+  progress: number | Record<string, { done: boolean; current: number; total: number }>;
   timestamp: number;
   finishedOn: number;
   processedOn: number;
-  data: {
-    id: string;
-    name_with_owner: string;
-    url: string;
-    avatar_url?: string;
-    description?: string;
-    primary_language?: string;
-    stargazers?: number;
-    forks?: number;
-    pending_resources?: string[];
-    updated_resources?: string[];
-  };
+  data: CliJobType;
 };
 
 type DataType = JobType['data'] & Omit<JobType, 'data' | 'finishedOn' | 'processedOn'>;
 
-function color(state?: JobType['state']) {
+export function color(state?: JobType['state']) {
   let color: 'info' | 'success' | 'error' | undefined = undefined;
   if (state === 'active') color = 'info';
   if (state === 'completed') color = 'success';
@@ -58,104 +34,10 @@ function color(state?: JobType['state']) {
   return color;
 }
 
-function LinearProgressWithLabel(props: LinearProgressProps & { value: number }) {
-  return (
-    <Box sx={{ display: 'flex', alignItems: 'center', flexDirection: 'column' }}>
-      <Typography variant="body2" color="text.secondary">{`${props.value}%`}</Typography>
-      <Box sx={{ width: '100%', mr: 1 }}>
-        <LinearProgress variant="determinate" {...props} />
-      </Box>
-    </Box>
-  );
-}
-
-function CustomFooter(props: { [key in JobType['state']]: number } & { onClick?: (state?: string) => void }) {
-  const { onClick, ...states } = props;
-
-  const [open, setOpen] = useState<boolean>(false);
-
-  return (
-    <GridFooterContainer>
-      <Box sx={{ display: 'flex', columnGap: 1, paddingLeft: 2 }}>
-        <Button startIcon={<Handyman />} onClick={() => setOpen(!open)}>
-          Tools
-        </Button>
-        <Drawer anchor="left" open={open} onClose={() => setOpen(false)}>
-          <Stack sx={{ width: '350px' }}>
-            <Typography
-              variant="h3"
-              component="h3"
-              sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                fontSize: '2em',
-                fontWeight: 'bold',
-                mb: 2,
-                mt: 2,
-              }}
-              color="secondary"
-            >
-              <Handyman /> Tools
-            </Typography>
-            <Box>
-              <UpdaterAccordion />
-              <Accordion disabled>
-                <AccordionSummary id="panel2a-header" expandIcon={<ExpandMore />} aria-controls="panel2a-content">
-                  <Typography sx={{ color: 'text.secondary' }}>Last scheduled at: xxxx</Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <Typography>
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse malesuada lacus ex, sit amet
-                    blandit leo lobortis eget.
-                  </Typography>
-                </AccordionDetails>
-              </Accordion>
-              <Accordion disabled>
-                <AccordionSummary id="panel3a-header" expandIcon={<ExpandMore />} aria-controls="panel3a-content">
-                  <Typography sx={{ color: 'text.secondary' }}>Add repositories from GitHub</Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <Typography>
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse malesuada lacus ex, sit amet
-                    blandit leo lobortis eget.
-                  </Typography>
-                </AccordionDetails>
-              </Accordion>
-            </Box>
-          </Stack>
-        </Drawer>
-      </Box>
-      <Box sx={{ display: 'flex', columnGap: 1, paddingLeft: 2 }}>
-        <Chip
-          label={`Total: ${Object.values(states).reduce((sum, val) => sum + val, 0)}`}
-          sx={{ fontWeight: 'bold' }}
-          onClick={() => onClick && onClick(undefined)}
-        />
-        <Divider orientation="vertical" />
-        {Object.keys(states).map((key) => {
-          return (
-            <Chip
-              key={key}
-              label={`${key}: ${numeral(states[key]).format('0,[0]')}`}
-              variant="outlined"
-              color={color(key as JobType['state']) || 'default'}
-              sx={{ fontWeight: 'bold' }}
-              onClick={() => onClick && onClick(key)}
-            />
-          );
-        })}
-      </Box>
-      <GridFooter />
-    </GridFooterContainer>
-  );
-}
-
 function App() {
   const [refreshInterval] = useState<number>(5000);
   const [state, setState] = useState<string | undefined>('active');
 
-  // const [jobs, setJobs] = useState<DataType[]>([]);
   const [sort, setSort] = useState<GridSortItem[]>([{ field: 'progress', sort: 'desc' }]);
 
   const { data: count } = swr(
@@ -171,8 +53,6 @@ function App() {
   const { data: jobs } = swr(
     ['/api/jobs', state],
     async (url, state) => {
-      console.log(state);
-
       return globalThis
         .fetch(url + (state ? '?' + new URLSearchParams({ state }) : ''))
         .then((res) => res.json())
@@ -218,9 +98,19 @@ function App() {
                 <span style={{ fontWeight: 'lighter', color: 'gray' }}>ID: {params.row.id}</span>
                 <br />
                 <span style={{ fontWeight: 'lighter', color: 'gray' }}>
-                  Resources: {params.row.pending_resources?.join(', ')}
-                  {params.row.updated_resources?.length ? ', ' : ''}
-                  <span style={{ textDecoration: 'line-through' }}>{params.row.updated_resources?.join(', ')}</span>
+                  Resources:{' '}
+                  {params.row.__resources?.map((resource, index) => {
+                    const textDecoration =
+                      typeof params.row.progress === 'object' && params.row.progress?.[resource]?.done
+                        ? 'line-through'
+                        : 'none';
+                    return (
+                      <>
+                        {index > 0 ? ', ' : ''}
+                        <span style={{ textDecoration }}>{resource}</span>
+                      </>
+                    );
+                  })}
                 </span>
               </Box>
             </Box>
@@ -269,14 +159,21 @@ function App() {
       headerName: 'Progress',
       width: 185,
       type: 'number',
+      valueGetter(params: GridRenderCellParams<any, DataType>) {
+        if (typeof params.row.progress === 'number') {
+          return params.row.progress;
+        } else {
+          const [total, current] = Object.values(params.row.progress).reduce(
+            ([total, current], prog) => [total + prog.total, current + prog.current],
+            [0, 0],
+          );
+          return Math.round((current / total) * 10000) / 100;
+        }
+      },
       renderCell(params: GridRenderCellParams<number, DataType>) {
         return (
           <Box sx={{ width: '100%' }}>
-            <LinearProgressWithLabel
-              variant="determinate"
-              value={params.value || 0}
-              color={color(params.row.state) || 'inherit'}
-            />
+            <Progress variant="determinate" value={params.value || 0} color={color(params.row.state) || 'inherit'} />
           </Box>
         );
       },
@@ -310,7 +207,7 @@ function App() {
       onFilterModelChange={(filter) => {
         setState(filter.items.find((item) => item.columnField === 'state')?.value);
       }}
-      components={{ Footer: CustomFooter }}
+      components={{ Footer: GridFooterContainer }}
       componentsProps={{ footer: { ...count, onClick: (state: string) => setState(state) } }}
       disableSelectionOnClick
     />

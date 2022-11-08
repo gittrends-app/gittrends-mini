@@ -19,8 +19,8 @@ export type CliJobType = {
   url?: string;
   watchers?: number;
 
-  updated_resources: string[];
-  pending_resources: string[];
+  __resources: string[];
+  __updated_before: Date;
 };
 
 export async function withBullQueue<T = any>(callback: (queue: Queue<CliJobType>) => Promise<T>): Promise<T>;

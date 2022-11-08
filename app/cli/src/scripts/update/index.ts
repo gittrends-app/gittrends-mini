@@ -64,7 +64,7 @@ async function asyncQueue(
   consola.info('Preparing processing queue ....');
   const queueRef = queue(
     (name: string, callback) =>
-      updater(name, { httpClient: opts.httpClient, resources: opts.resources })
+      updater(name, { httpClient: opts.httpClient, resources: opts.resources, before: new Date() })
         .then(() => callback())
         .catch((error) => {
           consola.error(error);

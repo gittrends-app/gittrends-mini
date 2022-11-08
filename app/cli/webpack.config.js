@@ -5,7 +5,7 @@ const isDevelopment = process.env.NODE_ENV !== 'production';
 
 module.exports = {
   mode: isDevelopment ? 'development' : 'production',
-  entry: './src/scripts/queue-board/index.tsx',
+  entry: './src/scripts/queue-board/App.tsx',
   module: {
     rules: [
       {

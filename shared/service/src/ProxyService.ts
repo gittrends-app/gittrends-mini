@@ -57,7 +57,11 @@ export class ProxyService implements Service {
 
     const pendingIds = ids.filter((id) => !actors.find((a) => a?.id === id));
 
-    const newActors = await this.githubService.getActor(pendingIds).then(compact);
+    const newActors = await this.githubService
+      .getActor(pendingIds)
+      .then(compact)
+      .then((actors) => actors.map((actor) => Object.assign(actor, { __updated_at: new Date() })));
+
     if (newActors.length) {
       actors.push(...newActors);
       await this.persistence.actors.replace(newActors);

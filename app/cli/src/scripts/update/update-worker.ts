@@ -1,4 +1,5 @@
 import { mapSeries } from 'bluebird';
+import dayjs from 'dayjs';
 import debug from 'debug';
 import { chunk, compact, get } from 'lodash';
 
@@ -16,11 +17,17 @@ export const logger = debug('cli:update-worker');
 export type UpdaterOpts = {
   httpClient: HttpClient;
   resources: UpdatableResource[];
+  before: Date;
   onProgress?: (progress: Record<string, { done: boolean; current: number; total: number }>) => void | Promise<void>;
 };
 
 export async function updater(name: string, opts: UpdaterOpts) {
-  logger(`Starting updater for ${name} (resources: ${opts.resources.map((r) => r.__collection_name).join(', ')})`);
+  logger(
+    `Starting updater for ${name} (resources: ${opts.resources
+      .map((r) => r.__collection_name)
+      .join(', ')}, before: ${opts.before.toISOString()})`,
+  );
+
   await withDatabase(name, async (localRepos) => {
     const localService = new ProxyService(opts.httpClient, localRepos);
 
@@ -33,7 +40,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
     if (!repo) throw new Error(`Repository ${name} not found!`);
 
     logger('Updating local data...');
-    await withDatabase('public', async ({ repositories }) => repo && repositories.save(repo));
+    await withDatabase('public', async ({ repositories }) => repo && repositories.save(repo, { onConflict: 'merge' }));
 
     logger('Preparing resources metadata...');
     const repositoryResources = opts.resources
@@ -49,7 +56,13 @@ export async function updater(name: string, opts: UpdaterOpts) {
       const cachedCount = await info.repository.countByRepository(repo?.id as string);
       const total = get(repo, info.resource.__collection_name, 0);
 
-      return { resource: info.resource, done: false, current: cachedCount, total, endCursor: meta?.end_cursor };
+      return {
+        resource: info.resource,
+        done: (meta?.finished_at && dayjs(meta.finished_at).isAfter(opts.before)) || false,
+        current: cachedCount,
+        total,
+        endCursor: meta?.end_cursor,
+      };
     });
 
     logger('Getting actors metadata...');
@@ -58,8 +71,12 @@ export async function updater(name: string, opts: UpdaterOpts) {
 
     if (opts.resources.includes(Actor)) {
       logger('Finding for not updated actors...');
-      actorsIds = await localRepos.knex.select('id').from(Actor.__collection_name).whereNull('__updated_at');
-      usersResourceInfo = { resource: Actor, done: false, current: 0, total: actorsIds?.length || 0 };
+      actorsIds = await localRepos.knex
+        .select('id')
+        .from(Actor.__collection_name)
+        .whereNull('__updated_at')
+        .orWhere('__updated_at', '<', opts.before);
+      usersResourceInfo = { resource: Actor, done: actorsIds.length === 0, current: 0, total: actorsIds?.length || 0 };
     }
 
     const reportCurrentProgress = async function () {
@@ -73,7 +90,11 @@ export async function updater(name: string, opts: UpdaterOpts) {
       );
     };
 
-    const iterator = localService.resources(repo.id, repositoryResourcesMeta, { ignoreCache: true });
+    const iterator = localService.resources(
+      repo.id,
+      repositoryResourcesMeta.filter((rm) => !rm.done),
+      { ignoreCache: true },
+    );
 
     logger('Starting actors update...');
     const actorsUpdatePromise = usersResourceInfo

@@ -1,7 +1,7 @@
-import { parallelLimit } from 'async';
+import { queue as asyncQueue } from 'async';
 import { Argument, Option, program } from 'commander';
 import dayjs from 'dayjs';
-import { compact, difference } from 'lodash';
+import { compact } from 'lodash';
 
 import {
   Actor,
@@ -21,7 +21,7 @@ import { CliJobType, withBullQueue } from '../helpers/withBullQueue';
 import { withDatabase } from '../helpers/withDatabase';
 import { version } from '../package.json';
 
-const Resources = [Actor, Repository, Stargazer, Watcher, Tag, Release, Dependency, Issue, PullRequest].map(
+const Resources = [Actor, Stargazer, Watcher, Tag, Release, Dependency, Issue, PullRequest].map(
   (entity) => entity.__collection_name,
 );
 
@@ -34,25 +34,27 @@ export async function schedule(args: CliOptions & { repos?: string[] }) {
     else if (args.drain) await queue.drain();
 
     async function _schedule(repo: string) {
-      await withDatabase(repo, async (repos) => {
+      const { details, metadata } = await withDatabase(repo, async (repos) => {
         const details = await repos.repositories.findByName(repo, { resolve: ['owner'] });
         if (!details) throw new Error(`Database corrupted, repository "${repo}" details not found!`);
 
-        const metadata = await repos.metadata.findByRepository(details.id);
+        return { details, metadata: await repos.metadata.findByRepository(details.id) };
+      });
 
-        const priorities = compact(
-          Resources.map((resource) => {
-            const meta = metadata.find((m) => m.resource === resource);
-            if (!meta || !meta.finished_at) return { resource, priority: 0 };
-            else if (dayjs(meta.finished_at).isBefore(dayjs().subtract(args.wait, 'hour')))
-              return { resource, priority: 2 };
-            else return null;
-          }),
-        );
+      const updatedBefore = dayjs().subtract(args.wait, 'hour').toDate();
 
-        if (priorities.length === 0) return;
+      const priorities = compact(
+        Resources.map((resource) => {
+          const meta = metadata.find((m) => m.resource === resource);
+          if (!meta || !meta.finished_at) return { resource, priority: 0 };
+          else if (dayjs(meta.finished_at).isBefore(updatedBefore)) return { resource, priority: 2 };
+          else return null;
+        }),
+      );
 
-        return queue.getJob(details.id).then(async (job) => {
+      await queue
+        .getJob(details.id)
+        .then(async (job) => {
           if (!(await job?.isActive())) await job?.remove();
 
           const data: CliJobType = {
@@ -70,20 +72,22 @@ export async function schedule(args: CliOptions & { repos?: string[] }) {
             url: details.url,
             watchers: details.watchers,
 
-            updated_resources: difference(
-              Resources,
-              priorities.map((p) => p.resource),
-            ),
-            pending_resources: priorities.map((p) => p.resource),
+            __resources: Resources,
+            __updated_before: updatedBefore,
           };
 
-          return queue.add(details.name_with_owner, data, {
-            priority: priorities.reduce((total, p) => total + p.priority, 1),
-            jobId: details.id,
-            attempts: parseInt(process.env.CLI_SCHEDULER_ATTEMPS || '3'),
-          });
-        });
-      }).catch((error) => (error instanceof EntityValidationError ? [] : Promise.reject(error)));
+          return queue
+            .add(details.name_with_owner, data, {
+              priority: priorities.reduce((total, p) => total + p.priority, 1),
+              jobId: details.id,
+              attempts: parseInt(process.env.CLI_SCHEDULER_ATTEMPS || '3'),
+            })
+            .then(async (job) => {
+              if (priorities.length === 0) await job.moveToCompleted('scheduler: all resources updated', 'scheduler');
+              return job;
+            });
+        })
+        .catch((error) => (error instanceof EntityValidationError ? [] : Promise.reject(error)));
     }
 
     logger('Getting repositories list...');
@@ -96,19 +100,17 @@ export async function schedule(args: CliOptions & { repos?: string[] }) {
             .then((records: { name_with_owner: string }[]) => records.map((record) => record.name_with_owner)),
         );
 
+    const scheduleQueue = asyncQueue<[string, number]>(([name, index], callback) => {
+      logger(`Scheduling ${name} (index: ${index})...`);
+      _schedule(name)
+        .then(() => callback())
+        .catch(callback);
+    }, parseInt(process.env.CLI_SCHEDULER_WORKERS || '10'));
+
+    scheduleQueue.push(list.map((name, index) => [name, index]) as Array<[string, number]>);
+
     logger(`Iterating over repositories list (total: ${list.length})...`);
-    return new Promise<void>((resolve, reject) => {
-      parallelLimit(
-        list.map((name, index) => (callback) => {
-          logger(`Scheduling ${name} (index: ${index})...`);
-          return _schedule(name)
-            .then(() => callback())
-            .catch(callback);
-        }),
-        parseInt(process.env.CLI_SCHEDULER_WORKERS || '10'),
-        (error) => (error ? reject(error) : resolve()),
-      );
-    });
+    await scheduleQueue.drain();
   });
   logger('Repositories scheduled.');
 }
