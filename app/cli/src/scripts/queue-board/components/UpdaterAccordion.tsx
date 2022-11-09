@@ -39,7 +39,7 @@ export function UpdaterAccordion() {
   };
 
   return (
-    <Accordion expanded={true}>
+    <Accordion defaultExpanded>
       <AccordionSummary id="panel1a-header" expandIcon={<ExpandMore />} aria-controls="panel1a-content">
         <Typography sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center' }}>
           <Settings sx={{ fontSize: '1em', mr: 1 }} /> Updater status:{' '}
