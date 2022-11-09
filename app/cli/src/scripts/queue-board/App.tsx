@@ -207,8 +207,21 @@ function App() {
       onFilterModelChange={(filter) => {
         setState(filter.items.find((item) => item.columnField === 'state')?.value);
       }}
-      components={{ Footer: GridFooterContainer }}
-      componentsProps={{ footer: { ...count, onClick: (state: string) => setState(state) } }}
+      components={{
+        Footer: GridFooterContainer,
+        NoRowsOverlay: (props) => {
+          console.log('🚀 ~ file: App.tsx ~ line 213 ~ App ~ props', props);
+          return (
+            <Box sx={{ display: 'flex', flexGrow: 1, justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+              <span>No "{props.state}" jobs</span>
+            </Box>
+          );
+        },
+      }}
+      componentsProps={{
+        footer: { ...count, onClick: (state: string) => setState(state) },
+        noRowsOverlay: { state },
+      }}
       disableSelectionOnClick
     />
   );
