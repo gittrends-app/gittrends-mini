@@ -23,19 +23,18 @@ services:
     volumes:
       - db:/var/lib/postgresql/data
 
-  pgAdmin:
-    image: dpage/pgadmin4:latest
+  cloudbeaver:
+    image: dbeaver/cloudbeaver:latest
     restart: unless-stopped
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-root@email.com}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-root}
     ports:
-      - 5433:80
+      - 5433:8978
     volumes:
-      - ./pgadmin/servers.json:/pgadmin4/servers.json:ro
+      - cloudbeaver:/opt/cloudbeaver/workspace
     depends_on:
       - postgres
 
 volumes:
   db:
+    driver: local
+  cloudbeaver:
     driver: local
