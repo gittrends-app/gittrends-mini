@@ -1,4 +1,3 @@
-import { mapSeries } from 'bluebird';
 import dayjs from 'dayjs';
 import debug from 'debug';
 import { chunk, compact, get } from 'lodash';
@@ -11,6 +10,7 @@ import { Actor, RepositoryResource } from '@gittrends/entities';
 
 import { withDatabase } from '../../helpers/withDatabase';
 import { UpdatableResource } from './index';
+import { asyncIterator } from 'src/config/knex.config';
 
 export const logger = debug('cli:update-worker');
 
@@ -51,7 +51,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
       }));
 
     logger('Getting resources metadata...');
-    const repositoryResourcesMeta = await mapSeries(repositoryResources, async (info) => {
+    const repositoryResourcesMeta = await asyncIterator(repositoryResources, async (info) => {
       const [meta] = await localRepos.metadata.findByRepository(repo?.id as string, info.resource.__collection_name);
       const cachedCount = await info.repository.countByRepository(repo?.id as string);
       const total = get(repo, info.resource.__collection_name, 0);
