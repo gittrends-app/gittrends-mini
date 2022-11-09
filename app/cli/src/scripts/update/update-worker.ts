@@ -8,9 +8,9 @@ import { ProxyService } from '@gittrends/service';
 
 import { Actor, RepositoryResource } from '@gittrends/entities';
 
+import { asyncIterator } from '../../config/knex.config';
 import { withDatabase } from '../../helpers/withDatabase';
 import { UpdatableResource } from './index';
-import { asyncIterator } from 'src/config/knex.config';
 
 export const logger = debug('cli:update-worker');
 
