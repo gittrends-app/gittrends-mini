@@ -4,6 +4,7 @@ import { Box, Typography } from '@mui/material';
 import React from 'react';
 
 import { Accordion, AccordionDetails, AccordionSummary } from './components/Accordion';
+import { SchedulerAccordion } from './components/SchedulerAccordion';
 import { UpdaterAccordion } from './components/UpdaterAccordion';
 
 export function AppTools(props: DrawerProps) {
@@ -28,17 +29,7 @@ export function AppTools(props: DrawerProps) {
         </Typography>
         <Box>
           <UpdaterAccordion />
-          <Accordion disabled>
-            <AccordionSummary id="panel2a-header" expandIcon={<ExpandMore />} aria-controls="panel2a-content">
-              <Typography sx={{ color: 'text.secondary' }}>Last scheduled at: xxxx</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Typography>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse malesuada lacus ex, sit amet
-                blandit leo lobortis eget.
-              </Typography>
-            </AccordionDetails>
-          </Accordion>
+          <SchedulerAccordion />
           <Accordion disabled>
             <AccordionSummary id="panel3a-header" expandIcon={<ExpandMore />} aria-controls="panel3a-content">
               <Typography sx={{ color: 'text.secondary' }}>Add repositories from GitHub</Typography>

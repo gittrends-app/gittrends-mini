@@ -18,9 +18,11 @@ import { HttpClient } from '@gittrends/github/dist';
 
 import { withBullEvents, withBullQueue, withBullWorker } from '../../helpers/withBullQueue';
 import { version } from '../../package.json';
+import { schedule } from '../schedule';
 
 export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void> {
   const threads: Array<{ worker: Worker; concurrency: number }> = [];
+  const scheduler: { ref?: Promise<void>; done: boolean } = { done: true };
 
   await program
     .addOption(new Option('--port <number>', 'Port to run board app').env('PORT').default(8080).makeOptionMandatory())
@@ -127,6 +129,19 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
         }
 
         res.json(threads.map(({ worker, ...data }) => ({ id: worker.threadId, ...data })));
+      });
+
+      app.get('/api/scheduler', async (req, res) => {
+        res.json({ done: scheduler.done });
+      });
+
+      app.post('/api/scheduler', async (req, res) => {
+        if (!scheduler.done) return;
+        Object.assign(scheduler, {
+          ref: schedule({ wait: 24, drain: req.body.drain !== undefined }).finally(() => (scheduler.done = true)),
+          done: false,
+        });
+        res.sendStatus(201);
       });
 
       return new Promise<void>((resolve, reject) => {
