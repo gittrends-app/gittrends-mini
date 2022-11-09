@@ -3,10 +3,10 @@ import { DrawerProps, Drawer as MuiDrawer, Stack } from '@mui/material';
 import { Box, Typography } from '@mui/material';
 import React from 'react';
 
-import { Accordion, AccordionDetails, AccordionSummary } from './Accordion';
-import { UpdaterAccordion } from './UpdaterAccordion';
+import { Accordion, AccordionDetails, AccordionSummary } from './components/Accordion';
+import { UpdaterAccordion } from './components/UpdaterAccordion';
 
-export function Drawer(props: DrawerProps) {
+export function AppTools(props: DrawerProps) {
   return (
     <MuiDrawer anchor="left" {...props}>
       <Stack sx={{ width: '350px' }}>

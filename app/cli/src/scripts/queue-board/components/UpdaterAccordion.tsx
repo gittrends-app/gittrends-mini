@@ -1,6 +1,7 @@
-import { Autorenew, ExpandMore, PlayArrow, Settings } from '@mui/icons-material';
+import { Autorenew, Block, ExpandMore, PlayArrow, Settings } from '@mui/icons-material';
 import { Box, Button, TextField, Typography } from '@mui/material';
-import React, { useCallback, useEffect, useState } from 'react';
+import { delay } from 'bluebird';
+import React, { useEffect, useState } from 'react';
 import useSWR from 'swr';
 
 import { Accordion, AccordionDetails, AccordionSummary } from './Accordion';
@@ -23,7 +24,7 @@ export function UpdaterAccordion() {
 
   useEffect(() => setIcon(running ? <Autorenew /> : <PlayArrow />), [running]);
 
-  const submitForm = useCallback(() => {
+  const submitForm = (args: typeof params) => {
     if (disabled) return;
 
     setDisabled(true);
@@ -31,9 +32,11 @@ export function UpdaterAccordion() {
     return fetch('/api/updater', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
-    }).finally(() => setDisabled(false));
-  }, [params]);
+      body: JSON.stringify(args),
+    })
+      .then(() => delay(5000))
+      .finally(() => setDisabled(false));
+  };
 
   return (
     <Accordion expanded={true}>
@@ -55,8 +58,8 @@ export function UpdaterAccordion() {
               value={params.threads}
               InputProps={{ inputProps: { min: 0 } }}
               onChange={(event) => {
-                const value = parseInt(event.target.value);
-                setParams({ threads: value, workers: value > params.workers ? value : params.workers });
+                const threads = parseInt(event.target.value);
+                setParams({ threads, workers: threads > params.workers ? threads : params.workers });
               }}
               disabled={disabled}
             />
@@ -66,13 +69,36 @@ export function UpdaterAccordion() {
               label="Number of workers"
               value={params.workers}
               InputProps={{ inputProps: { min: 0 } }}
-              onChange={(event) => setParams({ ...params, workers: parseInt(event.target.value) })}
+              onChange={(event) => {
+                const workers = parseInt(event.target.value);
+                setParams({ threads: workers > 0 ? params.threads : 0, workers });
+              }}
               disabled={disabled}
             />
           </Box>
-          <Button variant="contained" size="small" startIcon={Icon} onClick={submitForm} disabled={disabled}>
-            {running ? 'Update' : 'Start'}
-          </Button>
+          <Box columnGap={2} display="flex">
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={Icon}
+              onClick={() => submitForm(params)}
+              disabled={disabled}
+              fullWidth
+            >
+              {running ? 'Update' : 'Start'}
+            </Button>
+            <Button
+              variant="contained"
+              color="error"
+              size="small"
+              startIcon={<Block />}
+              onClick={() => submitForm({ threads: 0, workers: 0 })}
+              fullWidth
+              disabled={!running || disabled}
+            >
+              Stop
+            </Button>
+          </Box>
         </Box>
       </AccordionDetails>
     </Accordion>

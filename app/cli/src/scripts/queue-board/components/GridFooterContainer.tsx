@@ -6,7 +6,7 @@ import numeral from 'numeral';
 import React, { useState } from 'react';
 
 import { JobType, color } from '../App';
-import { Drawer } from './Drawer';
+import { AppTools } from '../AppTools';
 
 export function GridFooterContainer(
   props: {
@@ -23,7 +23,7 @@ export function GridFooterContainer(
         <Button startIcon={<Handyman />} onClick={() => setOpen(!open)} color="secondary">
           Tools
         </Button>
-        <Drawer open={open} onClose={() => setOpen(false)} />
+        <AppTools open={open} onClose={() => setOpen(false)} />
       </Box>
       <Box sx={{ display: 'flex', columnGap: 1, paddingLeft: 2 }}>
         <Chip
