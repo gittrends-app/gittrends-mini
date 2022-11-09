@@ -13,7 +13,7 @@ async function forEach(queueFunction: AsyncWorker<string>) {
   const q = queue(queueFunction, parseInt(process.env.CLI_MIGRATIONS_WORKERS || '10'));
 
   q.push(
-    await withDatabase('public', ({ knex }) =>
+    await withDatabase({ name: 'public', migrate: true }, ({ knex }) =>
       knex
         .from(Repository.__collection_name)
         .select('name_with_owner')
