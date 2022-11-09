@@ -64,7 +64,7 @@ export class ProxyService implements Service {
 
     if (newActors.length) {
       actors.push(...newActors);
-      await this.persistence.actors.replace(newActors);
+      await this.persistence.actors.save(newActors, { onConflict: 'merge' });
     }
 
     return Array.isArray(id) ? ids.map((id) => actors.find((a) => a?.id === id)) : actors.at(0);
