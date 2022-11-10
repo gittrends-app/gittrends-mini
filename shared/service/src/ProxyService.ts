@@ -1,5 +1,5 @@
 import { each } from 'bluebird';
-import { compact } from 'lodash';
+import { compact, difference } from 'lodash';
 
 import { HttpClient } from '@gittrends/github';
 
@@ -55,16 +55,21 @@ export class ProxyService implements Service {
         .then((_actors) => actors.push(..._actors));
     }
 
-    const pendingIds = ids.filter((id) => !actors.find((a) => a?.id === id));
+    const pendingIds = difference(
+      ids,
+      actors.map((a) => a.id),
+    );
 
-    const newActors = await this.githubService
-      .getActor(pendingIds)
-      .then(compact)
-      .then((actors) => actors.map((actor) => Object.assign(actor, { __updated_at: new Date() })));
-
-    if (newActors.length) {
-      actors.push(...newActors);
-      await this.persistence.actors.save(newActors, { onConflict: 'merge' });
+    if (pendingIds.length) {
+      await this.githubService
+        .getActor(pendingIds)
+        .then(compact)
+        .then((actors) => actors.map((actor) => Object.assign(actor, { __updated_at: new Date() })))
+        .then(async (newActors) => {
+          if (newActors.length === 0) return;
+          actors.push(...newActors);
+          return this.persistence.actors.save(newActors, { onConflict: 'merge' });
+        });
     }
 
     return Array.isArray(id) ? ids.map((id) => actors.find((a) => a?.id === id)) : actors.at(0);
