@@ -14,18 +14,15 @@ export class ActorsRepository implements IActorsRepository {
   async findById(id: any): Promise<any> {
     const ids = Array.isArray(id) ? id : [id];
 
-    const actors = await this.db
-      .table(Actor.__collection_name)
-      .select('*')
-      .whereIn('id', ids)
-      .then((actors) =>
-        ids.map((id) => {
-          const actor = actors.find((actor) => actor.id === id);
-          return actor ? Actor.from(actor) : undefined;
-        }),
-      );
+    const actors = await asyncIterator(ids, async (id) =>
+      this.db
+        .table(Actor.__collection_name)
+        .first('*')
+        .where('id', id)
+        .then((actor) => (actor ? Actor.from(actor) : undefined)),
+    );
 
-    return Array.isArray(id) ? ids.map((id) => actors.find((actor) => actor?.id === id)) : actors.at(0);
+    return Array.isArray(id) ? actors : actors.at(0);
   }
 
   async findByLogin(login: string): Promise<Actor | undefined> {
