@@ -1,4 +1,5 @@
 import { each } from 'bluebird';
+import dayjs from 'dayjs';
 import { compact, difference } from 'lodash';
 
 import { HttpClient } from '@gittrends/github';
@@ -42,8 +43,8 @@ export class ProxyService implements Service {
   }
 
   async getActor(id: string): Promise<Actor | undefined>;
-  async getActor(ids: string[], opts?: { noCache: boolean }): Promise<(Actor | undefined)[]>;
-  async getActor(id: any, opts?: { noCache: boolean }): Promise<any> {
+  async getActor(ids: string[], opts?: { noCache?: boolean; cacheExpiresAt?: Date }): Promise<(Actor | undefined)[]>;
+  async getActor(id: any, opts?: { noCache?: boolean; cacheExpiresAt?: Date }): Promise<any> {
     const ids = Array.isArray(id) ? id : [id];
 
     const actors: Actor[] = [];
@@ -52,6 +53,11 @@ export class ProxyService implements Service {
       await this.cacheService
         .getActor(ids)
         .then(compact)
+        .then((_actors) =>
+          _actors.filter((actor) =>
+            opts?.cacheExpiresAt ? dayjs(actor.__updated_at).isAfter(opts?.cacheExpiresAt) : true,
+          ),
+        )
         .then((_actors) => actors.push(..._actors));
     }
 

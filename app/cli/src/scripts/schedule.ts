@@ -27,7 +27,7 @@ const Resources = [Actor, Stargazer, Watcher, Tag, Release, Dependency, Issue, P
 
 const logger = debug('schedule');
 
-export async function schedule(args: CliOptions & { repos?: string[] }) {
+export async function schedule(args: CliOptions & { repos?: string[] } = { wait: 48 }) {
   logger('Connecting to redis server...');
   await withBullQueue(async (queue) => {
     if (args.obliterate) await queue.obliterate({ force: true });
@@ -119,7 +119,7 @@ type CliOptions = { wait: number; drain?: boolean; obliterate?: boolean };
 
 export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void> {
   await program
-    .addOption(new Option('-w, --wait [hours]', 'Number of hours before updating').default(24))
+    .addOption(new Option('-w, --wait [hours]', 'Number of hours before updating').default(48))
     .addOption(new Option('--drain', 'Remove all pending jobs on queue before proceeding'))
     .addOption(new Option('--obliterate', 'Remove all jobs on queue (including the active ones)'))
     .addArgument(new Argument('[repo...]', 'Repositories to schedule').default([]))

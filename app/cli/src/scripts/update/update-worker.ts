@@ -101,9 +101,14 @@ export async function updater(name: string, opts: UpdaterOpts) {
       ? withDatabase('public', async (publicActorsRepos) => {
           if (!actorsIds?.length) return;
           const actorsProxy = new ProxyService(opts.httpClient, publicActorsRepos);
-          for (const [index, iChunk] of chunk(actorsIds, 500).entries()) {
+          for (const [index, iChunk] of chunk(actorsIds, 25).entries()) {
             logger(`Updating ${iChunk.length * index + iChunk.length} (of ${actorsIds.length}) actors...`);
-            const actors = await actorsProxy.getActor(iChunk.map((i) => i.id)).then(compact);
+            const actors = await actorsProxy
+              .getActor(
+                iChunk.map((i) => i.id),
+                { cacheExpiresAt: opts.before },
+              )
+              .then(compact);
             if (iChunk.length > actors.length)
               logger(`${iChunk.length - actors.length} actors could not be resolved...`);
             await localRepos.actors.save(actors, { onConflict: 'merge' }).finally(async () => {

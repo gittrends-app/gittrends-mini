@@ -11,12 +11,14 @@ export abstract class Actor extends Entity<Actor | any> implements Node {
   type!: 'User' | 'Organization' | 'Mannequin' | 'Bot' | 'EnterpriseUserAccount';
   login!: string;
   avatar_url?: string;
+  __updated_at?: Date;
 
   static readonly __schema = Joi.object<Actor>({
     id: Joi.string().required(),
     type: Joi.string().valid('User', 'Organization', 'Mannequin', 'Bot', 'EnterpriseUserAccount').required(),
     login: Joi.string().required(),
     avatar_url: Joi.string(),
+    __updated_at: Joi.date(),
   }).custom((value) => {
     switch (value.type) {
       case 'User':
