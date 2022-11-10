@@ -23,7 +23,7 @@ export class TimelineEventsRepository implements IResourceRepository<TimelineEve
     const [{ count }] = await this.db
       .table(TimelineEvent.__collection_name)
       .where('repository', repository)
-      .count('user', { as: 'count' });
+      .count('repository', { as: 'count' });
     return parseInt(count);
   }
 

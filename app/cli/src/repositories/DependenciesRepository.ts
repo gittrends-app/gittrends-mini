@@ -1,10 +1,17 @@
 import { Knex } from 'knex';
 
+
+
 import { IResourceRepository } from '@gittrends/service';
+
+
 
 import { Dependency } from '@gittrends/entities';
 
+
+
 import { asyncIterator } from '../config/knex.config';
+
 
 export class DependenciesRepository implements IResourceRepository<Dependency> {
   constructor(private db: Knex) {}
@@ -13,7 +20,7 @@ export class DependenciesRepository implements IResourceRepository<Dependency> {
     const [{ count }] = await this.db
       .table(Dependency.__collection_name)
       .where('repository', repository)
-      .count('*', { as: 'count' });
+      .count('repository', { as: 'count' });
     return parseInt(count);
   }
 

@@ -26,7 +26,7 @@ class IssueOrPullRepository<T extends IssueOrPull> implements IResourceRepositor
     const [{ count }] = await this.db
       .table((this.IssueOrPullClass as any).__collection_name)
       .where('repository', repository)
-      .count('id', { as: 'count' });
+      .count('repository', { as: 'count' });
     return parseInt(count);
   }
 

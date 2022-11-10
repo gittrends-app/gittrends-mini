@@ -20,7 +20,7 @@ export class TagsRepository implements IResourceRepository<Tag> {
     const [{ count }] = await this.db
       .table(Tag.__collection_name)
       .where('repository', repository)
-      .count('id', { as: 'count' });
+      .count('repository', { as: 'count' });
     return parseInt(count);
   }
 

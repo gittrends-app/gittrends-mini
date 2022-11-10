@@ -20,7 +20,7 @@ export class StargazersRepository implements IResourceRepository<Stargazer> {
     const [{ count }] = await this.db
       .table(Stargazer.__collection_name)
       .where('repository', repository)
-      .count('user', { as: 'count' });
+      .count('repository', { as: 'count' });
     return parseInt(count);
   }
 

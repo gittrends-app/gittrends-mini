@@ -23,7 +23,7 @@ export class ReleasesRepository implements IResourceRepository<Release> {
     const [{ count }] = await this.db
       .table(Release.__collection_name)
       .where('repository', repository)
-      .count('id', { as: 'count' });
+      .count('repository', { as: 'count' });
     return parseInt(count);
   }
 

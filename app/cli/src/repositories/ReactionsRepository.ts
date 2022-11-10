@@ -20,7 +20,7 @@ export class ReactionsRepository implements IResourceRepository<Reaction> {
     const [{ count }] = await this.db
       .table(Reaction.__collection_name)
       .where('repository', repository)
-      .count('user', { as: 'count' });
+      .count('repository', { as: 'count' });
     return parseInt(count);
   }
 
