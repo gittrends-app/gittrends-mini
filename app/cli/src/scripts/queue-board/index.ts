@@ -138,7 +138,7 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
       app.post('/api/scheduler', async (req, res) => {
         if (!scheduler.done) return;
         Object.assign(scheduler, {
-          ref: schedule({ wait: 24, drain: req.body.drain !== undefined }).finally(() => (scheduler.done = true)),
+          ref: schedule({ wait: 48, drain: req.body.drain !== undefined }).finally(() => (scheduler.done = true)),
           done: false,
         });
         res.sendStatus(201);
