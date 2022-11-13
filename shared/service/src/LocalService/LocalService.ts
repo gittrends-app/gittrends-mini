@@ -2,10 +2,10 @@ import { Actor, RepositoryResource } from '@gittrends/entities';
 import { Dependency, Issue, PullRequest, Release, Repository, Stargazer, Tag, Watcher } from '@gittrends/entities';
 
 import { IActorsRepository, IMetadataRepository, IRepositoriesRepository, IResourceRepository } from '../Repositories';
-import { Iterable, Service } from '../Service';
+import { Iterable, IterableRepositoryResources, Service } from '../Service';
 import { ResourceIterator } from './ResourcesIterator';
 
-export type ServiceOpts = {
+export type LocalServiceOpts = {
   actors: IActorsRepository;
   repositories: IRepositoriesRepository;
   metadata: IMetadataRepository;
@@ -19,9 +19,9 @@ export type ServiceOpts = {
 };
 
 export class LocalService implements Service {
-  private readonly persistence: ServiceOpts;
+  private readonly persistence: LocalServiceOpts;
 
-  constructor(opts: ServiceOpts) {
+  constructor(opts: LocalServiceOpts) {
     this.persistence = opts;
   }
 
@@ -41,7 +41,7 @@ export class LocalService implements Service {
 
   resources(
     repositoryId: string,
-    resources: { resource: Constructor<RepositoryResource> }[],
+    resources: { resource: EntityConstructor<IterableRepositoryResources> }[],
   ): Iterable<RepositoryResource> {
     const iterators: Iterable<RepositoryResource>[] = resources.map((it) => {
       let repository: IResourceRepository<RepositoryResource> | undefined = undefined;

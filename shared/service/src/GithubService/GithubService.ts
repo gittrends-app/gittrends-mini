@@ -25,7 +25,7 @@ import {
 } from '@gittrends/entities';
 import { Issue, PullRequest } from '@gittrends/entities';
 
-import { Iterable, Service } from '../Service';
+import { Iterable, IterableRepositoryResources, Service } from '../Service';
 import { ComponentBuilder } from './ComponentBuilder';
 import { DependenciesComponentBuilder } from './Components/DependenciesComponentBuilder';
 import { IssuesComponentBuilder, PullRequestsComponentBuilder } from './Components/IssuesComponentBuilder';
@@ -94,7 +94,7 @@ async function request(
   return parseResults;
 }
 
-function getComponentBuilder(Target: Constructor<RepositoryResource>) {
+function getComponentBuilder(Target: EntityConstructor<RepositoryResource>) {
   if (Target === Stargazer) return StargazersComponentBuilder;
   else if (Target === Tag) return TagsComponentBuilder;
   else if (Target === Release) return ReleasesComponentBuilder;
@@ -287,7 +287,10 @@ export class GitHubService implements Service {
     };
   }
 
-  resources(repositoryId: string, resources: { resource: Constructor<RepositoryResource>; endCursor?: string }[]) {
+  resources(
+    repositoryId: string,
+    resources: { resource: EntityConstructor<IterableRepositoryResources>; endCursor?: string }[],
+  ) {
     return new ResourceIterator(
       resources.map((res) => new (getComponentBuilder(res.resource))(repositoryId, res.endCursor)),
       this.httpClient,
