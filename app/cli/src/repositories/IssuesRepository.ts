@@ -41,7 +41,7 @@ class IssueOrPullRepository<T extends IssueOrPull> implements IResourceRepositor
     return issues.map((issue) => new this.IssueOrPullClass(issue));
   }
 
-  async save(issue: T | T[], trx?: Knex.Transaction): Promise<void> {
+  private async save(issue: T | T[], trx?: Knex.Transaction): Promise<void> {
     const data = cloneDeep(Array.isArray(issue) ? issue : [issue]).map((issue) => {
       const { reactions, timeline_items, ...otherFields } = issue;
       const actors = extractEntityInstances<Actor>(otherFields, Actor as any);
@@ -60,7 +60,7 @@ class IssueOrPullRepository<T extends IssueOrPull> implements IResourceRepositor
 
     await asyncIterator(data, async ({ issue, actors, reactions, timeline_items }) =>
       Promise.all<void>([
-        this.actorsRepo.save(actors, { onConflict: 'ignore' }, transaction),
+        this.actorsRepo.insert(actors, transaction),
         this.reactionsRepo.save(reactions, transaction),
         this.eventsRepo.save(timeline_items, transaction),
         this.db
@@ -76,6 +76,14 @@ class IssueOrPullRepository<T extends IssueOrPull> implements IResourceRepositor
         if (!trx) await transaction.rollback(error);
         throw error;
       });
+  }
+
+  insert(entity: T | T[], trx?: Knex.Transaction): Promise<void> {
+    return this.save(entity, trx);
+  }
+
+  upsert(entity: T | T[], trx?: Knex.Transaction): Promise<void> {
+    return this.save(entity, trx);
   }
 }
 

@@ -1,17 +1,10 @@
 import { Knex } from 'knex';
 
-
-
 import { IResourceRepository } from '@gittrends/service';
-
-
 
 import { Dependency } from '@gittrends/entities';
 
-
-
 import { asyncIterator } from '../config/knex.config';
-
 
 export class DependenciesRepository implements IResourceRepository<Dependency> {
   constructor(private db: Knex) {}
@@ -40,7 +33,11 @@ export class DependenciesRepository implements IResourceRepository<Dependency> {
     return dependencies.map((dep) => new Dependency(dep));
   }
 
-  async save(dependency: Dependency | Dependency[], trx?: Knex.Transaction): Promise<void> {
+  private async save(
+    dependency: Dependency | Dependency[],
+    trx?: Knex.Transaction,
+    onConflict: 'ignore' | 'merge' = 'ignore',
+  ): Promise<void> {
     const dependencies = Array.isArray(dependency) ? dependency : [dependency];
 
     const transaction = trx || (await this.db.transaction());
@@ -50,7 +47,7 @@ export class DependenciesRepository implements IResourceRepository<Dependency> {
         .table(Dependency.__collection_name)
         .insertEntity(dep)
         .onConflict(['repository', 'manifest', 'package_name', 'requirements'])
-        .ignore()
+        ?.[onConflict]()
         .transacting(transaction),
     )
       .then(async () => (!trx ? transaction.commit() : null))
@@ -58,5 +55,13 @@ export class DependenciesRepository implements IResourceRepository<Dependency> {
         if (!trx) await transaction.rollback(error);
         throw error;
       });
+  }
+
+  insert(entity: Dependency | Dependency[], trx?: Knex.Transaction): Promise<void> {
+    return this.save(entity, trx, 'ignore');
+  }
+
+  upsert(entity: Dependency | Dependency[], trx?: Knex.Transaction): Promise<void> {
+    return this.save(entity, trx, 'merge');
   }
 }

@@ -18,7 +18,11 @@ export class MetadataRepository implements IMetadataRepository {
     return metas.map(({ payload, ...meta }) => new Metadata({ ...meta, ...payload }));
   }
 
-  async save(metadata: Metadata | Metadata[], trx?: Knex.Transaction, upsert = false): Promise<void> {
+  private async save(
+    metadata: Metadata | Metadata[],
+    trx?: Knex.Transaction,
+    onConflict: 'ignore' | 'merge' = 'ignore',
+  ): Promise<void> {
     const metas = Array.isArray(metadata) ? metadata : [metadata];
 
     const transaction = trx || (await this.db.transaction());
@@ -29,7 +33,7 @@ export class MetadataRepository implements IMetadataRepository {
         .table(Metadata.__collection_name)
         .insertEntity({ repository, resource, end_cursor, updated_at, finished_at, payload: payload })
         .onConflict(['repository', 'resource'])
-        ?.[upsert ? 'merge' : 'ignore']()
+        ?.[onConflict]()
         .transacting(transaction);
     })
       .then(async () => (!trx ? transaction.commit() : null))
@@ -39,7 +43,11 @@ export class MetadataRepository implements IMetadataRepository {
       });
   }
 
-  upsert(metadata: Metadata | Metadata[], trx?: Knex.Transaction): Promise<void> {
-    return this.save(metadata, trx, true);
+  insert(entity: Metadata | Metadata[], trx?: Knex.Transaction): Promise<void> {
+    return this.save(entity, trx, 'ignore');
+  }
+
+  upsert(entity: Metadata | Metadata[], trx?: Knex.Transaction): Promise<void> {
+    return this.save(entity, trx, 'merge');
   }
 }

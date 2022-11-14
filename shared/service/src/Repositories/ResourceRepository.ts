@@ -1,7 +1,8 @@
-import { RepositoryResource } from '@gittrends/entities';
+import { Entity, RepositoryResource } from '@gittrends/entities';
 
-export interface IResourceRepository<T extends RepositoryResource> {
-  countByRepository(repository: string): Promise<number>;
+import { IEntityRepository } from './EntityRepository';
+
+export interface IResourceRepository<T extends Entity & RepositoryResource> extends IEntityRepository<T> {
   findByRepository(repository: string, opts?: { limit: number; skip: number }): Promise<T[]>;
-  save(stargazer: T | T[]): Promise<void>;
+  countByRepository(repository: string): Promise<number>;
 }

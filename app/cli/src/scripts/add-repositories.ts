@@ -70,7 +70,7 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
       const multibar = repo ? undefined : await withMultibar();
 
       consola.info('Opening local database...');
-      await withDatabase({ name: 'public', migrate: true }, async ({ repositories: publicRepos }) => {
+      await withDatabase({ name: 'public', migrate: true }, async ({ get: publicGet }) => {
         consola.info('Preparing progress bar...');
 
         const progressBar = multibar?.create(opts.limit, 0, { resource: 'search' });
@@ -83,11 +83,8 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
         for (const entityChunk of chunk(entityList, 25)) {
           await Promise.all(
             entityChunk.map((entity) =>
-              withDatabase({ name: entity.name_with_owner, migrate: true }, ({ repositories }) =>
-                Promise.all([
-                  publicRepos.save(entity, { onConflict: 'ignore' }),
-                  repositories.save(entity, { onConflict: 'ignore' }),
-                ]),
+              withDatabase({ name: entity.name_with_owner, migrate: true }, ({ get }) =>
+                Promise.all([publicGet(Repository).insert(entity), get(Repository).insert(entity)]),
               ).then(() => progressBar?.increment(1, { resource: entity.name_with_owner })),
             ),
           );

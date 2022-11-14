@@ -35,20 +35,24 @@ export class ReactionsRepository implements IResourceRepository<Reaction> {
     return reactions.map((reaction) => new Reaction(reaction));
   }
 
-  async save(reaction: Reaction | Reaction[], trx?: Knex.Transaction): Promise<void> {
+  private async save(
+    reaction: Reaction | Reaction[],
+    trx?: Knex.Transaction,
+    onConflict: 'ignore' | 'merge' = 'ignore',
+  ): Promise<void> {
     const reactions = cloneDeep(Array.isArray(reaction) ? reaction : [reaction]);
     const actors = extractEntityInstances<Actor>(reactions, Actor as any);
 
     const transaction = trx || (await this.db.transaction());
 
     await Promise.all([
-      this.actorsRepo.save(actors, { onConflict: 'ignore' }, transaction),
+      this.actorsRepo.insert(actors, transaction),
       asyncIterator(reactions, (reaction) => {
         return this.db
           .table(Reaction.__collection_name)
           .insertEntity(reaction)
           .onConflict('id')
-          .ignore()
+          ?.[onConflict]()
           .transacting(transaction);
       }),
     ])
@@ -57,5 +61,13 @@ export class ReactionsRepository implements IResourceRepository<Reaction> {
         if (!trx) await transaction.rollback(error);
         throw error;
       });
+  }
+
+  insert(entity: Reaction | Reaction[], trx?: Knex.Transaction): Promise<void> {
+    return this.save(entity, trx, 'ignore');
+  }
+
+  upsert(entity: Reaction | Reaction[], trx?: Knex.Transaction): Promise<void> {
+    return this.save(entity, trx, 'merge');
   }
 }

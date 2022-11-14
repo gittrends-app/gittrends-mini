@@ -95,13 +95,12 @@ function getConnectionSettings(repo: string): Knex.Config & Knex.MigratorConfig 
   }
 
   if (targetDatabase === 'sqlite') {
-    const databaseFile = getDatabasePath(repo);
-    mkdirSync(dirname(databaseFile), { recursive: true });
+    mkdirSync(dirname(repo), { recursive: true });
     return {
       client: 'better-sqlite3',
       acquireConnectionTimeout: 60000,
       useNullAsDefault: true,
-      connection: { filename: databaseFile },
+      connection: { filename: repo },
     };
   }
 
@@ -111,6 +110,7 @@ function getConnectionSettings(repo: string): Knex.Config & Knex.MigratorConfig 
 export async function createOrConnectDatabase(repo: string) {
   const schemaOrDbName = getDatabasePath(repo);
   const config = getConnectionSettings(schemaOrDbName);
+
   const conn = knex({
     ...config,
     migrations: {

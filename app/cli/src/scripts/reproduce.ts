@@ -7,15 +7,14 @@ import { HttpClient } from '@gittrends/github';
 
 import { GitHubService } from '@gittrends/service';
 
-import { Dependency, Issue, PullRequest, Release, Stargazer, Tag, Watcher } from '@gittrends/entities';
-
 import { version } from '../package.json';
-
-const Entities = [Dependency, Issue, PullRequest, Release, Stargazer, Tag, Watcher];
+import { UpdatebleResourcesList } from './update';
 
 export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void> {
   program
-    .addArgument(new Argument('[resource]', 'Component name').choices(Entities.map((e) => e.__collection_name)))
+    .addArgument(
+      new Argument('[resource]', 'Component name').choices(UpdatebleResourcesList.map((e) => e.__collection_name)),
+    )
     .addArgument(new Argument('[repository]', 'Repository identifier'))
     .addArgument(new Argument('[end_cursor]', 'End cursor'))
     .action(async (resource?: string, repository?: string, endCursor?: string) => {
@@ -24,7 +23,7 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
           type: 'list',
           name: 'resource',
           message: 'Select the resource to reproduce',
-          choices: Entities.map((e) => ({ name: e.__collection_name, value: e.__collection_name })),
+          choices: UpdatebleResourcesList.map((e) => ({ name: e.__collection_name, value: e.__collection_name })),
           default: resource,
           when: !resource,
         },
@@ -59,10 +58,10 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
           consola.info('Preparing GitHubService resources iterator...');
           const iterator = service.resources(responses.repository, [
             {
-              resource: Entities.find((e) => e.__collection_name === responses.resource),
+              resource: UpdatebleResourcesList.find((e) => e.__collection_name === responses.resource),
               endCursor: responses.endCursor,
             },
-          ]);
+          ] as any[]);
 
           consola.info('Iterating over results...');
           for await (const [result] of iterator) {

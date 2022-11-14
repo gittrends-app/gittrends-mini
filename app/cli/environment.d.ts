@@ -1,5 +1,7 @@
 import { Knex as KnexOriginal } from 'knex';
 
+import { Entity } from '@gittrends/entities';
+
 export {};
 
 declare global {
@@ -28,8 +30,15 @@ declare global {
 
       CLI_SCHEDULER_WORKERS?: string;
       CLI_SCHEDULER_ATTEMPS?: string;
+
+      CLI_CACHE_SIZE?: string;
     }
   }
+
+  type Constructor<T> = { new (...args: any): T };
+  type EntityConstructor<T> = { new (...args: any): T } & typeof Entity;
+  type Prototype<T> = { prototype: T };
+  type EntityPrototype<T> = { prototype: T } & typeof Entity;
 }
 
 declare module 'knex' {

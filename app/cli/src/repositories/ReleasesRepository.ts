@@ -39,7 +39,11 @@ export class ReleasesRepository implements IResourceRepository<Release> {
     return releases.map((release) => new Release(release));
   }
 
-  async save(release: Release | Release[], trx?: Knex.Transaction): Promise<void> {
+  private async save(
+    release: Release | Release[],
+    trx?: Knex.Transaction,
+    onConflict: 'ignore' | 'merge' = 'ignore',
+  ): Promise<void> {
     const releases = cloneDeep(Array.isArray(release) ? release : [release]);
 
     const actors = extractEntityInstances<Actor>(releases, Actor as any);
@@ -48,8 +52,8 @@ export class ReleasesRepository implements IResourceRepository<Release> {
     const transaction = trx || (await this.db.transaction());
 
     await Promise.all([
-      this.actorsRepo.save(actors, { onConflict: 'ignore' }, transaction),
-      this.reactionsRepo.save(reactions, transaction),
+      this.actorsRepo.insert(actors, transaction),
+      this.reactionsRepo.insert(reactions, transaction),
       asyncIterator(
         releases.map((rel) => {
           if (Array.isArray(rel.reactions)) rel.reactions = rel.reactions.length;
@@ -60,7 +64,7 @@ export class ReleasesRepository implements IResourceRepository<Release> {
             .table(Release.__collection_name)
             .insertEntity(release)
             .onConflict(['id'])
-            .ignore()
+            ?.[onConflict]()
             .transacting(transaction),
       ),
     ])
@@ -69,5 +73,13 @@ export class ReleasesRepository implements IResourceRepository<Release> {
         if (!trx) await transaction.rollback(error);
         throw error;
       });
+  }
+
+  insert(entity: Release | Release[], trx?: Knex.Transaction): Promise<void> {
+    return this.save(entity, trx, 'ignore');
+  }
+
+  upsert(entity: Release | Release[], trx?: Knex.Transaction): Promise<void> {
+    return this.save(entity, trx, 'merge');
   }
 }

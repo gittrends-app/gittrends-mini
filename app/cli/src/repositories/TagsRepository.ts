@@ -36,16 +36,25 @@ export class TagsRepository implements IResourceRepository<Tag> {
     return tags.map((tag) => new Tag(tag));
   }
 
-  async save(tag: Tag | Tag[], trx?: Knex.Transaction): Promise<void> {
+  private async save(
+    tag: Tag | Tag[],
+    trx?: Knex.Transaction,
+    onConflict: 'ignore' | 'merge' = 'ignore',
+  ): Promise<void> {
     const tags = cloneDeep(Array.isArray(tag) ? tag : [tag]);
     const actors = extractEntityInstances<Actor>(tags, Actor as any);
 
     const transaction = trx || (await this.db.transaction());
 
     await Promise.all([
-      this.actorsRepo.save(actors, { onConflict: 'ignore' }, transaction),
+      this.actorsRepo.insert(actors, transaction),
       asyncIterator(tags, (tag) =>
-        this.db.table(Tag.__collection_name).insertEntity(tag).onConflict(['id']).ignore().transacting(transaction),
+        this.db
+          .table(Tag.__collection_name)
+          .insertEntity(tag)
+          .onConflict(['id'])
+          ?.[onConflict]()
+          .transacting(transaction),
       ),
     ])
       .then(async () => (!trx ? transaction.commit() : null))
@@ -53,5 +62,13 @@ export class TagsRepository implements IResourceRepository<Tag> {
         if (!trx) await transaction.rollback(error);
         throw error;
       });
+  }
+
+  insert(entity: Tag | Tag[], trx?: Knex.Transaction): Promise<void> {
+    return this.save(entity, trx, 'ignore');
+  }
+
+  upsert(entity: Tag | Tag[], trx?: Knex.Transaction): Promise<void> {
+    return this.save(entity, trx, 'merge');
   }
 }

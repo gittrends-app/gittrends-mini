@@ -1,9 +1,9 @@
-import { RepositoryResource } from '@gittrends/entities';
+import { Entity, RepositoryResource } from '@gittrends/entities';
 
 import { IResourceRepository } from '../Repositories';
 import { Iterable } from '../Service';
 
-export class ResourceIterator<T extends RepositoryResource> implements Iterable<T> {
+export class ResourceIterator<T extends Entity & RepositoryResource> implements Iterable<T> {
   private repository: IResourceRepository<T>;
 
   private hasNext = true;

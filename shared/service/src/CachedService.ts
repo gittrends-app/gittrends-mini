@@ -2,22 +2,24 @@ import { compact, difference } from 'lodash';
 
 import { SearchComponentQuery } from '@gittrends/github/dist';
 
-import { Actor, Repository, RepositoryResource } from '@gittrends/entities';
+import { Actor, Node, Repository } from '@gittrends/entities';
 
 import { Cache } from './Cache';
-import { Iterable, IterableRepositoryResources, Service } from './Service';
+import { Iterable, IterableResources, Service } from './Service';
+
+type TCache = Cache<Partial<Node & { name: string }>>;
 
 export class CachedService implements Service {
   private service: Service;
-  private cache: Cache;
+  private cache: TCache;
 
-  constructor(service: Service, cache: Cache) {
+  constructor(service: Service, cache: TCache) {
     this.service = service;
     this.cache = cache;
   }
 
   async get(id: string): Promise<Repository | undefined> {
-    const cachedValue = await this.cache.get(Repository, id);
+    const cachedValue = await this.cache.get<Repository>({ id });
     if (cachedValue) return cachedValue;
 
     return this.service.get(id).then(async (value) => {
@@ -27,7 +29,7 @@ export class CachedService implements Service {
   }
 
   async find(name: string): Promise<Repository | undefined> {
-    const cachedValue = await this.cache.get(Repository, name);
+    const cachedValue = await this.cache.get<Repository>({ name });
     if (cachedValue) return cachedValue;
 
     return this.service.find(name).then(async (value) => {
@@ -44,11 +46,11 @@ export class CachedService implements Service {
   resources(
     repositoryId: string,
     resources: {
-      resource: EntityConstructor<IterableRepositoryResources>;
+      resource: EntityPrototype<IterableResources>;
       endCursor?: string | undefined;
       hasNextPage?: boolean | undefined;
     }[],
-  ): Iterable<RepositoryResource> {
+  ): Iterable<IterableResources> {
     return this.service.resources(repositoryId, resources);
   }
 
@@ -57,7 +59,7 @@ export class CachedService implements Service {
   async getActor(id: any): Promise<any> {
     const actorIds = Array.isArray(id) ? id : [id];
 
-    const actors = compact(await Promise.all(actorIds.map((id) => this.cache.get(Actor, id))));
+    const actors = compact(await Promise.all(actorIds.map((id) => this.cache.get<Actor>({ id }))));
 
     const pendingIds = difference(
       actorIds,

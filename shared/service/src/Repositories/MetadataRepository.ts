@@ -1,7 +1,7 @@
 import { Metadata } from '@gittrends/entities';
 
-export interface IMetadataRepository {
+import { IEntityRepository } from './EntityRepository';
+
+export interface IMetadataRepository extends IEntityRepository<Metadata> {
   findByRepository(repository: string, resource?: Metadata['resource']): Promise<Metadata[]>;
-  save(metadata: Metadata | Metadata[]): Promise<void>;
-  upsert(metadata: Metadata | Metadata[]): Promise<void>;
 }

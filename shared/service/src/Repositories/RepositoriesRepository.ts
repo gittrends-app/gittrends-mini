@@ -1,7 +1,7 @@
 import { Repository } from '@gittrends/entities';
 
-export interface IRepositoriesRepository {
-  findById(id: string, opts?: { resolve?: ['owner'] }): Promise<Repository | undefined>;
-  findByName(name: string, opts?: { resolve?: ['owner'] }): Promise<Repository | undefined>;
-  save(repo: Repository | Repository[]): Promise<void>;
+import { INodeRepository } from './NodeRepository';
+
+export interface IRepositoriesRepository extends INodeRepository<Repository> {
+  findByName(name: string): Promise<Repository | undefined>;
 }

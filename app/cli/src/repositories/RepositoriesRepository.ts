@@ -16,53 +16,62 @@ export class RepositoriesRepository implements IRepositoriesRepository {
     this.actorRepo = new ActorsRepository(db);
   }
 
-  private async find(query: Knex.QueryBuilder, resolve = false): Promise<Repository | undefined> {
-    const repo = await query.table(Repository.__collection_name).select('*');
+  async findById(id: string): Promise<Repository | undefined>;
+  async findById(id: string[]): Promise<(Repository | undefined)[]>;
+  async findById(id: any): Promise<any> {
+    const ids = Array.isArray(id) ? id : [id];
 
-    if (repo) {
-      const parsedRepo = new Repository(repo);
+    const results = await asyncIterator(ids, (id) =>
+      this.db
+        .first('*')
+        .from(Repository.__collection_name)
+        .where('id', id)
+        .then((result) => result && new Repository(result)),
+    );
 
-      if (resolve) {
-        const owner = await this.actorRepo.findById(parsedRepo.owner as string);
-        parsedRepo.owner = owner || parsedRepo.owner;
-      }
-
-      return parsedRepo;
-    }
+    return Array.isArray(id) ? results : results[0];
   }
 
-  async findById(id: string, opts?: { resolve?: ['owner'] }): Promise<Repository | undefined> {
-    return this.find(this.db.where('id', id).first(), opts?.resolve !== undefined);
+  async findByName(name: string): Promise<Repository | undefined> {
+    return this.db
+      .first('*')
+      .from(Repository.__collection_name)
+      .whereRaw('UPPER(name_with_owner) LIKE ?', name.toUpperCase())
+      .then((result) => result && new Repository(result));
   }
 
-  async findByName(name: string, opts?: { resolve?: ['owner'] }): Promise<Repository | undefined> {
-    return this.find(this.db.whereRaw('UPPER(name_with_owner) LIKE ?', name.toUpperCase()).first(), !!opts?.resolve);
-  }
-
-  async save(
+  private async save(
     repo: Repository | Repository[],
-    opts?: { trx?: Knex.Transaction; onConflict: 'merge' | 'ignore' },
+    trx?: Knex.Transaction,
+    onConflict: 'merge' | 'ignore' = 'ignore',
   ): Promise<void> {
     const repos = cloneDeep(Array.isArray(repo) ? repo : [repo]);
     const actors = extractEntityInstances<Actor>(repos, Actor as any);
 
-    const transaction = opts?.trx || (await this.db.transaction());
+    const transaction = trx || (await this.db.transaction());
 
     await Promise.all([
-      this.actorRepo.save(actors, { onConflict: 'ignore' }, transaction),
+      this.actorRepo.insert(actors, transaction),
       asyncIterator(repos, (repo) =>
         this.db
           .table(Repository.__collection_name)
           .insertEntity(repo)
           .onConflict('id')
-          ?.[opts?.onConflict || 'merge']()
+          ?.[onConflict || 'merge']()
           .transacting(transaction),
       ),
     ])
-      .then(async () => (!opts?.trx ? transaction.commit() : null))
+      .then(async () => (!trx ? transaction.commit() : null))
       .catch(async (error) => {
-        if (!opts?.trx) await transaction.rollback(error);
+        if (!trx) await transaction.rollback(error);
         throw error;
       });
+  }
+
+  insert(entity: Repository | Repository[], trx?: Knex.Transaction): Promise<void> {
+    return this.save(entity, trx, 'ignore');
+  }
+  upsert(entity: Repository | Repository[], trx?: Knex.Transaction): Promise<void> {
+    return this.save(entity, trx, 'merge');
   }
 }

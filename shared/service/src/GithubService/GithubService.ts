@@ -13,19 +13,10 @@ import {
 } from '@gittrends/github';
 import { ServerRequestError } from '@gittrends/github';
 
-import {
-  Actor,
-  Dependency,
-  Release,
-  Repository,
-  RepositoryResource,
-  Stargazer,
-  Tag,
-  Watcher,
-} from '@gittrends/entities';
+import { Actor, Dependency, Release, Repository, Stargazer, Tag, Watcher } from '@gittrends/entities';
 import { Issue, PullRequest } from '@gittrends/entities';
 
-import { Iterable, IterableRepositoryResources, Service } from '../Service';
+import { Iterable, IterableResources, Service } from '../Service';
 import { ComponentBuilder } from './ComponentBuilder';
 import { DependenciesComponentBuilder } from './Components/DependenciesComponentBuilder';
 import { IssuesComponentBuilder, PullRequestsComponentBuilder } from './Components/IssuesComponentBuilder';
@@ -94,7 +85,7 @@ async function request(
   return parseResults;
 }
 
-function getComponentBuilder(Target: EntityConstructor<RepositoryResource>) {
+function getComponentBuilder(Target: EntityPrototype<IterableResources>) {
   if (Target === Stargazer) return StargazersComponentBuilder;
   else if (Target === Tag) return TagsComponentBuilder;
   else if (Target === Release) return ReleasesComponentBuilder;
@@ -102,10 +93,10 @@ function getComponentBuilder(Target: EntityConstructor<RepositoryResource>) {
   else if (Target === Dependency) return DependenciesComponentBuilder;
   else if (Target === Issue) return IssuesComponentBuilder;
   else if (Target === PullRequest) return PullRequestsComponentBuilder;
-  throw new Error('No ComponentBuilder found for ' + Target.name);
+  throw new Error('No ComponentBuilder found for ' + Target);
 }
 
-class ResourceIterator implements Iterable<RepositoryResource> {
+class ResourceIterator implements Iterable<IterableResources> {
   private readonly resourcesStatus: { hasMore: boolean; builder: ComponentBuilder; endCursor?: string }[];
   private errors?: ServiceRequestError[];
 
@@ -117,7 +108,7 @@ class ResourceIterator implements Iterable<RepositoryResource> {
     return this;
   }
 
-  async next(): Promise<IteratorResult<{ items: RepositoryResource[]; endCursor?: string; hasNextPage: boolean }[]>> {
+  async next(): Promise<IteratorResult<{ items: IterableResources[]; endCursor?: string; hasNextPage: boolean }[]>> {
     const done = this.resourcesStatus.every((rs) => !rs.hasMore);
 
     if (done) {
@@ -287,10 +278,7 @@ export class GitHubService implements Service {
     };
   }
 
-  resources(
-    repositoryId: string,
-    resources: { resource: EntityConstructor<IterableRepositoryResources>; endCursor?: string }[],
-  ) {
+  resources(repositoryId: string, resources: { resource: EntityPrototype<IterableResources>; endCursor?: string }[]) {
     return new ResourceIterator(
       resources.map((res) => new (getComponentBuilder(res.resource))(repositoryId, res.endCursor)),
       this.httpClient,

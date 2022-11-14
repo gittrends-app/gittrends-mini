@@ -1,17 +1,15 @@
 import { Knex } from 'knex';
 
-import { IResourceRepository } from '@gittrends/service';
+import { EntityRepositories } from '@gittrends/service';
 
 import {
   Actor,
   Dependency,
-  Entity,
   Issue,
   Metadata,
   PullRequest,
   Release,
   Repository,
-  RepositoryResource,
   Stargazer,
   Tag,
   Watcher,
@@ -28,32 +26,20 @@ import { StargazersRepository } from '../repositories/StargazersRepository';
 import { TagsRepository } from '../repositories/TagsRepository';
 import { WatchersRepository } from '../repositories/WatchersRepository';
 
-type Repositories = {
-  knex: Knex;
-  actors: ActorsRepository;
-  repositories: RepositoriesRepository;
-  stargazers: StargazersRepository;
-  tags: TagsRepository;
-  releases: ReleasesRepository;
-  watchers: WatchersRepository;
-  dependencies: DependenciesRepository;
-  metadata: MetadataRepository;
-  issues: IssuesRepository;
-  pull_requests: PullRequestsRepository;
-  get(resource: typeof Entity & ThisType<Actor>): ActorsRepository;
-  get(resource: typeof Entity & ThisType<Repository>): RepositoriesRepository;
-  get<T extends RepositoryResource>(resource: typeof Entity & ThisType<T>): IResourceRepository<T>;
-};
+type ExtendedEntityRepositories = EntityRepositories & { knex: Knex };
 
-export async function withDatabase<T>(context: (repos: Repositories) => Promise<T>): Promise<T>;
-export async function withDatabase<T>(db: string, context: (repos: Repositories) => Promise<T>): Promise<T>;
+export async function withDatabase<T>(context: (repos: ExtendedEntityRepositories) => Promise<T>): Promise<T>;
+export async function withDatabase<T>(
+  db: string,
+  context: (repos: ExtendedEntityRepositories) => Promise<T>,
+): Promise<T>;
 export async function withDatabase<T>(
   config: { name: string; migrate?: boolean },
-  context: (repos: Repositories) => Promise<T>,
+  context: (repos: ExtendedEntityRepositories) => Promise<T>,
 ): Promise<T>;
 export async function withDatabase<T>(db: any, context?: any): Promise<T> {
   let config: { name: string; migrate?: boolean } = { name: 'public', migrate: false };
-  let callback: (repos: Repositories) => Promise<any>;
+  let callback: (repos: EntityRepositories) => Promise<any>;
 
   if (typeof db === 'function') {
     callback = db;
@@ -74,19 +60,9 @@ export async function withDatabase<T>(db: any, context?: any): Promise<T> {
     return conn;
   });
 
-  const repos: Repositories = {
+  const repos: ExtendedEntityRepositories = {
     knex,
-    actors: new ActorsRepository(knex),
-    repositories: new RepositoriesRepository(knex),
-    stargazers: new StargazersRepository(knex),
-    tags: new TagsRepository(knex),
-    releases: new ReleasesRepository(knex),
-    watchers: new WatchersRepository(knex),
-    dependencies: new DependenciesRepository(knex),
-    metadata: new MetadataRepository(knex),
-    issues: new IssuesRepository(knex),
-    pull_requests: new PullRequestsRepository(knex),
-    get: function <T>(resource: typeof Entity & ThisType<T>): any {
+    get: function (resource: any): any {
       if (resource === Actor) return new ActorsRepository(knex);
       else if (resource === Repository) return new RepositoriesRepository(knex);
       else if (resource === Stargazer) return new StargazersRepository(knex);
@@ -97,7 +73,7 @@ export async function withDatabase<T>(db: any, context?: any): Promise<T> {
       else if (resource === Metadata) return new MetadataRepository(knex);
       else if (resource === Issue) return new IssuesRepository(knex);
       else if (resource === PullRequest) return new PullRequestsRepository(knex);
-      throw new Error(`No repository for ${resource.constructor.name}.`);
+      throw new Error(`No repository for ${resource.name}.`);
     },
   };
 

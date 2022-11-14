@@ -1,10 +1,10 @@
 import { Component } from '@gittrends/github';
 
-import { RepositoryResource } from '@gittrends/entities';
+import { IterableResources } from '../Service';
 
 export interface ComponentBuilder<
   T extends Component = Component,
-  E extends RepositoryResource[] = RepositoryResource[],
+  E extends IterableResources[] = IterableResources[],
 > {
   build(error?: Error): T | T[];
   parse(data: any): { hasNextPage: boolean; endCursor?: string; data: E };

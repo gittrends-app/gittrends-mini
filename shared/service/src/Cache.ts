@@ -1,7 +1,7 @@
 import { Entity } from '@gittrends/entities';
 
-export interface Cache {
-  add(entity: Entity): Promise<boolean>;
-  delete(entity: Entity): Promise<boolean>;
-  get<T extends Entity>(Ref: Prototype<T>, props: any): Promise<T | undefined>;
+export interface Cache<K = Record<string, any>> {
+  add(entity: Entity & K): Promise<void>;
+  delete(entity: Entity & K): Promise<void>;
+  get<T extends Entity>(props: K): Promise<T | undefined>;
 }

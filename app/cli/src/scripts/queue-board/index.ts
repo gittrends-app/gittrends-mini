@@ -25,13 +25,15 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
   const scheduler: { ref?: Promise<void>; done: boolean } = { done: true };
 
   await program
+    .addOption(new Option('--http-logging'))
     .addOption(new Option('--port <number>', 'Port to run board app').env('PORT').default(8080).makeOptionMandatory())
-    .action(async (opts: { port: number }) => {
+    .action(async (opts: { httpLogging: boolean; port: number }) => {
       const app = express();
 
       app.use(json());
-      app.use(morgan('combined'));
       app.use('/public', express.static(resolve(__dirname, '..', '..', '..', 'assets')));
+
+      if (opts.httpLogging) app.use(morgan('combined'));
 
       const queue = withBullQueue();
       const events = withBullEvents();
@@ -117,7 +119,11 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
 
             const worker = new Worker(path.resolve(__dirname, '..', 'update', `update-thread${extname(__filename)}`), {
               env: SHARE_ENV,
-              workerData: { concurrency: concurrency - diff, httpClientOpts },
+              workerData: {
+                cacheSize: parseInt(process.env.CACHE_SIZE || '100000'),
+                concurrency: concurrency - diff,
+                httpClientOpts,
+              },
             });
 
             worker.on('message', (message) => consola.log(`worker ${worker.threadId}: ${JSON.stringify(message)}`));

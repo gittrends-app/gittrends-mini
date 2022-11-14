@@ -5,20 +5,20 @@ import {
   Dependency,
   Entity,
   Issue,
+  IssueOrPull,
   PullRequest,
   Release,
   Repository,
-  RepositoryResource,
   Stargazer,
   Tag,
   Watcher,
 } from '@gittrends/entities';
 
-export type Iterable<T extends Entity | RepositoryResource> = AsyncIterableIterator<
+export type Iterable<T extends Entity> = AsyncIterableIterator<
   { items: T[]; endCursor?: string; hasNextPage?: boolean }[]
 >;
 
-export type IterableRepositoryResources = Dependency | Issue | PullRequest | Release | Stargazer | Tag | Watcher;
+export type IterableResources = Dependency | IssueOrPull | Issue | PullRequest | Release | Stargazer | Tag | Watcher;
 
 export interface Service {
   get(id: string): Promise<Repository | undefined>;
@@ -28,11 +28,11 @@ export interface Service {
   resources(
     repositoryId: string,
     resources: {
-      resource: EntityConstructor<IterableRepositoryResources>;
+      resource: EntityPrototype<IterableResources>;
       endCursor?: string;
       hasNextPage?: boolean;
     }[],
-  ): Iterable<RepositoryResource>;
+  ): Iterable<IterableResources>;
 
   getActor(id: string): Promise<Actor | undefined>;
   getActor(ids: string[]): Promise<(Actor | undefined)[]>;

@@ -1,14 +1,15 @@
+import consola from 'consola';
 import { compact, pickBy } from 'lodash';
 import { isMainThread, parentPort, threadId, workerData } from 'node:worker_threads';
 
 import { HttpClient } from '@gittrends/github';
 
-import { Entity } from '@gittrends/entities';
 import { debug } from '@gittrends/helpers';
 
 import { withBullWorker } from '../../helpers/withBullQueue';
 import { UpdatableResource, UpdatebleResourcesList } from './index';
 import { updater } from './update-worker';
+import { EntitiesCache } from 'src/cache/EntitiesCache';
 
 export const logger = debug('cli:update-thread');
 
@@ -19,6 +20,7 @@ if (!isMainThread) {
   logger(`Thread ${threadId} environment: ${JSON.stringify(cliEnvironment)}`);
 
   const httpClient = new HttpClient(workerData.httpClientOpts);
+  const entitiesCache = new EntitiesCache(workerData.cacheSize || 100000);
 
   const worker = withBullWorker(async (job) => {
     if (!job.data.name_with_owner) throw new Error('Invlaid job id!');
@@ -27,12 +29,13 @@ if (!isMainThread) {
 
     const resources = compact(
       job.data.__resources.map((r) => UpdatebleResourcesList.find((ur) => ur.__collection_name === r)),
-    ) as (typeof Entity & ThisType<UpdatableResource>)[];
+    ) as UpdatableResource[];
 
-    await updater(job.data.name_with_owner, {
+    return updater(job.data.name_with_owner, {
       httpClient: httpClient,
       resources: resources,
       before: new Date(job.data.__updated_before),
+      entitiesCache: entitiesCache,
       onProgress: async (progress) => {
         const [current, total] = Object.values(progress).reduce(
           ([current, total], rp) => [current + rp.current, total + rp.total],
@@ -54,7 +57,8 @@ if (!isMainThread) {
       });
   }, workerData.concurrency);
 
-  worker.on('closed', () => logger('Connection closed'));
+  worker.on('closed', () => consola.info('Connection closed'));
+  worker.on('error', consola.error);
 
   parentPort?.on('message', (data) => {
     if (data.concurrency) worker.concurrency = data.concurrency;

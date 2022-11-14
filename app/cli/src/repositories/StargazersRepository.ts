@@ -36,20 +36,24 @@ export class StargazersRepository implements IResourceRepository<Stargazer> {
     return stars.map((star) => new Stargazer(star));
   }
 
-  async save(stargazer: Stargazer | Stargazer[], trx?: Knex.Transaction): Promise<void> {
+  private async save(
+    stargazer: Stargazer | Stargazer[],
+    trx?: Knex.Transaction,
+    onConflict: 'ignore' | 'merge' = 'ignore',
+  ): Promise<void> {
     const stars = cloneDeep(Array.isArray(stargazer) ? stargazer : [stargazer]);
     const actors = extractEntityInstances<Actor>(stars, Actor as any);
 
     const transaction = trx || (await this.db.transaction());
 
     await Promise.all([
-      this.actorsRepo.save(actors, { onConflict: 'ignore' }, transaction),
+      this.actorsRepo.insert(actors, transaction),
       asyncIterator(stars, (star) =>
         this.db
           .table(Stargazer.__collection_name)
           .insertEntity(star)
           .onConflict(['repository', 'user', 'starred_at'])
-          .ignore()
+          ?.[onConflict]()
           .transacting(transaction),
       ),
     ])
@@ -58,5 +62,13 @@ export class StargazersRepository implements IResourceRepository<Stargazer> {
         if (!trx) await transaction.rollback(error);
         throw error;
       });
+  }
+
+  insert(entity: Stargazer | Stargazer[], trx?: Knex.Transaction): Promise<void> {
+    return this.save(entity, trx, 'ignore');
+  }
+
+  upsert(entity: Stargazer | Stargazer[], trx?: Knex.Transaction): Promise<void> {
+    return this.save(entity, trx, 'merge');
   }
 }

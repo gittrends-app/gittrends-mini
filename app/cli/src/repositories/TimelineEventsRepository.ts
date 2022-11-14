@@ -41,7 +41,11 @@ export class TimelineEventsRepository implements IResourceRepository<TimelineEve
     return events.map((event) => TimelineEvent.from(event));
   }
 
-  async save<T extends TimelineEvent>(event: T | T[], trx?: Knex.Transaction): Promise<void> {
+  private async save<T extends TimelineEvent>(
+    event: T | T[],
+    trx?: Knex.Transaction,
+    onConflict: 'ignore' | 'merge' = 'ignore',
+  ): Promise<void> {
     const events = cloneDeep(Array.isArray(event) ? event : [event]).map((event) => {
       const { id, repository, type, issue, ...payload } = event;
       return { id, repository, type, issue, payload: size(payload) > 0 ? payload : undefined };
@@ -53,14 +57,14 @@ export class TimelineEventsRepository implements IResourceRepository<TimelineEve
     const transaction = trx || (await this.db.transaction());
 
     await Promise.all([
-      this.actorsRepo.save(actors, { onConflict: 'ignore' }, transaction),
-      this.reactionsRepo.save(reactables, transaction),
+      this.actorsRepo.insert(actors, transaction),
+      this.reactionsRepo.insert(reactables, transaction),
       asyncIterator(events, (event) =>
         this.db
           .table(TimelineEvent.__collection_name)
           .insertEntity(event)
           .onConflict('id')
-          .merge()
+          ?.[onConflict]()
           .transacting(transaction),
       ),
     ])
@@ -69,5 +73,13 @@ export class TimelineEventsRepository implements IResourceRepository<TimelineEve
         if (!trx) await transaction.rollback(error);
         throw error;
       });
+  }
+
+  insert(entity: TimelineEvent | TimelineEvent[], trx?: Knex.Transaction): Promise<void> {
+    return this.save(entity, trx, 'ignore');
+  }
+
+  upsert(entity: TimelineEvent | TimelineEvent[], trx?: Knex.Transaction): Promise<void> {
+    return this.save(entity, trx, 'merge');
   }
 }

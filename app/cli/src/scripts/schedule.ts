@@ -8,6 +8,7 @@ import {
   Dependency,
   EntityValidationError,
   Issue,
+  Metadata,
   PullRequest,
   Release,
   Repository,
@@ -35,10 +36,12 @@ export async function schedule(args: CliOptions & { repos?: string[] } = { wait:
 
     async function _schedule(repo: string) {
       const { details, metadata } = await withDatabase(repo, async (repos) => {
-        const details = await repos.repositories.findByName(repo, { resolve: ['owner'] });
+        const details = await repos.get(Repository).findByName(repo);
         if (!details) throw new Error(`Database corrupted, repository "${repo}" details not found!`);
 
-        return { details, metadata: await repos.metadata.findByRepository(details.id) };
+        details.owner = (await repos.get(Actor).findById(details.owner as string)) || details.owner;
+
+        return { details, metadata: await repos.get(Metadata).findByRepository(details.id) };
       });
 
       const updatedBefore = dayjs().subtract(args.wait, 'hour').toDate();

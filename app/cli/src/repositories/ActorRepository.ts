@@ -30,7 +30,11 @@ export class ActorsRepository implements IActorsRepository {
     return actor && actor.__updated_at ? Actor.from(actor) : undefined;
   }
 
-  async save(user: Actor | Actor[], opts?: { onConflict: 'merge' | 'ignore' }, trx?: Knex.Transaction): Promise<void> {
+  private async _insert(
+    user: Actor | Actor[],
+    trx?: Knex.Transaction,
+    onConflict: 'ignore' | 'merge' = 'ignore',
+  ): Promise<void> {
     const transaction = trx || (await this.db.transaction());
 
     const actors = Array.isArray(user) ? user : [user];
@@ -40,7 +44,7 @@ export class ActorsRepository implements IActorsRepository {
         .table(Actor.__collection_name)
         .insertEntity(actor)
         .onConflict('id')
-        ?.[opts?.onConflict || 'ignore']()
+        ?.[onConflict]()
         .transacting(transaction),
     )
       .then(async () => (!trx ? transaction.commit() : null))
@@ -50,25 +54,11 @@ export class ActorsRepository implements IActorsRepository {
       });
   }
 
-  async replace(user: Actor | Actor[], trx?: Knex.Transaction): Promise<void> {
-    const transaction = trx || (await this.db.transaction());
+  async insert(user: Actor | Actor[], trx?: Knex.Transaction): Promise<void> {
+    return this._insert(user, trx, 'ignore');
+  }
 
-    const actors = Array.isArray(user) ? user : [user];
-
-    await this.db
-      .table(Actor.__collection_name)
-      .delete()
-      .whereIn(
-        'id',
-        actors.map((a) => a.id),
-      )
-      .transacting(transaction);
-
-    await this.save(actors, { onConflict: 'ignore' }, transaction)
-      .then(async () => (!trx ? transaction.commit() : null))
-      .catch(async (error) => {
-        if (!trx) await transaction.rollback(error);
-        throw error;
-      });
+  async upsert(user: Actor | Actor[], trx?: Knex.Transaction): Promise<void> {
+    return this._insert(user, trx, 'merge');
   }
 }

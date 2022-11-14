@@ -15,7 +15,7 @@ import { File } from 'winston/lib/winston/transports';
 
 import { HttpClient } from '@gittrends/github';
 
-import { Actor, Dependency, Entity, Issue, PullRequest, Release, Stargazer, Tag, Watcher } from '@gittrends/entities';
+import { Actor, Dependency, Issue, PullRequest, Release, Stargazer, Tag, Watcher } from '@gittrends/entities';
 
 import { withBullEvents, withBullQueue } from '../../helpers/withBullQueue';
 import { withMultibar } from '../../helpers/withMultibar';
@@ -45,17 +45,18 @@ export const errorLogger = consola.create({
   ],
 });
 
-export type UpdatableRepositoryResource = typeof Entity &
-  ThisType<Stargazer | Tag | Release | Watcher | Dependency | Issue | PullRequest>;
+export type UpdatableRepositoryResource = EntityConstructor<
+  Stargazer | Tag | Release | Watcher | Dependency | Issue | PullRequest
+>;
 
-export type UpdatableResource = UpdatableRepositoryResource | (typeof Entity & ThisType<Actor>);
+export type UpdatableResource = UpdatableRepositoryResource | EntityPrototype<Actor>;
 
 export const UpdatebleResourcesList = [Stargazer, Tag, Release, Watcher, Dependency, Issue, PullRequest, Actor];
 
 async function asyncQueue(
   names: string[],
   opts: {
-    resources: (typeof Entity & ThisType<UpdatableResource>)[];
+    resources: UpdatableResource[];
     workers: number;
     httpClient: HttpClient;
     multibar?: MultiBar;
@@ -131,6 +132,7 @@ export async function redisQueue(opts: {
     const workerFile = path.resolve(__dirname, `update-thread${extname(__filename)}`);
     const worker = new Worker(workerFile, {
       workerData: {
+        cacheSize: parseInt(process.env.CACHE_SIZE || '100000'),
         concurrency: concurrency,
         httpClientOpts: opts.httpClient.toJSON(),
       },
@@ -192,7 +194,7 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
   type CliOptions = {
     token?: string;
     apiUrl?: string;
-    resources: (typeof Entity & ThisType<UpdatableResource>)[];
+    resources: UpdatableResource[];
     allResources: boolean;
     progress: boolean;
     schedule: boolean;

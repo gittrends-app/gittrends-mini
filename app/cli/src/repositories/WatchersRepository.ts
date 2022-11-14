@@ -35,20 +35,24 @@ export class WatchersRepository implements IResourceRepository<Watcher> {
     return watcher.map((watcher) => new Watcher(watcher));
   }
 
-  async save(watcher: Watcher | Watcher[], trx?: Knex.Transaction): Promise<void> {
+  private async save(
+    watcher: Watcher | Watcher[],
+    trx?: Knex.Transaction,
+    onConflict: 'ignore' | 'merge' = 'ignore',
+  ): Promise<void> {
     const watchers = cloneDeep(Array.isArray(watcher) ? watcher : [watcher]);
     const actors = extractEntityInstances<Actor>(watchers, Actor as any);
 
     const transaction = trx || (await this.db.transaction());
 
     await Promise.all([
-      this.actorsRepo.save(actors, { onConflict: 'ignore' }, transaction),
+      this.actorsRepo.insert(actors, transaction),
       asyncIterator(watchers, (watcher) =>
         this.db
           .table(Watcher.__collection_name)
           .insertEntity(watcher)
           .onConflict(['repository', 'user'])
-          .ignore()
+          ?.[onConflict]()
           .transacting(transaction),
       ),
     ])
@@ -57,5 +61,13 @@ export class WatchersRepository implements IResourceRepository<Watcher> {
         if (!trx) await transaction.rollback(error);
         throw error;
       });
+  }
+
+  insert(entity: Watcher | Watcher[], trx?: Knex.Transaction): Promise<void> {
+    return this.save(entity, trx, 'ignore');
+  }
+
+  upsert(entity: Watcher | Watcher[], trx?: Knex.Transaction): Promise<void> {
+    return this.save(entity, trx, 'merge');
   }
 }

@@ -1,64 +1,72 @@
 import dayjs from 'dayjs';
-import debug from 'debug';
 import { chunk, compact, get } from 'lodash';
 
 import { HttpClient } from '@gittrends/github';
 
-import { ProxyService } from '@gittrends/service';
+import { Cache, CachedService, GitHubService, PersistenceService } from '@gittrends/service';
 
-import { Actor, RepositoryResource } from '@gittrends/entities';
+import { Actor, Metadata, Repository } from '@gittrends/entities';
+import { debug } from '@gittrends/helpers';
 
 import { asyncIterator } from '../../config/knex.config';
 import { withDatabase } from '../../helpers/withDatabase';
-import { UpdatableResource } from './index';
+import { UpdatableRepositoryResource, UpdatableResource } from './index';
 
 export const logger = debug('cli:update-worker');
 
 export type UpdaterOpts = {
   httpClient: HttpClient;
   resources: UpdatableResource[];
-  before: Date;
+  before?: Date;
+  entitiesCache?: Cache;
   onProgress?: (progress: Record<string, { done: boolean; current: number; total: number }>) => void | Promise<void>;
 };
 
 export async function updater(name: string, opts: UpdaterOpts) {
+  const before = opts.before || new Date();
+
   logger(
     `Starting updater for ${name} (resources: ${opts.resources
       .map((r) => r.__collection_name)
-      .join(', ')}, before: ${opts.before.toISOString()})`,
+      .join(', ')}, before: ${before.toISOString()})`,
   );
 
-  await withDatabase(name, async (localRepos) => {
-    const localService = new ProxyService(opts.httpClient, localRepos);
+  await withDatabase(name, async (dataRepo) => {
+    const service = new PersistenceService(
+      opts.entitiesCache
+        ? new CachedService(new GitHubService(opts.httpClient), opts.entitiesCache)
+        : new GitHubService(opts.httpClient),
+      dataRepo,
+    );
 
     logger('Finding repository localy...');
-    let repo = await localRepos.repositories.findByName(name);
+    let repo = await dataRepo.get(Repository).findByName(name);
     if (!repo) throw new Error(`Database corrupted! Repository ${name} not found!`);
 
     logger('Updating repository data from github...');
-    repo = await localService.get(repo.id, { noCache: true });
+    repo = await service.get(repo.id);
     if (!repo) throw new Error(`Repository ${name} not found!`);
 
     logger('Updating local data...');
-    await withDatabase('public', async ({ repositories }) => repo && repositories.save(repo, { onConflict: 'merge' }));
+    await withDatabase('public', async ({ get }) => repo && get(Repository).upsert(repo));
 
     logger('Preparing resources metadata...');
     const repositoryResources = opts.resources
       .filter((r) => r !== Actor)
       .map((resource) => ({
-        resource,
-        repository: localRepos.get<RepositoryResource>(resource),
+        resource: resource as UpdatableRepositoryResource,
+        repository: dataRepo.get(resource),
       }));
 
     logger('Getting resources metadata...');
     const repositoryResourcesMeta = await asyncIterator(repositoryResources, async (info) => {
-      const [meta] = await localRepos.metadata.findByRepository(repo?.id as string, info.resource.__collection_name);
+      const [meta] = await dataRepo.get(Metadata).findByRepository(repo?.id as string, info.resource.__collection_name);
       const cachedCount = await info.repository.countByRepository(repo?.id as string);
       const total = get(repo, info.resource.__collection_name, 0);
 
       return {
         resource: info.resource,
-        done: (meta?.finished_at && dayjs(meta.finished_at).isAfter(opts.before)) || false,
+        done: (meta?.finished_at && dayjs(meta.finished_at).isAfter(before)) || false,
         current: cachedCount,
         total,
         endCursor: meta?.end_cursor,
@@ -71,11 +79,12 @@ export async function updater(name: string, opts: UpdaterOpts) {
 
     if (opts.resources.includes(Actor)) {
       logger('Finding for not updated actors...');
-      actorsIds = await localRepos.knex
+      actorsIds = await dataRepo.knex
         .select('id')
         .from(Actor.__collection_name)
         .whereNull('__updated_at')
-        .orWhere('__updated_at', '<', opts.before);
+        .orWhere('__updated_at', '<', before)
+        .orderBy([{ column: '__updated_at', order: 'asc' }]);
       usersResourceInfo = { resource: Actor, done: actorsIds.length === 0, current: 0, total: actorsIds?.length || 0 };
     }
 
@@ -90,35 +99,27 @@ export async function updater(name: string, opts: UpdaterOpts) {
       );
     };
 
-    const iterator = localService.resources(
+    const iterator = service.resources(
       repo.id,
       repositoryResourcesMeta.filter((rm) => !rm.done),
-      { ignoreCache: true },
     );
 
     logger('Starting actors update...');
     const actorsUpdatePromise = usersResourceInfo
-      ? withDatabase('public', async (publicActorsRepos) => {
+      ? (async () => {
           if (!actorsIds?.length) return;
-          const actorsProxy = new ProxyService(opts.httpClient, publicActorsRepos);
           for (const [index, iChunk] of chunk(actorsIds, 25).entries()) {
             logger(`Updating ${iChunk.length * index + iChunk.length} (of ${actorsIds.length}) actors...`);
-            const actors = await actorsProxy
-              .getActor(
-                iChunk.map((i) => i.id),
-                { cacheExpiresAt: opts.before },
-              )
-              .then(compact);
+            const actors = await service.getActor(iChunk.map((i) => i.id)).then(compact);
             if (iChunk.length > actors.length)
               logger(`${iChunk.length - actors.length} actors could not be resolved...`);
-            await localRepos.actors.save(actors, { onConflict: 'merge' }).finally(async () => {
-              if (usersResourceInfo) usersResourceInfo.current += iChunk.length;
-              return reportCurrentProgress();
-            });
+            await dataRepo.get(Actor).upsert(actors);
+            usersResourceInfo.current += iChunk.length;
+            await reportCurrentProgress();
           }
           if (usersResourceInfo) usersResourceInfo.done = true;
           logger(`${actorsIds.length} actors updated...`);
-        }).finally(() => reportCurrentProgress())
+        })().finally(() => reportCurrentProgress())
       : Promise.resolve();
 
     logger('Starting resources update...');
@@ -132,6 +133,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
           info.done = !value[index].hasNextPage;
           info.current += value[index].items.length;
         });
+        logger(`${value.reduce((total, res) => res.items.length + total, 0)} Entities updated`);
         await reportCurrentProgress();
       }
     })().finally(() => reportCurrentProgress());
