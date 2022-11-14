@@ -8,6 +8,13 @@ services:
     ports:
       - 6379:6379
 
+  memcached:
+    image: memcached:alpine
+    command: -m 128 -p 11211 -vv
+    restart: unless-stopped
+    ports:
+      - 11211:11211
+
   postgres:
     build:
       context: postgres

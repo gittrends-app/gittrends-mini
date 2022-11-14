@@ -1,5 +1,5 @@
-import { Cache as CacheManager, caching } from 'cache-manager';
-import { RedisStore, redisStore } from 'cache-manager-redis-yet';
+import Memcached from 'memcached';
+import { promisify } from 'util';
 
 import { Cache } from '@gittrends/service';
 
@@ -11,51 +11,49 @@ const logger = debug('cli:entities-cache');
 type CacheKeys = Partial<Node & { name: string }>;
 
 export class EntitiesCache implements Cache<CacheKeys> {
-  private cache: CacheManager | undefined;
-  private cacheConfigPromise: Promise<any> | undefined;
+  private cache: Memcached;
 
-  private async config(): Promise<void> {
-    if (!this.cacheConfigPromise) {
-      logger(`Configuring entities cache with size ${this.size}...`);
+  private memcached: {
+    add: (key: string, value: string, expires: number) => Promise<any>;
+    get: (key: string) => Promise<string | undefined>;
+    del: (key: string) => Promise<boolean>;
+  };
 
-      const { db, host, port } = this.redisOpts;
+  constructor(opts: { host: string; port: number }) {
+    logger(`Configuring entities cache...`);
+    const { host, port } = opts;
+    this.cache = new Memcached(`${host}:${port}`, { maxExpiration: 60 * 60 * 24 });
 
-      this.cacheConfigPromise = caching(redisStore, {
-        socket: { host, port },
-        ttl: 1000 * 60 * 60 * 24, // one day
-        database: db,
-      }).then(async (cache) => (this.cache = cache));
-    }
-    return this.cacheConfigPromise;
-  }
-
-  constructor(private redisOpts: { host: string; port: number; db: number }, private size: number = 250000) {
-    this.config();
+    this.memcached = {
+      add: promisify(this.cache.add).bind(this.cache),
+      get: promisify(this.cache.get).bind(this.cache),
+      del: promisify(this.cache.del).bind(this.cache),
+    };
   }
 
   private getCacheKey(entity: CacheKeys): string {
     if (entity.id) return entity.id;
     else if (entity.name) return entity.name;
-    throw new Error('Cannt key enity key');
+    throw new Error('Cannot key enity key');
   }
 
-  async get<T extends Entity>(props: CacheKeys): Promise<T | undefined> {
-    if (!this.cache) await this.config();
-    return this.cache?.get(this.getCacheKey(props));
+  async get<T extends Entity>(props: T & CacheKeys): Promise<Record<string, unknown> | undefined> {
+    logger(`Finding reference for ${props.id || props.name} on cache...`);
+    return await this.memcached
+      .get(this.getCacheKey(props))
+      .then((res) => (res ? JSON.parse(res.toString()) : undefined));
   }
 
   async add(entity: Entity<any> & CacheKeys): Promise<void> {
-    if (!this.cache) await this.config();
     logger(`Adding ${entity.constructor.name} (key=${this.getCacheKey(entity)}) to cache...`);
-    this.cache?.set(this.getCacheKey(entity), entity);
+    await this.memcached.add(this.getCacheKey(entity), JSON.stringify(entity.toJSON()), 0);
   }
 
   async delete(entity: Entity<any> & CacheKeys): Promise<void> {
-    if (!this.cache) await this.config();
-    this.cache?.del(this.getCacheKey(entity));
+    await this.memcached.del(this.getCacheKey(entity));
   }
 
   async close() {
-    if (this.cache) return (this.cache as CacheManager<RedisStore>).store.client.disconnect();
+    this.cache.end();
   }
 }
