@@ -1,3 +1,4 @@
+import { each } from 'bluebird';
 import { compact, difference } from 'lodash';
 
 import { SearchComponentQuery } from '@gittrends/github/dist';
@@ -66,7 +67,12 @@ export class CachedService implements Service {
       actors.reduce((acc, a) => (a ? acc.concat(a.id) : acc), Array<string>()),
     );
 
-    actors.push(...compact(await this.service.getActor(pendingIds)));
+    const response = await this.service.getActor(pendingIds).then(async (actors) => {
+      await each(actors, (actor) => actor && this.cache.add(actor));
+      return actors;
+    });
+
+    actors.push(...compact(response));
 
     return actorIds.map((id) => actors.find((a) => a.id === id));
   }
