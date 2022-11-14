@@ -7,9 +7,9 @@ import { HttpClient } from '@gittrends/github';
 import { debug } from '@gittrends/helpers';
 
 import { withBullWorker } from '../../helpers/withBullQueue';
+import { withCache } from '../../helpers/withCache';
 import { UpdatableResource, UpdatebleResourcesList } from './index';
 import { updater } from './update-worker';
-import { withCache } from 'src/helpers/withCache';
 
 export const logger = debug('cli:update-thread');
 
