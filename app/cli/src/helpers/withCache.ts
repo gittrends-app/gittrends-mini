@@ -1,6 +1,6 @@
 import { Cache } from '@gittrends/service';
 
-import { EntitiesCache } from 'src/cache/EntitiesCache';
+import { EntitiesCache } from '../cache/EntitiesCache';
 
 const REDIS_HOST = process.env.CLI_REDIS_HOST || 'localhost';
 const REDIS_PORT = parseInt(process.env.CLI_REDIS_PORT || '6379');
