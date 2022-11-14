@@ -32,6 +32,7 @@ declare global {
       CLI_SCHEDULER_ATTEMPS?: string;
 
       CLI_CACHE_SIZE?: string;
+      CLI_CACHE_DB?: string;
     }
   }
 

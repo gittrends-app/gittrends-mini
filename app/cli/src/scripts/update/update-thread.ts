@@ -6,10 +6,10 @@ import { HttpClient } from '@gittrends/github';
 
 import { debug } from '@gittrends/helpers';
 
-import { EntitiesCache } from '../../cache/EntitiesCache';
 import { withBullWorker } from '../../helpers/withBullQueue';
 import { UpdatableResource, UpdatebleResourcesList } from './index';
 import { updater } from './update-worker';
+import { withCache } from 'src/helpers/withCache';
 
 export const logger = debug('cli:update-thread');
 
@@ -20,7 +20,6 @@ if (!isMainThread) {
   logger(`Thread ${threadId} environment: ${JSON.stringify(cliEnvironment)}`);
 
   const httpClient = new HttpClient(workerData.httpClientOpts);
-  const entitiesCache = new EntitiesCache(workerData.cacheSize || 100000);
 
   const worker = withBullWorker(async (job) => {
     if (!job.data.name_with_owner) throw new Error('Invlaid job id!');
@@ -31,22 +30,24 @@ if (!isMainThread) {
       job.data.__resources.map((r) => UpdatebleResourcesList.find((ur) => ur.__collection_name === r)),
     ) as UpdatableResource[];
 
-    return updater(job.data.name_with_owner, {
-      httpClient: httpClient,
-      resources: resources,
-      before: new Date(job.data.__updated_before),
-      entitiesCache: entitiesCache,
-      onProgress: async (progress) => {
-        const [current, total] = Object.values(progress).reduce(
-          ([current, total], rp) => [current + rp.current, total + rp.total],
-          [0, 0],
-        );
+    return withCache(async (entitiesCache) =>
+      updater(job.data.name_with_owner, {
+        httpClient: httpClient,
+        resources: resources,
+        before: new Date(job.data.__updated_before),
+        entitiesCache: entitiesCache,
+        onProgress: async (progress) => {
+          const [current, total] = Object.values(progress).reduce(
+            ([current, total], rp) => [current + rp.current, total + rp.total],
+            [0, 0],
+          );
 
-        parentPort?.postMessage({ event: 'updated', name: job.data.name_with_owner, current, total });
+          parentPort?.postMessage({ event: 'updated', name: job.data.name_with_owner, current, total });
 
-        await job.updateProgress(progress);
-      },
-    })
+          await job.updateProgress(progress);
+        },
+      }),
+    )
       .catch((error: Error) => {
         parentPort?.postMessage({ event: 'error', name: job.data.name_with_owner, message: error.message });
         throw error;
