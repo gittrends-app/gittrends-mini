@@ -6,10 +6,10 @@ import { HttpClient } from '@gittrends/github';
 
 import { debug } from '@gittrends/helpers';
 
+import { EntitiesCache } from '../../cache/EntitiesCache';
 import { withBullWorker } from '../../helpers/withBullQueue';
 import { UpdatableResource, UpdatebleResourcesList } from './index';
 import { updater } from './update-worker';
-import { EntitiesCache } from 'src/cache/EntitiesCache';
 
 export const logger = debug('cli:update-thread');
 
