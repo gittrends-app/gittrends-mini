@@ -61,8 +61,8 @@ class IssueOrPullRepository<T extends IssueOrPull> implements IResourceRepositor
     await asyncIterator(data, async ({ issue, actors, reactions, timeline_items }) =>
       Promise.all<void>([
         this.actorsRepo.insert(actors, transaction),
-        this.reactionsRepo.save(reactions, transaction),
-        this.eventsRepo.save(timeline_items, transaction),
+        this.reactionsRepo.insert(reactions, transaction),
+        this.eventsRepo.insert(timeline_items, transaction),
         this.db
           .table((this.IssueOrPullClass as any).__collection_name)
           .insertEntity(issue)
