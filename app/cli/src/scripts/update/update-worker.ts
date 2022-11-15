@@ -106,10 +106,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
         logger(`${value.reduce((total, res) => res.items.length + total, 0)} Entities updated`);
         await reportCurrentProgress();
       }
-    })().finally(() => {
-      usersResourceInfo.done = true;
-      reportCurrentProgress();
-    });
+    })();
 
     const actorsUpdater = async function (): Promise<void> {
       logger('Starting actors update...');
@@ -126,6 +123,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
 
         if (!actorsIds?.length) break;
 
+        usersResourceInfo.done = false;
         usersResourceInfo.total += length;
 
         for (const [index, iChunk] of chunk(actorsIds, 100).entries()) {
