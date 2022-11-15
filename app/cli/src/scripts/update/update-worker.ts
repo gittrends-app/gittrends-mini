@@ -1,3 +1,4 @@
+import { delay } from 'bluebird';
 import dayjs from 'dayjs';
 import { chunk, compact, get } from 'lodash';
 
@@ -91,6 +92,25 @@ export async function updater(name: string, opts: UpdaterOpts) {
       repositoryResourcesMeta.filter((rm) => !rm.done),
     );
 
+    logger('Starting resources update...');
+    const resourcesUpdatePromise = (async () => {
+      logger('Iterating over resources...');
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { done, value } = await iterator.next();
+        if (done) break;
+        repositoryResourcesMeta.forEach((info, index) => {
+          info.done = !value[index].hasNextPage;
+          info.current += value[index].items.length;
+        });
+        logger(`${value.reduce((total, res) => res.items.length + total, 0)} Entities updated`);
+        await reportCurrentProgress();
+      }
+    })().finally(() => {
+      usersResourceInfo.done = true;
+      reportCurrentProgress();
+    });
+
     const actorsUpdater = async function (): Promise<void> {
       logger('Starting actors update...');
       // eslint-disable-next-line no-constant-condition
@@ -121,31 +141,23 @@ export async function updater(name: string, opts: UpdaterOpts) {
       }
     };
 
-    const actorsUpdatePromise = (opts.resources.includes(Actor) ? actorsUpdater() : Promise.resolve()).finally(() => {
-      usersResourceInfo.done = true;
-      reportCurrentProgress();
-    });
+    let resourcesDone = false;
 
-    logger('Starting resources update...');
-    const resourcesUpdatePromise = (async () => {
-      logger('Iterating over resources...');
-      // eslint-disable-next-line no-constant-condition
-      while (true) {
-        const { done, value } = await iterator.next();
-        if (done) break;
-        repositoryResourcesMeta.forEach((info, index) => {
-          info.done = !value[index].hasNextPage;
-          info.current += value[index].items.length;
+    const actorsReSchedule = async function (): Promise<void> {
+      if (opts.resources.includes(Actor)) {
+        await actorsUpdater().finally(() => {
+          usersResourceInfo.done = true;
+          reportCurrentProgress();
         });
-        logger(`${value.reduce((total, res) => res.items.length + total, 0)} Entities updated`);
-        await reportCurrentProgress();
+
+        if (resourcesDone === false)
+          return new Promise((resolve, reject) => {
+            setTimeout(() => actorsReSchedule().then(resolve).catch(reject), 30000);
+          });
       }
-    })().finally(() => {
-      usersResourceInfo.done = true;
-      reportCurrentProgress();
-    });
+    };
 
     logger('Waiting update process to finish...');
-    await Promise.allSettled([actorsUpdatePromise, resourcesUpdatePromise]);
+    await Promise.allSettled([resourcesUpdatePromise.finally(() => (resourcesDone = true)), actorsReSchedule()]);
   });
 }
