@@ -1,4 +1,3 @@
-import { delay } from 'bluebird';
 import dayjs from 'dayjs';
 import { chunk, compact, get } from 'lodash';
 
@@ -128,7 +127,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
           logger(`Updating ${iChunk.length * index + iChunk.length} (of ${actorsIds.length}) actors...`);
           const actors = await service.getActor(iChunk.map((i) => i.id)).then(compact);
           if (iChunk.length > actors.length) logger(`${iChunk.length - actors.length} actors could not be resolved...`);
-          await dataRepo.get(Actor).upsert(actors);
+          await dataRepo.get(Actor).upsert(actors.map((actor) => Object.assign(actor, { __updated_at: new Date() })));
           if (usersResourceInfo) usersResourceInfo.current += iChunk.length;
           await reportCurrentProgress();
         }
