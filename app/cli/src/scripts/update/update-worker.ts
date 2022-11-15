@@ -106,7 +106,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
 
         if (!actorsIds?.length) break;
 
-        usersResourceInfo.total += actorsIds.length;
+        usersResourceInfo.total += length;
 
         for (const [index, iChunk] of chunk(actorsIds, 100).entries()) {
           logger(`Updating ${iChunk.length * index + iChunk.length} (of ${actorsIds.length}) actors...`);

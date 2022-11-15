@@ -164,7 +164,10 @@ function App() {
           return params.row.progress;
         } else {
           const [total, current] = Object.values(params.row.progress).reduce(
-            ([total, current], prog) => [total + prog.total, current + prog.current],
+            ([total, current], prog) => [
+              total + (prog.done ? 0 : prog.total),
+              current + (prog.done ? 0 : prog.current),
+            ],
             [0, 0],
           );
           return Math.round((current / total) * 10000) / 100;
