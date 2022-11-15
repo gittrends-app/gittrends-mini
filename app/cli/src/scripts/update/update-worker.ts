@@ -73,20 +73,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
       };
     });
 
-    logger('Getting actors metadata...');
-    let actorsIds: Array<{ id: string }> | undefined;
-    let usersResourceInfo: { current: number; done: boolean; resource: typeof Actor; total: number } | undefined;
-
-    if (opts.resources.includes(Actor)) {
-      logger('Finding for not updated actors...');
-      actorsIds = await dataRepo.knex
-        .select('id')
-        .from(Actor.__collection_name)
-        .whereNull('__updated_at')
-        .orWhere('__updated_at', '<', before)
-        .orderBy([{ column: '__updated_at', order: 'asc' }]);
-      usersResourceInfo = { resource: Actor, done: actorsIds.length === 0, current: 0, total: actorsIds?.length || 0 };
-    }
+    const usersResourceInfo = { resource: Actor, done: true, current: 0, total: 0 };
 
     const reportCurrentProgress = async function () {
       if (!opts.onProgress) return;
@@ -104,22 +91,44 @@ export async function updater(name: string, opts: UpdaterOpts) {
       repositoryResourcesMeta.filter((rm) => !rm.done),
     );
 
-    logger('Starting actors update...');
-    const actorsUpdatePromise = usersResourceInfo
-      ? (async () => {
-          if (!actorsIds?.length) return;
-          for (const [index, iChunk] of chunk(actorsIds, 25).entries()) {
-            logger(`Updating ${iChunk.length * index + iChunk.length} (of ${actorsIds.length}) actors...`);
-            const actors = await service.getActor(iChunk.map((i) => i.id)).then(compact);
-            if (iChunk.length > actors.length)
-              logger(`${iChunk.length - actors.length} actors could not be resolved...`);
-            await dataRepo.get(Actor).upsert(actors);
-            usersResourceInfo.current += iChunk.length;
-            await reportCurrentProgress();
-          }
-          if (usersResourceInfo) usersResourceInfo.done = true;
-          logger(`${actorsIds.length} actors updated...`);
-        })().finally(() => reportCurrentProgress())
+    const actorsUpdater = async function (): Promise<void> {
+      logger('Starting actors update...');
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        logger('Finding for not updated actors...');
+        const actorsIds: Array<{ id: string }> = await dataRepo.knex
+          .select('id')
+          .from(Actor.__collection_name)
+          .whereNull('__updated_at')
+          .orWhere('__updated_at', '<', before)
+          // .orderBy([{ column: '__updated_at', order: 'asc' }])
+          .limit(500);
+
+        if (!actorsIds?.length) break;
+
+        usersResourceInfo.done = false;
+        usersResourceInfo.total += actorsIds.length;
+
+        for (const [index, iChunk] of chunk(actorsIds, 100).entries()) {
+          logger(`Updating ${iChunk.length * index + iChunk.length} (of ${actorsIds.length}) actors...`);
+          const actors = await service.getActor(iChunk.map((i) => i.id)).then(compact);
+          if (iChunk.length > actors.length) logger(`${iChunk.length - actors.length} actors could not be resolved...`);
+          await dataRepo.get(Actor).upsert(actors);
+          if (usersResourceInfo) usersResourceInfo.current += iChunk.length;
+          await reportCurrentProgress();
+        }
+
+        if (usersResourceInfo) usersResourceInfo.done = true;
+
+        logger(`${actorsIds.length} actors updated...`);
+      }
+    };
+
+    const actorsUpdatePromise = opts.resources.includes(Actor)
+      ? actorsUpdater().finally(() => {
+          usersResourceInfo.done = true;
+          reportCurrentProgress();
+        })
       : Promise.resolve();
 
     logger('Starting resources update...');
@@ -136,7 +145,10 @@ export async function updater(name: string, opts: UpdaterOpts) {
         logger(`${value.reduce((total, res) => res.items.length + total, 0)} Entities updated`);
         await reportCurrentProgress();
       }
-    })().finally(() => reportCurrentProgress());
+    })().finally(() => {
+      usersResourceInfo.done = true;
+      reportCurrentProgress();
+    });
 
     logger('Waiting update process to finish...');
     await Promise.allSettled([actorsUpdatePromise, resourcesUpdatePromise]);
