@@ -38,7 +38,8 @@ if (!isMainThread) {
       entitiesCache: entitiesCache,
       onProgress: async (progress) => {
         const [current, total] = Object.values(progress).reduce(
-          ([current, total], rp) => [current + rp.current, total + rp.total],
+          ([current, total], rp) =>
+            rp.total === Infinity ? [current, total] : [current + rp.current, total + rp.total],
           [0, 0],
         );
 

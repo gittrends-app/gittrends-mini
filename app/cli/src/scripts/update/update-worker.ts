@@ -62,7 +62,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
     const repositoryResourcesMeta = await asyncIterator(repositoryResources, async (info) => {
       const [meta] = await dataRepo.get(Metadata).findByRepository(repo?.id as string, info.resource.__collection_name);
       const cachedCount = await info.repository.countByRepository(repo?.id as string);
-      const total = get(repo, info.resource.__collection_name, 0);
+      const total = get(repo, info.resource.__collection_name, Infinity);
 
       return {
         resource: info.resource,
