@@ -73,7 +73,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
       };
     });
 
-    const usersResourceInfo = { resource: Actor, done: true, current: 0, total: 0 };
+    const usersResourceInfo = { resource: Actor, done: false, current: 0, total: 0 };
 
     const reportCurrentProgress = async function () {
       if (!opts.onProgress) return;
@@ -102,11 +102,10 @@ export async function updater(name: string, opts: UpdaterOpts) {
           .whereNull('__updated_at')
           .orWhere('__updated_at', '<', before)
           // .orderBy([{ column: '__updated_at', order: 'asc' }])
-          .limit(500);
+          .limit(1000);
 
         if (!actorsIds?.length) break;
 
-        usersResourceInfo.done = false;
         usersResourceInfo.total += actorsIds.length;
 
         for (const [index, iChunk] of chunk(actorsIds, 100).entries()) {
@@ -118,18 +117,14 @@ export async function updater(name: string, opts: UpdaterOpts) {
           await reportCurrentProgress();
         }
 
-        if (usersResourceInfo) usersResourceInfo.done = true;
-
         logger(`${actorsIds.length} actors updated...`);
       }
     };
 
-    const actorsUpdatePromise = opts.resources.includes(Actor)
-      ? actorsUpdater().finally(() => {
-          usersResourceInfo.done = true;
-          reportCurrentProgress();
-        })
-      : Promise.resolve();
+    const actorsUpdatePromise = (opts.resources.includes(Actor) ? actorsUpdater() : Promise.resolve()).finally(() => {
+      usersResourceInfo.done = true;
+      reportCurrentProgress();
+    });
 
     logger('Starting resources update...');
     const resourcesUpdatePromise = (async () => {
