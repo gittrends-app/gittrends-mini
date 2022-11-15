@@ -87,26 +87,24 @@ export async function updater(name: string, opts: UpdaterOpts) {
       );
     };
 
-    const iterator = service.resources(
-      repo.id,
-      repositoryResourcesMeta.filter((rm) => !rm.done),
-    );
+    const pendingResourcesMeta = repositoryResourcesMeta.filter((rm) => !rm.done);
+    const iterator = service.resources(repo.id, pendingResourcesMeta);
 
     logger('Starting resources update...');
-    const resourcesUpdatePromise = (async () => {
+    const resourcesUpdate = async function () {
       logger('Iterating over resources...');
       // eslint-disable-next-line no-constant-condition
       while (true) {
         const { done, value } = await iterator.next();
         if (done) break;
-        repositoryResourcesMeta.forEach((info, index) => {
+        pendingResourcesMeta.forEach((info, index) => {
           info.done = !value[index].hasNextPage;
           info.current += value[index].items.length;
         });
         logger(`${value.reduce((total, res) => res.items.length + total, 0)} Entities updated`);
         await reportCurrentProgress();
       }
-    })();
+    };
 
     const actorsUpdater = async function (): Promise<void> {
       logger('Starting actors update...');
@@ -156,6 +154,6 @@ export async function updater(name: string, opts: UpdaterOpts) {
     };
 
     logger('Waiting update process to finish...');
-    await Promise.allSettled([resourcesUpdatePromise.finally(() => (resourcesDone = true)), actorsReSchedule()]);
+    await Promise.allSettled([resourcesUpdate().finally(() => (resourcesDone = true)), actorsReSchedule()]);
   });
 }
