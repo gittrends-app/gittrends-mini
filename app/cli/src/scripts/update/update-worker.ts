@@ -114,7 +114,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
           .select('id')
           .from(Actor.__collection_name)
           .whereNull('__updated_at')
-          .orWhere('__updated_at', '<', before)
+          .orWhere('__updated_at', '<', before.toISOString())
           // .orderBy([{ column: '__updated_at', order: 'asc' }])
           .limit(1000);
 
