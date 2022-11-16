@@ -170,7 +170,7 @@ function App() {
             },
             [0, 0],
           );
-          return Math.round((current / total) * 10000) / 100;
+          return Math.floor((current / total) * 10000) / 100;
         }
       },
       renderCell(params: GridRenderCellParams<number, DataType>) {
