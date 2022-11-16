@@ -107,49 +107,44 @@ export async function updater(name: string, opts: UpdaterOpts) {
 
     const actorsUpdater = async function (): Promise<void> {
       logger('Starting actors update...');
-      // eslint-disable-next-line no-constant-condition
-      while (true) {
-        logger('Finding for not updated actors...');
-        const actorsIds: Array<{ id: string }> = await dataRepo.knex
-          .select('id')
-          .from(Actor.__collection_name)
-          .whereNull('__updated_at')
-          .orWhere('__updated_at', '<', before)
-          .orderBy([{ column: '__updated_at', order: 'asc' }])
-          .limit(1000);
+      logger('Finding for not updated actors...');
+      const actorsIds: Array<{ id: string }> = await dataRepo.knex
+        .select('id')
+        .from(Actor.__collection_name)
+        .whereNull('__updated_at')
+        .orWhere('__updated_at', '<', before)
+        .orderBy([{ column: '__updated_at', order: 'asc' }]);
 
-        if (!actorsIds?.length) break;
+      if (!actorsIds?.length) return;
 
-        usersResourceInfo.done = false;
-        usersResourceInfo.total += actorsIds.length;
+      usersResourceInfo.done = false;
+      usersResourceInfo.total += actorsIds.length;
 
-        for (const [index, iChunk] of chunk(actorsIds, 250).entries()) {
-          logger(`Updating ${iChunk.length * index + iChunk.length} (of ${actorsIds.length}) actors...`);
-          const actors = await service.getActor(iChunk.map((i) => i.id)).then(compact);
-          if (iChunk.length > actors.length) logger(`${iChunk.length - actors.length} actors could not be resolved...`);
-          if (usersResourceInfo) usersResourceInfo.current += iChunk.length;
-          await reportCurrentProgress();
-        }
-
-        logger(`${actorsIds.length} actors updated...`);
+      for (const [index, iChunk] of chunk(actorsIds, 250).entries()) {
+        logger(`Updating ${iChunk.length * index + iChunk.length} (of ${actorsIds.length}) actors...`);
+        const actors = await service.getActor(iChunk.map((i) => i.id)).then(compact);
+        if (iChunk.length > actors.length) logger(`${iChunk.length - actors.length} actors could not be resolved...`);
+        if (usersResourceInfo) usersResourceInfo.current += iChunk.length;
+        await reportCurrentProgress();
       }
+
+      logger(`${actorsIds.length} actors updated...`);
     };
 
     let resourcesDone = false;
 
     const actorsReSchedule = async function (): Promise<void> {
       if (opts.resources.includes(Actor)) {
-        await actorsUpdater()
-          .catch(console.error)
-          .finally(() => {
-            usersResourceInfo.done = true;
-            reportCurrentProgress();
-          });
+        await actorsUpdater().finally(() => {
+          usersResourceInfo.done = true;
+          reportCurrentProgress();
+        });
 
-        if (resourcesDone === false)
+        if (resourcesDone === false) {
           return new Promise((resolve, reject) => {
             setTimeout(() => actorsReSchedule().then(resolve).catch(reject), 30000);
           });
+        }
       }
     };
 
