@@ -123,7 +123,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
         usersResourceInfo.done = false;
         usersResourceInfo.total += actorsIds.length;
 
-        for (const [index, iChunk] of chunk(actorsIds, 100).entries()) {
+        for (const [index, iChunk] of chunk(actorsIds, 250).entries()) {
           logger(`Updating ${iChunk.length * index + iChunk.length} (of ${actorsIds.length}) actors...`);
           const actors = await service.getActor(iChunk.map((i) => i.id)).then(compact);
           if (iChunk.length > actors.length) logger(`${iChunk.length - actors.length} actors could not be resolved...`);
