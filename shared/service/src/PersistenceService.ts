@@ -92,7 +92,11 @@ export class PersistenceService implements Service {
         persistable.push(result);
       }
 
-      if (persistable.length) await this.repositories.get(Actor).upsert(persistable);
+      if (persistable.length) {
+        await this.repositories
+          .get(Actor)
+          .upsert(persistable.map((user) => Object.assign(user, { __updated_at: new Date() })));
+      }
 
       return result;
     });

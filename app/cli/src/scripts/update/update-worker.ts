@@ -114,8 +114,8 @@ export async function updater(name: string, opts: UpdaterOpts) {
           .select('id')
           .from(Actor.__collection_name)
           .whereNull('__updated_at')
-          .orWhere('__updated_at', '<', before.toISOString())
-          // .orderBy([{ column: '__updated_at', order: 'asc' }])
+          .orWhere('__updated_at', '<', before)
+          .orderBy([{ column: '__updated_at', order: 'asc' }])
           .limit(1000);
 
         if (!actorsIds?.length) break;
@@ -127,7 +127,6 @@ export async function updater(name: string, opts: UpdaterOpts) {
           logger(`Updating ${iChunk.length * index + iChunk.length} (of ${actorsIds.length}) actors...`);
           const actors = await service.getActor(iChunk.map((i) => i.id)).then(compact);
           if (iChunk.length > actors.length) logger(`${iChunk.length - actors.length} actors could not be resolved...`);
-          await dataRepo.get(Actor).upsert(actors.map((actor) => Object.assign(actor, { __updated_at: new Date() })));
           if (usersResourceInfo) usersResourceInfo.current += iChunk.length;
           await reportCurrentProgress();
         }
@@ -140,10 +139,12 @@ export async function updater(name: string, opts: UpdaterOpts) {
 
     const actorsReSchedule = async function (): Promise<void> {
       if (opts.resources.includes(Actor)) {
-        await actorsUpdater().finally(() => {
-          usersResourceInfo.done = true;
-          reportCurrentProgress();
-        });
+        await actorsUpdater()
+          .catch(console.error)
+          .finally(() => {
+            usersResourceInfo.done = true;
+            reportCurrentProgress();
+          });
 
         if (resourcesDone === false)
           return new Promise((resolve, reject) => {
