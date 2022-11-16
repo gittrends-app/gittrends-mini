@@ -3,7 +3,7 @@ import { Avatar, Box, Chip } from '@mui/material';
 import { DataGrid, GridColDef, GridRenderCellParams, GridSortItem } from '@mui/x-data-grid';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { orderBy, pickBy } from 'lodash';
+import { isNil, orderBy, pickBy } from 'lodash';
 import numeral from 'numeral';
 import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -165,7 +165,7 @@ function App() {
         } else {
           const [total, current] = Object.values(params.row.progress).reduce(
             ([total, current], prog) => {
-              if (prog.total === Infinity) return [total, current];
+              if (isNil(prog.total) || prog.total === Infinity) return [total, current];
               else return [total + prog.total, current + prog.current];
             },
             [0, 0],
