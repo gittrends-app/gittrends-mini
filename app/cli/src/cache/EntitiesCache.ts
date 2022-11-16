@@ -25,9 +25,9 @@ export class EntitiesCache implements Cache<CacheKeys> {
     this.cache = new Memcached(`${host}:${port}`, { maxExpiration: 60 * 60 * 24 });
 
     this.memcached = {
-      add: promisify(this.cache.add).bind(this.cache),
-      get: promisify(this.cache.get).bind(this.cache),
-      del: promisify(this.cache.del).bind(this.cache),
+      add: promisify(this.cache.set.bind(this.cache)),
+      get: promisify(this.cache.get.bind(this.cache)),
+      del: promisify(this.cache.del.bind(this.cache)),
     };
   }
 
