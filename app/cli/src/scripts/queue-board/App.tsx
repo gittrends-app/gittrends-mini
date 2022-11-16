@@ -170,13 +170,17 @@ function App() {
             },
             [0, 0],
           );
-          return Math.floor((current / total) * 10000) / 100;
+          return current / total;
         }
       },
       renderCell(params: GridRenderCellParams<number, DataType>) {
         return (
           <Box sx={{ width: '100%' }}>
-            <Progress variant="determinate" value={params.value || 0} color={color(params.row.state) || 'inherit'} />
+            <Progress
+              variant="determinate"
+              value={params.value ? Math.floor(params.value * 10000) / 100 : 0}
+              color={color(params.row.state) || 'inherit'}
+            />
           </Box>
         );
       },
