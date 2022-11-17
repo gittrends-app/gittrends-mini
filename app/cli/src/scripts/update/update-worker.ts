@@ -73,7 +73,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
       };
     });
 
-    const usersResourceInfo = { resource: Actor, done: false, current: 0, total: 0 };
+    const usersResourceInfo = { resource: Actor, done: true, current: 0, total: 0 };
 
     const reportCurrentProgress = async function () {
       if (!opts.onProgress) return;
@@ -120,11 +120,14 @@ export async function updater(name: string, opts: UpdaterOpts) {
       usersResourceInfo.done = false;
       usersResourceInfo.total += actorsIds.length;
 
-      for (const [index, iChunk] of chunk(actorsIds, 500).entries()) {
+      const actorsChunks = chunk(actorsIds, 250);
+
+      for (const [index, iChunk] of actorsChunks.entries()) {
         logger(`Updating ${iChunk.length * index + iChunk.length} (of ${actorsIds.length}) actors...`);
         const actors = await service.getActor(iChunk.map((i) => i.id)).then(compact);
         if (iChunk.length > actors.length) logger(`${iChunk.length - actors.length} actors could not be resolved...`);
-        if (usersResourceInfo) usersResourceInfo.current += iChunk.length;
+        usersResourceInfo.current += iChunk.length;
+        if (actorsChunks.length - 1 === index) usersResourceInfo.done = true;
         await reportCurrentProgress();
       }
 
@@ -135,10 +138,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
 
     const actorsReSchedule = async function (): Promise<void> {
       if (opts.resources.includes(Actor)) {
-        await actorsUpdater().finally(() => {
-          usersResourceInfo.done = true;
-          reportCurrentProgress();
-        });
+        await actorsUpdater();
 
         if (resourcesDone === false) {
           return new Promise((resolve, reject) => {
