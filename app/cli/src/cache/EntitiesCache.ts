@@ -1,4 +1,6 @@
+import { isNil, omitBy } from 'lodash';
 import Memcached from 'memcached';
+import { compressSync, uncompressSync } from 'snappy';
 import { promisify } from 'util';
 
 import { Cache } from '@gittrends/service';
@@ -14,8 +16,8 @@ export class EntitiesCache implements Cache<CacheKeys> {
   private cache: Memcached;
 
   private memcached: {
-    add: (key: string, value: string, expires: number) => Promise<any>;
-    get: (key: string) => Promise<string | undefined>;
+    add: (key: string, value: string | Buffer, expires: number) => Promise<any>;
+    get: (key: string) => Promise<string | Buffer | undefined>;
     del: (key: string) => Promise<boolean>;
   };
 
@@ -41,12 +43,12 @@ export class EntitiesCache implements Cache<CacheKeys> {
     logger(`Finding reference for ${props.id || props.name} on cache...`);
     return await this.memcached
       .get(this.getCacheKey(props))
-      .then((res) => (res ? JSON.parse(res.toString()) : undefined));
+      .then((res) => (res ? JSON.parse(uncompressSync(res).toString()) : undefined));
   }
 
   async add(entity: Entity<any> & CacheKeys): Promise<void> {
     logger(`Adding ${entity.constructor.name} (key=${this.getCacheKey(entity)}) to cache...`);
-    await this.memcached.add(this.getCacheKey(entity), JSON.stringify(entity.toJSON()), 0);
+    await this.memcached.add(this.getCacheKey(entity), compressSync(JSON.stringify(omitBy(entity.toJSON(), isNil))), 0);
   }
 
   async delete(entity: Entity<any> & CacheKeys): Promise<void> {
