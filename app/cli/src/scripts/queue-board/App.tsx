@@ -174,12 +174,21 @@ function App() {
         }
       },
       renderCell(params: GridRenderCellParams<number, DataType>) {
+        const [total, current] = Object.values(params.row.progress).reduce(
+          ([total, current], prog) => {
+            if (isNil(prog.total) || prog.total === Infinity) return [total, current];
+            else return [total + prog.total, current + prog.current];
+          },
+          [0, 0],
+        );
+
         return (
           <Box sx={{ width: '100%' }}>
             <Progress
               variant="determinate"
-              value={params.value ? Math.floor(params.value * 10000) / 100 : 0}
+              value={params.value ? Math.floor((current / total) * 10000) / 100 : 0}
               color={color(params.row.state) || 'inherit'}
+              title={`${numeral(current).format('0[,0]')} of ${numeral(total).format('0[,0]')}`}
             />
           </Box>
         );
