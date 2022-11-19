@@ -20,11 +20,11 @@ import { CachedService, GitHubService } from '@gittrends/service';
 import { Actor, Dependency, Issue, PullRequest, Release, Stargazer, Tag, Watcher } from '@gittrends/entities';
 
 import { withBullEvents, withBullQueue } from '../../helpers/withBullQueue';
+import { withDatabaseCache, withMemoryCache } from '../../helpers/withCache';
 import { withMultibar } from '../../helpers/withMultibar';
 import { version } from '../../package.json';
 import { schedule } from '../schedule';
 import { updater } from './update-worker';
-import { withDatabaseCache, withMemoryCache } from 'src/helpers/withCache';
 
 readline.emitKeypressEvents(process.stdin);
 if (process.stdin.isTTY) process.stdin.setRawMode(true);
