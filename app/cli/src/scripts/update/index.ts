@@ -15,6 +15,8 @@ import { File } from 'winston/lib/winston/transports';
 
 import { HttpClient } from '@gittrends/github';
 
+import { CachedService, GitHubService } from '@gittrends/service';
+
 import { Actor, Dependency, Issue, PullRequest, Release, Stargazer, Tag, Watcher } from '@gittrends/entities';
 
 import { withBullEvents, withBullQueue } from '../../helpers/withBullQueue';
@@ -22,6 +24,7 @@ import { withMultibar } from '../../helpers/withMultibar';
 import { version } from '../../package.json';
 import { schedule } from '../schedule';
 import { updater } from './update-worker';
+import { withDatabaseCache, withMemoryCache } from 'src/helpers/withCache';
 
 readline.emitKeypressEvents(process.stdin);
 if (process.stdin.isTTY) process.stdin.setRawMode(true);
@@ -63,9 +66,13 @@ async function asyncQueue(
   },
 ) {
   consola.info('Preparing processing queue ....');
+  const memCache = withMemoryCache();
+  const dbCache = await withDatabaseCache();
+  const service = new CachedService(new CachedService(new GitHubService(opts.httpClient), dbCache), memCache);
+
   const queueRef = queue(
     (name: string, callback) =>
-      updater(name, { httpClient: opts.httpClient, resources: opts.resources, before: new Date() })
+      updater(name, { service, resources: opts.resources, before: new Date() })
         .then(() => callback())
         .catch((error) => {
           consola.error(error);
@@ -82,6 +89,9 @@ async function asyncQueue(
 
   consola.info('Waiting process to finish ....');
   await queueRef.drain();
+
+  consola.info('Closing connections ....');
+  await Promise.all([dbCache.close(), memCache.close()]);
 
   consola.info(`Update process finished (${names.length} repositories updated)`);
 }

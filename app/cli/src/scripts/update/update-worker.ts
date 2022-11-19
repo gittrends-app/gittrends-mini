@@ -1,24 +1,22 @@
 import dayjs from 'dayjs';
 import { chunk, compact, get } from 'lodash';
 
-import { HttpClient } from '@gittrends/github';
-
-import { Cache, CachedService, GitHubService, PersistenceService } from '@gittrends/service';
+import { PersistenceService, Service } from '@gittrends/service';
 
 import { Actor, Metadata, Repository } from '@gittrends/entities';
 import { debug } from '@gittrends/helpers';
 
 import { asyncIterator } from '../../config/knex.config';
+import { delay } from '../../helpers/delay';
 import { withDatabase } from '../../helpers/withDatabase';
 import { UpdatableRepositoryResource, UpdatableResource } from './index';
 
 export const logger = debug('cli:update-worker');
 
 export type UpdaterOpts = {
-  httpClient: HttpClient;
+  service: Service;
   resources: UpdatableResource[];
   before?: Date;
-  entitiesCache?: Cache;
   onProgress?: (progress: Record<string, { done: boolean; current: number; total: number }>) => void | Promise<void>;
 };
 
@@ -32,12 +30,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
   );
 
   await withDatabase(name, async (dataRepo) => {
-    const service = new PersistenceService(
-      opts.entitiesCache
-        ? new CachedService(new GitHubService(opts.httpClient), opts.entitiesCache)
-        : new GitHubService(opts.httpClient),
-      dataRepo,
-    );
+    const service = new PersistenceService(opts.service, dataRepo);
 
     logger('Finding repository localy...');
     let repo = await dataRepo.get(Repository).findByName(name);
@@ -120,7 +113,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
       usersResourceInfo.done = false;
       usersResourceInfo.total += actorsIds.length;
 
-      const actorsChunks = chunk(actorsIds, 250);
+      const actorsChunks = chunk(actorsIds, 100);
 
       for (const [index, iChunk] of actorsChunks.entries()) {
         logger(`Updating ${iChunk.length * index + iChunk.length} (of ${actorsIds.length}) actors...`);
@@ -137,15 +130,8 @@ export async function updater(name: string, opts: UpdaterOpts) {
     let resourcesDone = false;
 
     const actorsReSchedule = async function (): Promise<void> {
-      if (opts.resources.includes(Actor)) {
-        await actorsUpdater();
-
-        if (resourcesDone === false) {
-          return new Promise((resolve, reject) => {
-            setTimeout(() => actorsReSchedule().then(resolve).catch(reject), 30000);
-          });
-        }
-      }
+      if (opts.resources.includes(Actor))
+        await actorsUpdater().then(() => (resourcesDone === false ? delay(15000).then(actorsReSchedule) : null));
     };
 
     logger('Waiting update process to finish...');

@@ -4,23 +4,27 @@ import { isMainThread, parentPort, threadId, workerData } from 'node:worker_thre
 
 import { HttpClient } from '@gittrends/github';
 
+import { CachedService, GitHubService } from '@gittrends/service';
+
 import { debug } from '@gittrends/helpers';
 
 import { withBullWorker } from '../../helpers/withBullQueue';
-import { withCache } from '../../helpers/withCache';
+import { withDatabaseCache, withMemoryCache } from '../../helpers/withCache';
 import { UpdatableResource, UpdatebleResourcesList } from './index';
 import { updater } from './update-worker';
 
 export const logger = debug('cli:update-thread');
 
-if (!isMainThread) {
+async function workerThread(): Promise<void> {
   const cliEnvironment = pickBy(process.env, (_, key) => key.startsWith('CLI_') || ['DEBUG', 'NODE_ENV'].includes(key));
 
   logger(`Thread ${threadId} data: ${JSON.stringify(workerData)}`);
   logger(`Thread ${threadId} environment: ${JSON.stringify(cliEnvironment)}`);
 
-  const httpClient = new HttpClient(workerData.httpClientOpts);
-  const entitiesCache = withCache();
+  const service = new CachedService(
+    new CachedService(new GitHubService(new HttpClient(workerData.httpClientOpts)), await withDatabaseCache()),
+    withMemoryCache(),
+  );
 
   const worker = withBullWorker(async (job) => {
     if (!job.data.name_with_owner) throw new Error('Invlaid job id!');
@@ -32,10 +36,9 @@ if (!isMainThread) {
     ) as UpdatableResource[];
 
     return updater(job.data.name_with_owner, {
-      httpClient: httpClient,
       resources: resources,
+      service,
       before: new Date(job.data.__updated_before),
-      entitiesCache: entitiesCache,
       onProgress: async (progress) => {
         const [current, total] = Object.values(progress).reduce(
           ([current, total], rp) =>
@@ -66,3 +69,5 @@ if (!isMainThread) {
     else logger(`Unknown message: ${JSON.stringify(data)}`);
   });
 }
+
+if (!isMainThread) workerThread();

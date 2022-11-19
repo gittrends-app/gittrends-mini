@@ -26,9 +26,10 @@ import { StargazersRepository } from '../repositories/StargazersRepository';
 import { TagsRepository } from '../repositories/TagsRepository';
 import { WatchersRepository } from '../repositories/WatchersRepository';
 
-type ExtendedEntityRepositories = EntityRepositories & { knex: Knex };
+export type ExtendedEntityRepositories = EntityRepositories & { knex: Knex };
 
 export async function withDatabase<T>(context: (repos: ExtendedEntityRepositories) => Promise<T>): Promise<T>;
+
 export async function withDatabase<T>(
   db: string,
   context: (repos: ExtendedEntityRepositories) => Promise<T>,
@@ -37,9 +38,13 @@ export async function withDatabase<T>(
   config: { name: string; migrate?: boolean },
   context: (repos: ExtendedEntityRepositories) => Promise<T>,
 ): Promise<T>;
+
+export async function withDatabase(db: string): Promise<ExtendedEntityRepositories>;
+export async function withDatabase(config: { name: string; migrate?: boolean }): Promise<ExtendedEntityRepositories>;
+
 export async function withDatabase<T>(db: any, context?: any): Promise<T> {
   let config: { name: string; migrate?: boolean } = { name: 'public', migrate: false };
-  let callback: (repos: EntityRepositories) => Promise<any>;
+  let callback: ((repos: EntityRepositories) => Promise<any>) | undefined;
 
   if (typeof db === 'function') {
     callback = db;
@@ -63,7 +68,7 @@ export async function withDatabase<T>(db: any, context?: any): Promise<T> {
   const repos: ExtendedEntityRepositories = {
     knex,
     get: function (resource: any): any {
-      if (resource === Actor) return new ActorsRepository(knex);
+      if (resource === Actor || resource.prototype instanceof Actor) return new ActorsRepository(knex);
       else if (resource === Repository) return new RepositoriesRepository(knex);
       else if (resource === Stargazer) return new StargazersRepository(knex);
       else if (resource === Tag) return new TagsRepository(knex);
@@ -77,5 +82,5 @@ export async function withDatabase<T>(db: any, context?: any): Promise<T> {
     },
   };
 
-  return callback(repos).finally(() => knex.destroy());
+  return callback ? callback(repos).finally(() => knex.destroy()) : repos;
 }

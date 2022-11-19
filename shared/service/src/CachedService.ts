@@ -1,4 +1,4 @@
-import { each } from 'bluebird';
+import { each, mapSeries } from 'bluebird';
 import { compact, difference } from 'lodash';
 
 import { SearchComponentQuery } from '@gittrends/github/dist';
@@ -20,8 +20,8 @@ export class CachedService implements Service {
   }
 
   async get(id: string): Promise<Repository | undefined> {
-    const cachedValue = await this.cache.get({ id });
-    if (cachedValue) return new Repository(cachedValue as any);
+    const cachedValue = await this.cache.get(Repository, { id });
+    if (cachedValue) return cachedValue;
 
     return this.service.get(id).then(async (value) => {
       if (value) await this.cache.add(value);
@@ -30,7 +30,7 @@ export class CachedService implements Service {
   }
 
   async find(name: string): Promise<Repository | undefined> {
-    const cachedValue = await this.cache.get({ name });
+    const cachedValue = await this.cache.get(Repository, { name });
     if (cachedValue) return new Repository(cachedValue as any);
 
     return this.service.find(name).then(async (value) => {
@@ -60,9 +60,7 @@ export class CachedService implements Service {
   async getActor(id: any): Promise<any> {
     const actorIds = Array.isArray(id) ? id : [id];
 
-    const actors = compact(
-      await Promise.all(actorIds.map((id) => this.cache.get({ id }).then((res) => res && Actor.from(res)))),
-    );
+    const actors = compact(await mapSeries(actorIds, (id) => this.cache.get(Actor, { id })));
 
     const pendingIds = difference(
       actorIds,

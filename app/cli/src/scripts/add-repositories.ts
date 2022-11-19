@@ -29,7 +29,7 @@ async function find(opts: FindOpts): Promise<Repository[]> {
     language: opts.language,
     sort: 'stars',
     order: 'desc',
-    minStargazers: 5,
+    minStargazers: opts.repository ? 0 : 5,
     repo: opts.repository,
   });
 

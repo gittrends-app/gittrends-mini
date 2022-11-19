@@ -39,7 +39,7 @@ declare global {
   type Constructor<T> = { new (...args: any): T };
   type EntityConstructor<T> = { new (...args: any): T } & typeof Entity;
   type Prototype<T> = { prototype: T };
-  type EntityPrototype<T> = { prototype: T } & typeof Entity;
+  type EntityPrototype<T> = ({ prototype: T } | { new (...args: any[]): T }) & typeof Entity<T>;
 }
 
 declare module 'knex' {

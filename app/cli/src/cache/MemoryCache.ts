@@ -5,14 +5,14 @@ import { promisify } from 'util';
 
 import { Cache } from '@gittrends/service';
 
-import { Entity, Node } from '@gittrends/entities';
+import { Actor, Entity, Node } from '@gittrends/entities';
 import { debug } from '@gittrends/helpers';
 
 const logger = debug('cli:entities-cache');
 
-type CacheKeys = Partial<Node & { name: string }>;
+type EntityKey = Partial<Node & { name: string }>;
 
-export class EntitiesCache implements Cache<CacheKeys> {
+export class MemoryCache implements Cache<EntityKey> {
   private cache: Memcached;
 
   private memcached: {
@@ -33,25 +33,27 @@ export class EntitiesCache implements Cache<CacheKeys> {
     };
   }
 
-  private getCacheKey(entity: CacheKeys): string {
+  private getCacheKey(entity: EntityKey): string {
     if (entity.id) return entity.id;
     else if (entity.name) return entity.name;
     throw new Error('Cannot key enity key');
   }
 
-  async get<T extends Entity>(props: T & CacheKeys): Promise<Record<string, unknown> | undefined> {
-    logger(`Finding reference for ${props.id || props.name} on cache...`);
-    return await this.memcached
-      .get(this.getCacheKey(props))
-      .then((res) => (res ? JSON.parse(uncompressSync(res).toString()) : undefined));
+  async get<T extends Entity>(EntityRef: EntityPrototype<T>, key: EntityKey): Promise<T | undefined> {
+    logger(`Finding reference for ${key.id || key.name} on cache...`);
+    return await this.memcached.get(this.getCacheKey(key)).then((res) => {
+      if (!res) return undefined;
+      if (EntityRef.prototype === Actor.prototype) return Actor.from(JSON.parse(uncompressSync(res).toString()));
+      return new EntityRef.prototype.constructor(JSON.parse(uncompressSync(res).toString()));
+    });
   }
 
-  async add(entity: Entity<any> & CacheKeys): Promise<void> {
+  async add(entity: Entity & EntityKey): Promise<void> {
     logger(`Adding ${entity.constructor.name} (key=${this.getCacheKey(entity)}) to cache...`);
     await this.memcached.add(this.getCacheKey(entity), compressSync(JSON.stringify(omitBy(entity.toJSON(), isNil))), 0);
   }
 
-  async delete(entity: Entity<any> & CacheKeys): Promise<void> {
+  async delete(entity: Entity & EntityKey): Promise<void> {
     await this.memcached.del(this.getCacheKey(entity));
   }
 
