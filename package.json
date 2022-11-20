@@ -11,6 +11,7 @@
     "build-github": "yarn workspace @gittrends/github build",
     "build-helpers": "yarn workspace @gittrends/helpers build",
     "build-service": "yarn workspace @gittrends/service build",
+    "build-cache": "yarn workspace @gittrends/cache build",
     "build-cli": "yarn workspace @gittrends/cli build",
     "format": "prettier --config .prettierrc.json --write .",
     "prepare": "husky install"

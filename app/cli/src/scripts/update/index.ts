@@ -66,9 +66,7 @@ async function asyncQueue(
   },
 ) {
   consola.info('Preparing processing queue ....');
-  const fileCache = withCache('file');
-  const memCache = withCache('memory');
-  const service = new CachedService(new CachedService(new GitHubService(opts.httpClient), fileCache), memCache);
+  const service = new CachedService(new GitHubService(opts.httpClient), withCache());
 
   const queueRef = queue(
     (name: string, callback) =>
@@ -89,9 +87,6 @@ async function asyncQueue(
 
   consola.info('Waiting process to finish ....');
   await queueRef.drain();
-
-  consola.info('Closing connections ....');
-  await Promise.all([fileCache.close(), memCache.close()]);
 
   consola.info(`Update process finished (${names.length} repositories updated)`);
 }

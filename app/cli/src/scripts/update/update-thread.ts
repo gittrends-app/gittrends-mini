@@ -21,10 +21,7 @@ async function workerThread(): Promise<void> {
   logger(`Thread ${threadId} data: ${JSON.stringify(workerData)}`);
   logger(`Thread ${threadId} environment: ${JSON.stringify(cliEnvironment)}`);
 
-  const service = new CachedService(
-    new CachedService(new GitHubService(new HttpClient(workerData.httpClientOpts)), await withCache('file')),
-    withCache('memory'),
-  );
+  const service = new CachedService(new GitHubService(new HttpClient(workerData.httpClientOpts)), withCache());
 
   const worker = withBullWorker(async (job) => {
     if (!job.data.name_with_owner) throw new Error('Invlaid job id!');

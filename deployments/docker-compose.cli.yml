@@ -8,12 +8,14 @@ services:
     ports:
       - 6379:6379
 
-  memcached:
-    image: memcached:alpine
-    command: -m ${MEMCACHED_MEMORY:-256}
+  cache:
+    build:
+      context: ..
+      dockerfile: deployments/dockerfiles/cache/Dockerfile
     restart: unless-stopped
+    command: yarn start --db /data --cache-size ${CACHE_SIZE:-256}
     ports:
-      - 11211:11211
+      - 6380:80
 
   postgres:
     build:

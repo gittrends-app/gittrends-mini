@@ -6,6 +6,7 @@
     "outDir": "./dist",                                  /* Specify an output folder for all emitted files. */    
     "resolveJsonModule": true,
     "paths": {
+      "@gittrends/cache": ["../cache/src/*"],
       "@gittrends/helpers": ["../../shared/helpers/src/*"],
       "@gittrends/entities": ["../../shared/entities/src/*"],
       "@gittrends/github": ["../../shared/github/src/*"],
