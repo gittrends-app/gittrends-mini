@@ -1,20 +1,24 @@
-import { DatabaseCache } from '../cache/DatabaseCache';
-import { MemoryCache } from '../cache/MemoryCache';
-import { withDatabase } from './withDatabase';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 
-const REDIS_HOST = process.env.CLI_CACHE_HOST || 'localhost';
-const REDIS_PORT = parseInt(process.env.CLI_CACHE_PORT || '11211');
+import { AppCache } from '../cache/AppCache';
+import { LevelDBProvider } from '../cache/LevelDBProvider';
+import { MemcachedProvider } from '../cache/MemcachedProvider';
 
-export async function withMemoryCache<T = any>(callback: (queue: MemoryCache) => Promise<T>): Promise<T>;
-export function withMemoryCache(): MemoryCache;
-export function withMemoryCache(callback?: any): any {
-  const cache = new MemoryCache({ host: REDIS_HOST, port: REDIS_PORT });
-  return callback ? callback(cache).finally(() => cache.close()) : cache;
-}
+const CACHE_HOST = process.env.CLI_CACHE_HOST || 'localhost';
+const CACHE_PORT = parseInt(process.env.CLI_CACHE_PORT || '11211');
+const CACHE_FILE = process.env.CLI_CACHE_FILE || join(homedir(), '.gittrends.cache');
 
-export async function withDatabaseCache<T = any>(callback: (queue: DatabaseCache) => Promise<T>): Promise<T>;
-export async function withDatabaseCache(): Promise<DatabaseCache>;
-export async function withDatabaseCache(callback?: any): Promise<any> {
-  const cache = new DatabaseCache(await withDatabase({ name: 'public_cache', migrate: true }));
+type CacheProvider = 'memory' | 'file';
+type CacheCallback<T> = (queue: AppCache) => Promise<T>;
+
+export async function withCache<T = any>(provider: CacheProvider, callback: CacheCallback<T>): Promise<T>;
+export function withCache(provider: CacheProvider): AppCache;
+export function withCache(provider: CacheProvider, callback?: CacheCallback<any>): any {
+  const cache = new AppCache(
+    provider === 'memory'
+      ? new MemcachedProvider({ host: CACHE_HOST, port: CACHE_PORT })
+      : new LevelDBProvider({ file: CACHE_FILE }),
+  );
   return callback ? callback(cache).finally(() => cache.close()) : cache;
 }

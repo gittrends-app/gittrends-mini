@@ -20,7 +20,7 @@ import { CachedService, GitHubService } from '@gittrends/service';
 import { Actor, Dependency, Issue, PullRequest, Release, Stargazer, Tag, Watcher } from '@gittrends/entities';
 
 import { withBullEvents, withBullQueue } from '../../helpers/withBullQueue';
-import { withDatabaseCache, withMemoryCache } from '../../helpers/withCache';
+import { withCache } from '../../helpers/withCache';
 import { withMultibar } from '../../helpers/withMultibar';
 import { version } from '../../package.json';
 import { schedule } from '../schedule';
@@ -66,9 +66,9 @@ async function asyncQueue(
   },
 ) {
   consola.info('Preparing processing queue ....');
-  const memCache = withMemoryCache();
-  const dbCache = await withDatabaseCache();
-  const service = new CachedService(new CachedService(new GitHubService(opts.httpClient), dbCache), memCache);
+  const fileCache = withCache('file');
+  const memCache = withCache('memory');
+  const service = new CachedService(new CachedService(new GitHubService(opts.httpClient), fileCache), memCache);
 
   const queueRef = queue(
     (name: string, callback) =>
@@ -91,7 +91,7 @@ async function asyncQueue(
   await queueRef.drain();
 
   consola.info('Closing connections ....');
-  await Promise.all([dbCache.close(), memCache.close()]);
+  await Promise.all([fileCache.close(), memCache.close()]);
 
   consola.info(`Update process finished (${names.length} repositories updated)`);
 }

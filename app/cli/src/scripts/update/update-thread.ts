@@ -9,7 +9,7 @@ import { CachedService, GitHubService } from '@gittrends/service';
 import { debug } from '@gittrends/helpers';
 
 import { withBullWorker } from '../../helpers/withBullQueue';
-import { withDatabaseCache, withMemoryCache } from '../../helpers/withCache';
+import { withCache } from '../../helpers/withCache';
 import { UpdatableResource, UpdatebleResourcesList } from './index';
 import { updater } from './update-worker';
 
@@ -22,8 +22,8 @@ async function workerThread(): Promise<void> {
   logger(`Thread ${threadId} environment: ${JSON.stringify(cliEnvironment)}`);
 
   const service = new CachedService(
-    new CachedService(new GitHubService(new HttpClient(workerData.httpClientOpts)), await withDatabaseCache()),
-    withMemoryCache(),
+    new CachedService(new GitHubService(new HttpClient(workerData.httpClientOpts)), await withCache('file')),
+    withCache('memory'),
   );
 
   const worker = withBullWorker(async (job) => {
