@@ -16,7 +16,7 @@ export function createClient(opts: { host: string; port: number }): CacheClientA
 
   return {
     async add(key: string, data: string | Buffer): Promise<void> {
-      const { status } = await client.post('/', { key, data });
+      const { status } = await client.post('/', { key, data: data.toString() });
       if (status !== 201) throw new Error(`Key could not be inserted! (status code: ${status})`);
     },
 

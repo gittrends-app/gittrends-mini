@@ -28,7 +28,7 @@ type GetRequestType = Static<typeof GETRequest>;
 type DelRequestType = Static<typeof DELRequest>;
 
 export async function server(opts: CliOpts): Promise<Server> {
-  const fastify = Fastify({}).withTypeProvider<TypeBoxTypeProvider>();
+  const fastify = Fastify({ logger: !opts.silent }).withTypeProvider<TypeBoxTypeProvider>();
 
   const cache = levelup(leveldown(opts.db), { cacheSize: (opts.cacheSize || 8) * 1024 * 1024 });
 
@@ -36,21 +36,26 @@ export async function server(opts: CliOpts): Promise<Server> {
     const { key, data } = req.body;
     cache
       .put(key, data)
+      .then(() =>
+        reply.status(StatusCodes.CREATED).send({ status: ReasonPhrases.CREATED, message: ReasonPhrases.CREATED }),
+      )
       .catch((error) => {
         reply
           .status(StatusCodes.INTERNAL_SERVER_ERROR)
           .send({ status: StatusCodes.INTERNAL_SERVER_ERROR, message: error.message || error });
         throw error;
-      })
-      .then(() =>
-        reply.status(StatusCodes.CREATED).send({ status: ReasonPhrases.CREATED, message: ReasonPhrases.CREATED }),
-      );
+      });
   });
 
   fastify.get<{ Querystring: GetRequestType }>('/', { schema: { querystring: GETRequest } }, (req, res) => {
     const { key } = req.query;
     cache
       .get(key)
+      .then((data) =>
+        res
+          .status(StatusCodes.OK)
+          .send({ status: ReasonPhrases.OK, message: ReasonPhrases.OK, data: data?.toString() }),
+      )
       .catch((error) => {
         if (error.notFound) {
           return res
@@ -63,25 +68,20 @@ export async function server(opts: CliOpts): Promise<Server> {
           .send({ status: StatusCodes.INTERNAL_SERVER_ERROR, message: error.message || error });
 
         throw error;
-      })
-      .then((data) =>
-        res
-          .status(StatusCodes.OK)
-          .send({ status: ReasonPhrases.OK, message: ReasonPhrases.OK, data: data?.toString() }),
-      );
+      });
   });
 
   fastify.delete<{ Querystring: DelRequestType }>('/', { schema: { querystring: DELRequest } }, (req, res) => {
     const { key } = req.query;
     cache
       .del(key)
+      .then(() => res.status(StatusCodes.OK).send({ status: ReasonPhrases.OK, message: ReasonPhrases.OK }))
       .catch((error) => {
         res
           .status(StatusCodes.INTERNAL_SERVER_ERROR)
           .send({ status: StatusCodes.INTERNAL_SERVER_ERROR, message: error.message || error });
         throw error;
-      })
-      .then(() => res.status(StatusCodes.OK).send({ status: ReasonPhrases.OK, message: ReasonPhrases.OK }));
+      });
   });
 
   await fastify

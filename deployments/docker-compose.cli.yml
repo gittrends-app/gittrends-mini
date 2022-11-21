@@ -16,6 +16,8 @@ services:
     command: yarn start --db /data --cache-size ${CACHE_SIZE:-256}
     ports:
       - 6380:80
+    volumes:
+      - cache:/data
 
   postgres:
     build:
@@ -44,4 +46,6 @@ services:
 
 volumes:
   db:
+    driver: local
+  cache:
     driver: local

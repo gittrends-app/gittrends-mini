@@ -6,7 +6,7 @@
   "type": "commonjs",
   "license": "MIT",
   "scripts": {
-    "build": "rm -rf dist && tsc",
+    "build": "yarn install && rm -rf dist tsconfig.tsbuildinfo && tsc",
     "start": "node dist/server.js",
     "dev": "ts-node -T src/server.ts"
   },
