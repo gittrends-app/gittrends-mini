@@ -86,7 +86,7 @@ export async function server(opts: CliOpts): Promise<Server> {
 
   await fastify
     .listen({ port: opts.port, host: '0.0.0.0' })
-    .then(() => !opts.silent && console.log(`Server running on *:${opts.port}`));
+    .then(() => !opts.silent && console.log(`Server running on http://0.0.0.0:${opts.port}`));
 
   return fastify.server;
 }
