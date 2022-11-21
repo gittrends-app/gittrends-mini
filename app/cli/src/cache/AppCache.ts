@@ -1,5 +1,4 @@
 import { isNil, omitBy } from 'lodash';
-import { compressSync, uncompressSync } from 'snappy';
 
 import { Cache } from '@gittrends/service';
 
@@ -32,14 +31,14 @@ export class AppCache implements Cache<EntityKey> {
     logger(`Finding reference for ${key.id || key.name} on cache...`);
     return await this.provider.get(this.getCacheKey(key)).then((res) => {
       if (!res) return undefined;
-      if (EntityRef.prototype === Actor.prototype) return Actor.from(JSON.parse(uncompressSync(res).toString()));
-      return new EntityRef.prototype.constructor(JSON.parse(uncompressSync(res).toString()));
+      if (EntityRef.prototype === Actor.prototype) return Actor.from(JSON.parse(res.toString()));
+      return new EntityRef.prototype.constructor(JSON.parse(res.toString()));
     });
   }
 
   async add(entity: Entity & EntityKey): Promise<void> {
     logger(`Adding ${entity.constructor.name} (key=${this.getCacheKey(entity)}) to cache...`);
-    await this.provider.add(this.getCacheKey(entity), compressSync(JSON.stringify(omitBy(entity.toJSON(), isNil))), 0);
+    await this.provider.add(this.getCacheKey(entity), JSON.stringify(omitBy(entity.toJSON(), isNil)), 0);
   }
 
   async delete(entity: Entity & EntityKey): Promise<void> {
