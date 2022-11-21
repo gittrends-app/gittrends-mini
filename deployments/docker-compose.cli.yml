@@ -13,7 +13,7 @@ services:
       context: ..
       dockerfile: deployments/dockerfiles/cache/Dockerfile
     restart: unless-stopped
-    command: yarn start --db /data --cache-size ${CACHE_SIZE:-256}
+    command: yarn start --db /data --cache-size ${CACHE_SIZE:-8}
     ports:
       - 6380:80
     volumes:
