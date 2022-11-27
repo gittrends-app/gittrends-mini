@@ -38,7 +38,7 @@ services:
     image: prodrigestivill/postgres-backup-local
     restart: unless-stopped
     volumes:
-      - ./backups:/backups
+      - ../backups:/backups
     links:
       - postgres
     depends_on:
@@ -59,7 +59,7 @@ services:
     restart: unless-stopped
     command: /backup.sh
     volumes:
-      - ./backups:/backups
+      - ../backups:/backups
     links:
       - postgres
     depends_on:
