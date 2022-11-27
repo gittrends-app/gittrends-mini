@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 export interface CacheClientAPI {
-  add(key: string, value: string | Buffer): Promise<void>;
+  add(key: string, value: string | Buffer, expires?: string | number): Promise<void>;
   get(key: string): Promise<string | Buffer | undefined>;
   delete(key: string): Promise<boolean>;
 }
@@ -15,8 +15,8 @@ export function createClient(opts: { host: string; port: number }): CacheClientA
   });
 
   return {
-    async add(key: string, data: string | Buffer): Promise<void> {
-      const { status } = await client.post('/', { key, data: data.toString() });
+    async add(key: string, data: string | Buffer, expires?: string | number): Promise<void> {
+      const { status } = await client.post('/', { key, data: data.toString(), expires });
       if (status !== 201) throw new Error(`Key could not be inserted! (status code: ${status})`);
     },
 
