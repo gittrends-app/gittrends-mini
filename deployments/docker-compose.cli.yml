@@ -34,6 +34,26 @@ services:
     volumes:
       - db:/var/lib/postgresql/data
 
+  pgbackups:
+    image: prodrigestivill/postgres-backup-local
+    restart: unless-stopped
+    volumes:
+      - ./backups/files:/backups
+    links:
+      - postgres
+    depends_on:
+      - postgres
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: ${POSTGRES_USER:-root}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-root}
+      POSTGRES_DB: ${POSTGRES_DB:-gittrends.app}
+      POSTGRES_EXTRA_OPTS: -Z6 --schema=public --blobs
+      SCHEDULE: '@weekly'
+      BACKUP_KEEP_DAYS: 1
+      BACKUP_KEEP_WEEKS: 4
+      BACKUP_KEEP_MONTHS: 2
+
   adminer:
     image: adminer
     restart: unless-stopped
