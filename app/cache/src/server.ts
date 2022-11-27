@@ -47,7 +47,7 @@ export async function server(opts: CliOpts): Promise<Server> {
     const { key, data, expires } = req.body;
     const expiresAt = expires ? Date.now() + ms(`${expires}`) : 0;
     cache
-      .put(key, JSON.stringify({ expires: expiresAt, data }))
+      .put(key, JSON.stringify({ v: 1, expires: expiresAt, data }))
       .then(() =>
         reply.status(StatusCodes.CREATED).send({ status: ReasonPhrases.CREATED, message: ReasonPhrases.CREATED }),
       )
