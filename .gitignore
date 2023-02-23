@@ -143,3 +143,6 @@ out
 **/tsconfig.tsbuildinfo
 
 **/.DS_Store
+
+tokens.txt
+tokens.*.txt

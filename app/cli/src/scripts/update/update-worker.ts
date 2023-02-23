@@ -25,7 +25,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
 
   logger(
     `Starting updater for ${name} (resources: ${opts.resources
-      .map((r) => r.__collection_name)
+      .map((r) => r.__name)
       .join(', ')}, before: ${before.toISOString()})`,
   );
 
@@ -53,9 +53,9 @@ export async function updater(name: string, opts: UpdaterOpts) {
 
     logger('Getting resources metadata...');
     const repositoryResourcesMeta = await asyncIterator(repositoryResources, async (info) => {
-      const [meta] = await dataRepo.get(Metadata).findByRepository(repo?.id as string, info.resource.__collection_name);
+      const [meta] = await dataRepo.get(Metadata).findByRepository(repo?.id as string, info.resource.__name);
       const cachedCount = await info.repository.countByRepository(repo?.id as string);
-      const total = get(repo, info.resource.__collection_name, Infinity);
+      const total = get(repo, info.resource.__name, Infinity);
 
       return {
         resource: info.resource,
@@ -73,7 +73,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
 
       return opts.onProgress(
         [...repositoryResourcesMeta, ...(usersResourceInfo ? [usersResourceInfo] : [])].reduce(
-          (progress, { resource, ...info }) => ({ ...progress, [resource.__collection_name]: info }),
+          (progress, { resource, ...info }) => ({ ...progress, [resource.__name]: info }),
           {},
         ),
       );
@@ -103,7 +103,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
       logger('Finding for not updated actors...');
       const actorsIds: Array<{ id: string }> = await dataRepo.knex
         .select('id')
-        .from(Actor.__collection_name)
+        .from(Actor.__name)
         .whereNull('__updated_at')
         .orWhere('__updated_at', '<', before)
         .orderBy([{ column: '__updated_at', order: 'asc' }]);

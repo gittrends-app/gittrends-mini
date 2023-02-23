@@ -3,11 +3,13 @@ import { Knex } from 'knex';
 import { Actor } from '@gittrends/entities';
 
 export async function up(knex: Knex): Promise<void> {
-  return knex.schema.createTable(Actor.__collection_name, (table) => {
+  return knex.schema.createTable(Actor.__name, (table) => {
     table.text('id').primary();
     table.enum('type', ['User', 'Organization', 'Mannequin', 'Bot', 'EnterpriseUserAccount']).notNullable();
     table.text('login').notNullable();
     table.text('avatar_url').notNullable();
+
+    table.timestamp('__updated_at');
 
     // user
     table.text('bio');
@@ -52,9 +54,10 @@ export async function up(knex: Knex): Promise<void> {
     table.text('user');
 
     table.index('login');
+    table.index('__updated_at');
   });
 }
 
 export async function down(knex: Knex): Promise<void> {
-  return knex.schema.dropTable(Actor.__collection_name);
+  return knex.schema.dropTable(Actor.__name);
 }

@@ -3,7 +3,7 @@ import { Knex } from 'knex';
 import { Dependency } from '@gittrends/entities';
 
 export async function up(knex: Knex): Promise<void> {
-  return knex.schema.createTable(Dependency.__collection_name, (table) => {
+  return knex.schema.createTable(Dependency.__name, (table) => {
     table.text('repository').notNullable();
     table.text('manifest').notNullable();
     table.text('package_name').notNullable();
@@ -20,5 +20,5 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 export async function down(knex: Knex): Promise<void> {
-  return knex.schema.dropTable(Dependency.__collection_name);
+  return knex.schema.dropTable(Dependency.__name);
 }

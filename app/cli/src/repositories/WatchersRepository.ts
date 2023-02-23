@@ -18,7 +18,7 @@ export class WatchersRepository implements IResourceRepository<Watcher> {
 
   async countByRepository(repository: string): Promise<number> {
     const [{ count }] = await this.db
-      .table(Watcher.__collection_name)
+      .table(Watcher.__name)
       .where('repository', repository)
       .count('repository', { as: 'count' });
     return parseInt(count);
@@ -26,7 +26,7 @@ export class WatchersRepository implements IResourceRepository<Watcher> {
 
   async findByRepository(repository: string, opts?: { limit: number; skip: number } | undefined): Promise<Watcher[]> {
     const watcher = await this.db
-      .table(Watcher.__collection_name)
+      .table(Watcher.__name)
       .select('*')
       .where('repository', repository)
       .limit(opts?.limit || 1000)
@@ -49,7 +49,7 @@ export class WatchersRepository implements IResourceRepository<Watcher> {
       this.actorsRepo.insert(actors, transaction),
       asyncIterator(watchers, (watcher) =>
         this.db
-          .table(Watcher.__collection_name)
+          .table(Watcher.__name)
           .insertEntity(watcher)
           .onConflict(['repository', 'user'])
           ?.[onConflict]()

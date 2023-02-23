@@ -15,7 +15,7 @@ async function forEach(queueFunction: AsyncWorker<string>) {
   q.push(
     await withDatabase({ name: 'public', migrate: true }, ({ knex }) =>
       knex
-        .from(Repository.__collection_name)
+        .from(Repository.__name)
         .select('name_with_owner')
         .then((repos: { name_with_owner: string }[]) => repos.map((repo) => repo.name_with_owner)),
     ),

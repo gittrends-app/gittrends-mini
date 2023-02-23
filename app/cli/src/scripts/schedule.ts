@@ -23,7 +23,7 @@ import { withDatabase } from '../helpers/withDatabase';
 import { version } from '../package.json';
 
 const Resources = [Actor, Stargazer, Watcher, Tag, Release, Dependency, Issue, PullRequest].map(
-  (entity) => entity.__collection_name,
+  (entity) => entity.__name,
 );
 
 const logger = debug('schedule');
@@ -99,7 +99,7 @@ export async function schedule(args: CliOptions & { repos?: string[] } = { wait:
       : await withDatabase(({ knex }) =>
           knex
             .select('name_with_owner')
-            .from(Repository.__collection_name)
+            .from(Repository.__name)
             .then((records: { name_with_owner: string }[]) => records.map((record) => record.name_with_owner)),
         );
 

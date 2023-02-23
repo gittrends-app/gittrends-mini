@@ -17,7 +17,7 @@ export abstract class Entity<T = any> {
   static readonly __strip_unknown: boolean = true;
   static readonly __convert: boolean = true;
 
-  static get __collection_name() {
+  static get __name() {
     return plural(snakeCase(this.name).toLowerCase());
   }
 

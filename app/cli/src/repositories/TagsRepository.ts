@@ -18,7 +18,7 @@ export class TagsRepository implements IResourceRepository<Tag> {
 
   async countByRepository(repository: string): Promise<number> {
     const [{ count }] = await this.db
-      .table(Tag.__collection_name)
+      .table(Tag.__name)
       .where('repository', repository)
       .count('repository', { as: 'count' });
     return parseInt(count);
@@ -49,12 +49,7 @@ export class TagsRepository implements IResourceRepository<Tag> {
     await Promise.all([
       this.actorsRepo.insert(actors, transaction),
       asyncIterator(tags, (tag) =>
-        this.db
-          .table(Tag.__collection_name)
-          .insertEntity(tag)
-          .onConflict(['id'])
-          ?.[onConflict]()
-          .transacting(transaction),
+        this.db.table(Tag.__name).insertEntity(tag).onConflict(['id'])?.[onConflict]().transacting(transaction),
       ),
     ])
       .then(async () => (!trx ? transaction.commit() : null))

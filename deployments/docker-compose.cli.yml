@@ -11,7 +11,7 @@ services:
   cache:
     build:
       context: ..
-      dockerfile: deployments/dockerfiles/cache/Dockerfile
+      dockerfile: deployments/cache/Dockerfile
     restart: unless-stopped
     command: yarn start --db /data --cache-size ${CACHE_SIZE:-8}
     ports:
@@ -28,7 +28,7 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-root}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-root}
-      POSTGRES_DB: ${POSTGRES_DB:-gittrends.app}
+      POSTGRES_DB: ${NODE_ENV:-dev}.${POSTGRES_DB:-gittrends.app}
     ports:
       - 5432:5432
     volumes:
@@ -43,6 +43,47 @@ services:
       ADMINER_DEFAULT_SERVER: postgres
     depends_on:
       - postgres
+
+  proxy:
+    build:
+      context: ..
+      dockerfile: deployments/github-proxy-server/Dockerfile
+    restart: unless-stopped
+    command: yarn github-proxy-server --tokens /tokens.txt
+    environment:
+      PORT: 80
+    ports:
+      - 3000:80
+    volumes:
+      - ../tokens.production.txt:/tokens.txt:ro
+
+  cli:
+    build:
+      context: ..
+      dockerfile: deployments/cli/Dockerfile
+    restart: unless-stopped
+    environment:
+      CLI_API_URL: http://proxy:80
+      CLI_DATABASE: postgres
+      CLI_DATABASE_HOST: postgres
+      CLI_DATABASE_PORT: 5432
+      CLI_DATABASE_USERNAME: ${POSTGRES_USER:-root}
+      CLI_DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-root}
+      CLI_DATABASE_DB: ${NODE_ENV:-dev}.${POSTGRES_DB:-gittrends.app}
+      CLI_DATABASE_POOL_MIN: 2
+      CLI_DATABASE_POOL_MAX: 5
+      CLI_REDIS_HOST: redis
+      CLI_REDIS_PORT: 6379
+      CLI_REDIS_DB: 0
+      CLI_CACHE_HOST: cache
+      CLI_CACHE_PORT: 80
+    ports:
+      - 8080:80
+    depends_on:
+      - postgres
+      - redis
+      - cache
+      - proxy
 
 volumes:
   db:

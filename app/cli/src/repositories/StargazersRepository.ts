@@ -18,7 +18,7 @@ export class StargazersRepository implements IResourceRepository<Stargazer> {
 
   async countByRepository(repository: string): Promise<number> {
     const [{ count }] = await this.db
-      .table(Stargazer.__collection_name)
+      .table(Stargazer.__name)
       .where('repository', repository)
       .count('repository', { as: 'count' });
     return parseInt(count);
@@ -26,7 +26,7 @@ export class StargazersRepository implements IResourceRepository<Stargazer> {
 
   async findByRepository(repository: string, opts?: { limit: number; skip: number } | undefined): Promise<Stargazer[]> {
     const stars = await this.db
-      .table(Stargazer.__collection_name)
+      .table(Stargazer.__name)
       .select('*')
       .where('repository', repository)
       .orderBy('starred_at', 'asc')
@@ -50,7 +50,7 @@ export class StargazersRepository implements IResourceRepository<Stargazer> {
       this.actorsRepo.insert(actors, transaction),
       asyncIterator(stars, (star) =>
         this.db
-          .table(Stargazer.__collection_name)
+          .table(Stargazer.__name)
           .insertEntity(star)
           .onConflict(['repository', 'user', 'starred_at'])
           ?.[onConflict]()

@@ -16,7 +16,7 @@ export class ActorsRepository implements IActorsRepository {
 
     const actors = await asyncIterator(ids, async (id) =>
       this.db
-        .table(Actor.__collection_name)
+        .table(Actor.__name)
         .first('*')
         .where('id', id)
         .then((actor) => (actor ? Actor.from(actor) : undefined)),
@@ -26,7 +26,7 @@ export class ActorsRepository implements IActorsRepository {
   }
 
   async findByLogin(login: string): Promise<Actor | undefined> {
-    const actor = await this.db.table(Actor.__collection_name).select('*').where('login', login).first();
+    const actor = await this.db.table(Actor.__name).select('*').where('login', login).first();
     return actor && actor.__updated_at ? Actor.from(actor) : undefined;
   }
 
@@ -40,12 +40,7 @@ export class ActorsRepository implements IActorsRepository {
     const actors = Array.isArray(user) ? user : [user];
 
     await asyncIterator(actors, (actor) =>
-      this.db
-        .table(Actor.__collection_name)
-        .insertEntity(actor)
-        .onConflict('id')
-        ?.[onConflict]()
-        .transacting(transaction),
+      this.db.table(Actor.__name).insertEntity(actor).onConflict('id')?.[onConflict]().transacting(transaction),
     )
       .then(async () => (!trx ? transaction.commit() : null))
       .catch(async (error) => {

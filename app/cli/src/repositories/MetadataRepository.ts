@@ -11,7 +11,7 @@ export class MetadataRepository implements IMetadataRepository {
 
   async findByRepository(repository: string, resource?: string): Promise<Metadata[]> {
     const metas = await this.db
-      .table(Metadata.__collection_name)
+      .table(Metadata.__name)
       .select('*')
       .where({ repository, ...(resource ? { resource } : {}) });
 
@@ -30,7 +30,7 @@ export class MetadataRepository implements IMetadataRepository {
     await asyncIterator(metas, (meta) => {
       const { repository, resource, end_cursor, updated_at, finished_at, ...payload } = meta;
       return this.db
-        .table(Metadata.__collection_name)
+        .table(Metadata.__name)
         .insertEntity({ repository, resource, end_cursor, updated_at, finished_at, payload: payload })
         .onConflict(['repository', 'resource'])
         ?.[onConflict]()

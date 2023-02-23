@@ -18,7 +18,7 @@ export class ReactionsRepository implements IResourceRepository<Reaction> {
 
   async countByRepository(repository: string): Promise<number> {
     const [{ count }] = await this.db
-      .table(Reaction.__collection_name)
+      .table(Reaction.__name)
       .where('repository', repository)
       .count('repository', { as: 'count' });
     return parseInt(count);
@@ -26,7 +26,7 @@ export class ReactionsRepository implements IResourceRepository<Reaction> {
 
   async findByRepository(repository: string, opts?: { limit: number; skip: number } | undefined): Promise<Reaction[]> {
     const reactions = await this.db
-      .table(Reaction.__collection_name)
+      .table(Reaction.__name)
       .select('*')
       .where('repository', repository)
       .limit(opts?.limit || 1000)
@@ -49,7 +49,7 @@ export class ReactionsRepository implements IResourceRepository<Reaction> {
       this.actorsRepo.insert(actors, transaction),
       asyncIterator(reactions, (reaction) => {
         return this.db
-          .table(Reaction.__collection_name)
+          .table(Reaction.__name)
           .insertEntity(reaction)
           .onConflict('id')
           ?.[onConflict]()

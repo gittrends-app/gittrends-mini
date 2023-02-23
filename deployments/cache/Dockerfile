@@ -2,17 +2,13 @@ FROM node:16-alpine AS build
 
 WORKDIR /gittrends-app
 
-COPY .husky .husky
 COPY package.json package.json
 RUN yarn install
 
-COPY [^app]* .
+COPY . .
 
-COPY ./app/cache ./app/cache
-
-WORKDIR /gittrends-app/app/cache
-RUN yarn install
-RUN yarn build
+RUN rm -rf shared && cd app && (ls | grep -xv "cache" | xargs rm -rf)
+RUN yarn install && yarn build-cache
 
 FROM node:16-alpine AS production
 

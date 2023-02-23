@@ -24,7 +24,7 @@ export class RepositoriesRepository implements IRepositoriesRepository {
     const results = await asyncIterator(ids, (id) =>
       this.db
         .first('*')
-        .from(Repository.__collection_name)
+        .from(Repository.__name)
         .where('id', id)
         .then((result) => result && new Repository(result)),
     );
@@ -35,7 +35,7 @@ export class RepositoriesRepository implements IRepositoriesRepository {
   async findByName(name: string): Promise<Repository | undefined> {
     return this.db
       .first('*')
-      .from(Repository.__collection_name)
+      .from(Repository.__name)
       .whereRaw('UPPER(name_with_owner) LIKE ?', name.toUpperCase())
       .then((result) => result && new Repository(result));
   }
@@ -54,7 +54,7 @@ export class RepositoriesRepository implements IRepositoriesRepository {
       this.actorRepo.insert(actors, transaction),
       asyncIterator(repos, (repo) =>
         this.db
-          .table(Repository.__collection_name)
+          .table(Repository.__name)
           .insertEntity(repo)
           .onConflict('id')
           ?.[onConflict || 'merge']()

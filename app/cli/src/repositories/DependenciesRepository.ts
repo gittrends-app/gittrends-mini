@@ -11,7 +11,7 @@ export class DependenciesRepository implements IResourceRepository<Dependency> {
 
   async countByRepository(repository: string): Promise<number> {
     const [{ count }] = await this.db
-      .table(Dependency.__collection_name)
+      .table(Dependency.__name)
       .where('repository', repository)
       .count('repository', { as: 'count' });
     return parseInt(count);
@@ -19,7 +19,7 @@ export class DependenciesRepository implements IResourceRepository<Dependency> {
 
   async findByRepository(repository: string, opts?: { limit: number; skip: number }): Promise<Dependency[]> {
     const dependencies = await this.db
-      .table(Dependency.__collection_name)
+      .table(Dependency.__name)
       .select('*')
       .where('repository', repository)
       .orderBy([
@@ -44,7 +44,7 @@ export class DependenciesRepository implements IResourceRepository<Dependency> {
 
     await asyncIterator(dependencies, (dep) =>
       this.db
-        .table(Dependency.__collection_name)
+        .table(Dependency.__name)
         .insertEntity(dep)
         .onConflict(['repository', 'manifest', 'package_name', 'requirements'])
         ?.[onConflict]()

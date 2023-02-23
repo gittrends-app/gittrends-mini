@@ -21,7 +21,7 @@ export class ReleasesRepository implements IResourceRepository<Release> {
 
   async countByRepository(repository: string): Promise<number> {
     const [{ count }] = await this.db
-      .table(Release.__collection_name)
+      .table(Release.__name)
       .where('repository', repository)
       .count('repository', { as: 'count' });
     return parseInt(count);
@@ -29,7 +29,7 @@ export class ReleasesRepository implements IResourceRepository<Release> {
 
   async findByRepository(repository: string, opts?: { limit: number; skip: number } | undefined): Promise<Release[]> {
     const releases = await this.db
-      .table(Release.__collection_name)
+      .table(Release.__name)
       .select('*')
       .where('repository', repository)
       .orderBy('created_at', 'asc')
@@ -61,7 +61,7 @@ export class ReleasesRepository implements IResourceRepository<Release> {
         }),
         (release) =>
           this.db
-            .table(Release.__collection_name)
+            .table(Release.__name)
             .insertEntity(release)
             .onConflict(['id'])
             ?.[onConflict]()

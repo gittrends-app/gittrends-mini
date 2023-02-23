@@ -64,7 +64,7 @@ export class PersistenceService implements Service {
 
             await this.repositories.get(Metadata).upsert(
               new Metadata({
-                resource: resource.__collection_name,
+                resource: resource.__name,
                 repository: repositoryId,
                 end_cursor: endCursor || resources[index].endCursor,
                 updated_at: new Date(),

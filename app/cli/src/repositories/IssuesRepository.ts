@@ -24,7 +24,7 @@ class IssueOrPullRepository<T extends IssueOrPull> implements IResourceRepositor
 
   async countByRepository(repository: string): Promise<number> {
     const [{ count }] = await this.db
-      .table((this.IssueOrPullClass as any).__collection_name)
+      .table((this.IssueOrPullClass as any).__name)
       .where('repository', repository)
       .count('repository', { as: 'count' });
     return parseInt(count);
@@ -32,7 +32,7 @@ class IssueOrPullRepository<T extends IssueOrPull> implements IResourceRepositor
 
   async findByRepository(repository: string, opts?: { limit: number; skip: number }): Promise<T[]> {
     const issues = await this.db
-      .table((this.IssueOrPullClass as any).__collection_name)
+      .table((this.IssueOrPullClass as any).__name)
       .select('*')
       .where('repository', repository)
       .limit(opts?.limit || 1000)
@@ -64,7 +64,7 @@ class IssueOrPullRepository<T extends IssueOrPull> implements IResourceRepositor
         this.reactionsRepo.insert(reactions, transaction),
         this.eventsRepo.insert(timeline_items, transaction),
         this.db
-          .table((this.IssueOrPullClass as any).__collection_name)
+          .table((this.IssueOrPullClass as any).__name)
           .insertEntity(issue)
           .onConflict('id')
           .merge()

@@ -213,9 +213,9 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
     .addOption(new Option('--api-url [string]', 'URL of the target API').env('CLI_API_URL').conflicts('token'))
     .addOption(
       new Option('-r, --resources [string...]', 'Resources to update')
-        .choices(UpdatebleResourcesList.map((r) => r.__collection_name))
+        .choices(UpdatebleResourcesList.map((r) => r.__name))
         .argParser<Partial<typeof UpdatebleResourcesList>>((value, resources) =>
-          compact([...(resources || []), UpdatebleResourcesList.find((ur) => ur.__collection_name === value)]),
+          compact([...(resources || []), UpdatebleResourcesList.find((ur) => ur.__name === value)]),
         )
         .default([]),
     )
@@ -233,7 +233,7 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
       consola.info('Running updater with the following parameters: ');
       consola.log(
         `\n${prettyjson.render(
-          { names, opts: { ...opts, resources: opts.resources.map((r) => r.__collection_name) } },
+          { names, opts: { ...opts, resources: opts.resources.map((r) => r.__name) } },
           { inlineArrays: true },
         )}\n`,
       );

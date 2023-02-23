@@ -3,7 +3,7 @@ import { Knex } from 'knex';
 import { Repository } from '@gittrends/entities';
 
 export async function up(knex: Knex): Promise<void> {
-  return knex.schema.createTable(Repository.__collection_name, (table) => {
+  return knex.schema.createTable(Repository.__name, (table) => {
     table.text('id').primary();
     table.integer('assignable_users');
     table.text('code_of_conduct');
@@ -39,7 +39,7 @@ export async function up(knex: Knex): Promise<void> {
     table.integer('mentionable_users');
     table.boolean('merge_commit_allowed');
     table.integer('milestones');
-    table.integer('mirror_url');
+    table.text('mirror_url');
     table.text('name');
     table.text('name_with_owner').notNullable();
     table.text('open_graph_image_url');
@@ -66,5 +66,5 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 export async function down(knex: Knex): Promise<void> {
-  return knex.schema.dropTable(Repository.__collection_name);
+  return knex.schema.dropTable(Repository.__name);
 }

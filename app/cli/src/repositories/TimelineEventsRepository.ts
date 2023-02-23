@@ -21,7 +21,7 @@ export class TimelineEventsRepository implements IResourceRepository<TimelineEve
 
   async countByRepository(repository: string): Promise<number> {
     const [{ count }] = await this.db
-      .table(TimelineEvent.__collection_name)
+      .table(TimelineEvent.__name)
       .where('repository', repository)
       .count('repository', { as: 'count' });
     return parseInt(count);
@@ -32,7 +32,7 @@ export class TimelineEventsRepository implements IResourceRepository<TimelineEve
     opts?: { limit: number; skip: number } | undefined,
   ): Promise<TimelineEvent[]> {
     const events = await this.db
-      .table(TimelineEvent.__collection_name)
+      .table(TimelineEvent.__name)
       .select('*')
       .where('repository', repository)
       .limit(opts?.limit || 1000)
@@ -61,7 +61,7 @@ export class TimelineEventsRepository implements IResourceRepository<TimelineEve
       this.reactionsRepo.insert(reactables, transaction),
       asyncIterator(events, (event) =>
         this.db
-          .table(TimelineEvent.__collection_name)
+          .table(TimelineEvent.__name)
           .insertEntity(event)
           .onConflict('id')
           ?.[onConflict]()

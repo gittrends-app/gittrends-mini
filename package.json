@@ -5,7 +5,8 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "build": "yarn build-env && yarn build-helpers && yarn build-entities && yarn build-github && yarn build-cache && yarn build-service && yarn build-cli",
+    "build": "build-shared && yarn build-service && yarn build-cli",
+    "build-shared": "yarn build-env && yarn build-helpers && yarn build-entities && yarn build-github && yarn build-service",
     "build-entities": "yarn workspace @gittrends/entities build",
     "build-env": "yarn workspace @gittrends/env build",
     "build-github": "yarn workspace @gittrends/github build",
