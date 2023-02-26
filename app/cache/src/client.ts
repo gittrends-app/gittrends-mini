@@ -1,12 +1,8 @@
 import axios from 'axios';
 
-export interface CacheClientAPI {
-  add(key: string, value: string | Buffer, expires?: string | number): Promise<void>;
-  get(key: string): Promise<string | Buffer | undefined>;
-  delete(key: string): Promise<boolean>;
-}
+import { CacheAPI } from './services/CacheAPI';
 
-export function createClient(opts: { host: string; port: number }): CacheClientAPI {
+export function createClient(opts: { host: string; port: number }): CacheAPI {
   const client = axios.create({
     baseURL: `http://${opts.host}:${opts.port}`,
     validateStatus(status) {
