@@ -2,6 +2,8 @@ import axios from 'axios';
 
 import { CacheAPI } from './services/CacheAPI';
 
+export { CacheAPI } from './services/CacheAPI';
+
 export function createClient(opts: { host: string; port: number }): CacheAPI {
   const client = axios.create({
     baseURL: `http://${opts.host}:${opts.port}`,

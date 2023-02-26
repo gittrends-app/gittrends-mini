@@ -1,9 +1,9 @@
-import { CacheClientAPI, createClient } from '@gittrends/cache';
+import { CacheAPI, createClient } from '@gittrends/cache';
 
 import { CacheProvider } from './AppCache';
 
 export class LocalProvider implements CacheProvider {
-  private cache: CacheClientAPI;
+  private cache: CacheAPI;
 
   constructor(opts: { host: string; port: number }) {
     this.cache = createClient({ host: opts.host, port: opts.port });
