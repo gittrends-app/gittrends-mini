@@ -70,7 +70,12 @@ async function asyncQueue(
 
   const queueRef = queue(
     (name: string, callback) =>
-      updater(name, { service, resources: opts.resources, before: new Date() })
+      updater(name, {
+        service,
+        resources: opts.resources,
+        before: new Date(),
+        iterationsToPersist: parseInt(`${process.env.CLI_UPDATER_ITERATIONS || 3}`),
+      })
         .then(() => callback())
         .catch((error) => {
           consola.error(error);

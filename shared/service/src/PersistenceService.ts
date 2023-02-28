@@ -48,29 +48,48 @@ export class PersistenceService implements Service {
       resource: EntityPrototype<IterableResources>;
       endCursor?: string | undefined;
       hasNextPage?: boolean | undefined;
+      iterations?: number;
     }[],
   ): Iterable<IterableResources> {
     const iterator = this.service.resources(repositoryId, resources);
 
     const next = iterator.next.bind(iterator);
 
+    const accumulator = resources.reduce<Record<string, { data: IterableResources[]; iteration: number }>>(
+      (memo, { resource }) => ({
+        ...memo,
+        [resource.name]: { data: [], iteration: 0 },
+      }),
+      {},
+    );
+
     iterator.next = async (...args: [] | [any]) => {
       return next(...args).then(async (response) => {
         if (!response.done) {
-          for (const [index, { resource }] of resources.entries()) {
+          for (const [index, { resource, iterations }] of resources.entries()) {
             const { items, endCursor, hasNextPage } = response.value[index];
 
-            await this.repositories.get(resource).insert(items);
+            const resourceAcc = accumulator[resource.name];
 
-            await this.repositories.get(Metadata).upsert(
-              new Metadata({
-                resource: resource.__name,
-                repository: repositoryId,
-                end_cursor: endCursor || resources[index].endCursor,
-                updated_at: new Date(),
-                finished_at: hasNextPage ? undefined : new Date(),
-              }),
-            );
+            resourceAcc.data.push(...items);
+            resourceAcc.iteration += 1;
+
+            if (!iterations || resourceAcc.iteration === iterations || !hasNextPage) {
+              await this.repositories.get(resource).insert(resourceAcc.data);
+
+              await this.repositories.get(Metadata).upsert(
+                new Metadata({
+                  resource: resource.__name,
+                  repository: repositoryId,
+                  end_cursor: endCursor || resources[index].endCursor,
+                  updated_at: new Date(),
+                  finished_at: hasNextPage ? undefined : new Date(),
+                }),
+              );
+
+              resourceAcc.data = [];
+              resourceAcc.iteration = 0;
+            }
           }
         }
 

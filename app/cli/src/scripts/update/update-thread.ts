@@ -36,6 +36,7 @@ async function workerThread(): Promise<void> {
       resources: resources,
       service,
       before: new Date(job.data.__updated_before),
+      iterationsToPersist: parseInt(`${cliEnvironment.CLI_UPDATER_ITERATIONS || 3}`),
       onProgress: async (progress) => {
         const [current, total] = Object.values(progress).reduce(
           ([current, total], rp) =>
@@ -49,6 +50,7 @@ async function workerThread(): Promise<void> {
       },
     })
       .catch((error: Error) => {
+        logger(`Error: ${error.message}`);
         parentPort?.postMessage({ event: 'error', name: job.data.name_with_owner, message: error.message });
         throw error;
       })

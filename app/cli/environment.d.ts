@@ -34,6 +34,8 @@ declare global {
       CLI_CACHE_HOST?: string;
       CLI_CACHE_PORT?: string;
       CLI_CACHE_FILE?: string;
+
+      CLI_UPDATER_ITERATIONS?: string;
     }
   }
 

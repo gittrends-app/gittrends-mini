@@ -17,6 +17,7 @@ export type UpdaterOpts = {
   service: Service;
   resources: UpdatableResource[];
   before?: Date;
+  iterationsToPersist?: number;
   onProgress?: (progress: Record<string, { done: boolean; current: number; total: number }>) => void | Promise<void>;
 };
 
@@ -63,6 +64,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
         current: cachedCount,
         total,
         endCursor: meta?.end_cursor,
+        iterations: opts.iterationsToPersist || 3,
       };
     });
 
@@ -135,6 +137,6 @@ export async function updater(name: string, opts: UpdaterOpts) {
     };
 
     logger('Waiting update process to finish...');
-    await Promise.allSettled([resourcesUpdate().finally(() => (resourcesDone = true)), actorsReSchedule()]);
+    return Promise.allSettled([resourcesUpdate().finally(() => (resourcesDone = true)), actorsReSchedule()]);
   });
 }

@@ -75,6 +75,7 @@ services:
       CLI_REDIS_DB: 0
       CLI_CACHE_HOST: cache
       CLI_CACHE_PORT: 80
+      CLI_UPDATER_ITERATIONS: 5
     ports:
       - 8080:80
     depends_on:
