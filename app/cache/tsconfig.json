@@ -3,6 +3,7 @@
   "include": ["src"],
   "exclude": ["src/**/*.spec.ts", "src/**/*.test.ts"],
   "compilerOptions": {
+    "baseUrl": "./",
     "rootDir": "./src",                                  /* Specify the root folder within your source files. */
     "outDir": "./dist",                                  /* Specify an output folder for all emitted files. */   
     "composite": true,

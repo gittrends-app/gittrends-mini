@@ -1,36 +1,24 @@
 import LRUCache from 'lru-cache';
 import ms from 'ms';
+import sizeof from 'object-sizeof';
 
 import { CacheServiceAPI } from './CacheAPI';
 
-const getSizeInBytes = (obj: any) => {
-  let str = null;
-  if (typeof obj === 'string') {
-    // If obj is a string, then use it
-    str = obj;
-  } else {
-    // Else, make obj into a string
-    str = JSON.stringify(obj);
-  }
-  // Get the length of the Uint8Array
-  const bytes = new TextEncoder().encode(str).length;
-  return bytes;
-};
-
 export default class MemoryCache implements CacheServiceAPI {
   private cache: LRUCache<string, any>;
+  private ttl = '7 days';
 
   constructor(opts: { cacheSize?: number; cleanupInterval?: string | number }) {
     this.cache = new LRUCache({
-      maxSize: (opts.cacheSize || 8) * 1024 * 1024,
-      sizeCalculation: (value) => getSizeInBytes(value),
-      ttl: ms('1 day'),
+      maxSize: (opts.cacheSize || 64) * 1024 * 1024,
+      sizeCalculation: (value) => sizeof(value),
+      ttl: ms(this.ttl),
       updateAgeOnGet: true,
     });
   }
 
   async add(key: string, value: string | Buffer, expires?: string | number): Promise<void> {
-    this.cache.set(key, value, { ttl: ms(`${expires}` || '1 day') });
+    this.cache.set(key, value, { ttl: ms(`${expires}` || this.ttl) });
   }
 
   async get(key: string): Promise<string | Buffer | undefined> {

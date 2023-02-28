@@ -67,7 +67,7 @@ describe('Cache API', () => {
       await expect(client.add('temporary_key', 'temporary_value', 500)).resolves.toBe(void 0);
       await expect(client.get('permanent_key')).resolves.toBe('permanent_value');
       await expect(client.get('temporary_key')).resolves.toBe('temporary_value');
-      await setTimeout(2500, void 0);
+      await setTimeout(1000, void 0);
       await expect(client.get('permanent_key')).resolves.toBe('permanent_value');
       await expect(client.get('temporary_key')).resolves.toBe(void 0);
     }
