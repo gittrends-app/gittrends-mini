@@ -106,9 +106,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
       const actorsIds: Array<{ id: string }> = await dataRepo.knex
         .select('id')
         .from(Actor.__name)
-        .whereNull('__updated_at')
-        .orWhere('__updated_at', '<', before)
-        .orderBy([{ column: '__updated_at', order: 'asc' }]);
+        .whereNull('__updated_at');
 
       if (!actorsIds?.length) return;
 
