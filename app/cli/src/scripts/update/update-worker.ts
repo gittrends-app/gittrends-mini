@@ -17,6 +17,7 @@ export type UpdaterOpts = {
   service: Service;
   resources: UpdatableResource[];
   before?: Date;
+  force?: boolean;
   iterationsToPersist?: number;
   onProgress?: (progress: Record<string, { done: boolean; current: number; total: number }>) => void | Promise<void>;
 };
@@ -103,10 +104,12 @@ export async function updater(name: string, opts: UpdaterOpts) {
     const actorsUpdater = async function (): Promise<void> {
       logger('Starting actors update...');
       logger('Finding for not updated actors...');
-      const actorsIds: Array<{ id: string }> = await dataRepo.knex
-        .select('id')
-        .from(Actor.__name)
-        .whereNull('__updated_at');
+
+      const query = dataRepo.knex.select('id').from(Actor.__name).whereNull('__updated_at');
+
+      const actorsIds: Array<{ id: string }> = await (opts.force
+        ? query.orWhere('__updated_at', '<', before).orderBy([{ column: '__updated_at', order: 'asc' }])
+        : query);
 
       if (!actorsIds?.length) return;
 

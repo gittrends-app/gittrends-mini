@@ -21,6 +21,7 @@ export type CliJobType = {
 
   __resources: string[];
   __updated_before: Date;
+  __force?: boolean;
 };
 
 export async function withBullQueue<T = any>(callback: (queue: Queue<CliJobType>) => Promise<T>): Promise<T>;

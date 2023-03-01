@@ -77,6 +77,7 @@ export async function schedule(args: CliOptions & { repos?: string[] } = { wait:
 
             __resources: Resources,
             __updated_before: updatedBefore,
+            __force: args.force,
           };
 
           return queue
@@ -118,13 +119,14 @@ export async function schedule(args: CliOptions & { repos?: string[] } = { wait:
   logger('Repositories scheduled.');
 }
 
-type CliOptions = { wait: number; drain?: boolean; obliterate?: boolean };
+type CliOptions = { wait: number; drain?: boolean; obliterate?: boolean; force?: boolean };
 
 export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void> {
   await program
     .addOption(new Option('-w, --wait [hours]', 'Number of hours before updating').default(48))
     .addOption(new Option('--drain', 'Remove all pending jobs on queue before proceeding'))
     .addOption(new Option('--obliterate', 'Remove all jobs on queue (including the active ones)'))
+    .addOption(new Option('--force', 'Force update on resources'))
     .addArgument(new Argument('[repo...]', 'Repositories to schedule').default([]))
     .action((repos: string[], opts: CliOptions) => schedule({ ...opts, repos }))
     .helpOption(true)

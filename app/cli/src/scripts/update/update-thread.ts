@@ -36,6 +36,7 @@ async function workerThread(): Promise<void> {
       resources: resources,
       service,
       before: new Date(job.data.__updated_before),
+      force: job.data.__force,
       iterationsToPersist: parseInt(`${cliEnvironment.CLI_UPDATER_ITERATIONS || 3}`),
       onProgress: async (progress) => {
         const [current, total] = Object.values(progress).reduce(
