@@ -11,7 +11,7 @@ export default class MemoryCache implements CacheServiceAPI {
   constructor(opts: { cacheSize?: number; cleanupInterval?: string | number }) {
     this.cache = new LRUCache({
       maxSize: (opts.cacheSize || 64) * 1024 * 1024,
-      sizeCalculation: (value) => sizeof(value) * 1.25,
+      sizeCalculation: (value) => sizeof(value),
       ttl: ms(this.ttl),
       updateAgeOnGet: true,
     });

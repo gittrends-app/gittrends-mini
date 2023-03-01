@@ -32,6 +32,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
   );
 
   await withDatabase(name, async (dataRepo) => {
+    const iterations = opts.iterationsToPersist || 3;
     const service = new PersistenceService(opts.service, dataRepo);
 
     logger('Finding repository localy...');
@@ -65,7 +66,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
         current: cachedCount,
         total,
         endCursor: meta?.end_cursor,
-        iterations: opts.iterationsToPersist || 3,
+        iterations,
       };
     });
 
@@ -116,7 +117,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
       usersResourceInfo.done = false;
       usersResourceInfo.total += actorsIds.length;
 
-      const actorsChunks = chunk(actorsIds, 100);
+      const actorsChunks = chunk(actorsIds, iterations * 100);
 
       for (const [index, iChunk] of actorsChunks.entries()) {
         logger(`Updating ${iChunk.length * index + iChunk.length} (of ${actorsIds.length}) actors...`);
