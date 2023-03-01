@@ -53,5 +53,8 @@ export function withBullWorker(
     maxStalledCount: Number.MAX_SAFE_INTEGER,
     concurrency,
     autorun: true,
+    lockDuration: 2 * 60 * 1000,
+    lockRenewTime: 15 * 1000,
+    stalledInterval: 15 * 1000,
   });
 }
