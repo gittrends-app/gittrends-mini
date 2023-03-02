@@ -24,10 +24,21 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
   const threads: Array<{ worker: Worker; concurrency: number }> = [];
   const scheduler: { ref?: Promise<void>; done: boolean } = { done: true };
 
+  type CliOpts = {
+    httpLogging: boolean;
+    port: number;
+    start?: boolean;
+    threads?: number;
+    workers?: number;
+  };
+
   await program
     .addOption(new Option('--http-logging'))
     .addOption(new Option('--port <number>', 'Port to run board app').env('PORT').default(8080).makeOptionMandatory())
-    .action(async (opts: { httpLogging: boolean; port: number }) => {
+    .addOption(new Option('--start', 'Automatically starts the updater'))
+    .addOption(new Option('--threads [num]', 'Number of threads').argParser(Number).implies({ start: true }))
+    .addOption(new Option('--workers [num]', 'Number of workers').argParser(Number).implies({ start: true }))
+    .action(async (opts: CliOpts) => {
       const app = express();
 
       app.use(json());
@@ -43,6 +54,52 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
 
       const serverAdapter = new ExpressAdapter();
       serverAdapter.setBasePath('/bull-queue');
+
+      async function updater(params: { workers: number; threads: number }) {
+        if (params.threads < threads.length) {
+          await Promise.all(threads.slice(params.threads - threads.length).map((thread) => thread.worker.terminate()));
+          threads.splice(params.threads - threads.length);
+        }
+
+        if (params.threads > 0) {
+          const concurrency = Math.ceil(params.workers / params.threads);
+          const { hostname, protocol, port } = new URL(process.env.CLI_API_URL as string);
+
+          const httpClientOpts = new HttpClient({
+            host: hostname,
+            protocol: protocol.slice(0, -1),
+            port: parseInt(port),
+            timeout: 60000,
+            retries: 2,
+          }).toJSON();
+
+          await map(range(params.threads), async (index) => {
+            const diff = index === params.threads - 1 ? concurrency * params.threads - params.workers : 0;
+
+            if (threads[index] && threads[index].concurrency < concurrency) {
+              threads[index].worker.postMessage({ concurrency: (threads[index].concurrency = concurrency - diff) });
+              return;
+            }
+
+            if (threads[index]) await threads[index].worker.terminate();
+
+            const worker = new Worker(path.resolve(__dirname, '..', 'update', `update-thread${extname(__filename)}`), {
+              env: SHARE_ENV,
+              workerData: {
+                cacheSize: parseInt(process.env.CACHE_SIZE || '100000'),
+                concurrency: concurrency - diff,
+                httpClientOpts,
+              },
+            });
+
+            worker.on('message', (message) => consola.log(`worker ${worker.threadId}: ${JSON.stringify(message)}`));
+
+            threads[index] = { worker, concurrency: concurrency - diff };
+
+            return new Promise((resolve) => worker.on('online', resolve));
+          });
+        }
+      }
 
       createBullBoard({
         queues: [new BullMQAdapter(queue, { allowRetries: true })],
@@ -88,51 +145,7 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
             params: req.body,
           });
 
-        const params: { workers: number; threads: number } = req.body;
-
-        if (params.threads < threads.length) {
-          await Promise.all(threads.slice(params.threads - threads.length).map((thread) => thread.worker.terminate()));
-          threads.splice(params.threads - threads.length);
-        }
-
-        if (params.threads > 0) {
-          const concurrency = Math.ceil(params.workers / params.threads);
-          const { hostname, protocol, port } = new URL(process.env.CLI_API_URL as string);
-
-          const httpClientOpts = new HttpClient({
-            host: hostname,
-            protocol: protocol.slice(0, -1),
-            port: parseInt(port),
-            timeout: 60000,
-            retries: 2,
-          }).toJSON();
-
-          await map(range(params.threads), async (index) => {
-            const diff = index === params.threads - 1 ? concurrency * params.threads - params.workers : 0;
-
-            if (threads[index] && threads[index].concurrency < concurrency) {
-              threads[index].worker.postMessage({ concurrency: (threads[index].concurrency = concurrency - diff) });
-              return;
-            }
-
-            if (threads[index]) await threads[index].worker.terminate();
-
-            const worker = new Worker(path.resolve(__dirname, '..', 'update', `update-thread${extname(__filename)}`), {
-              env: SHARE_ENV,
-              workerData: {
-                cacheSize: parseInt(process.env.CACHE_SIZE || '100000'),
-                concurrency: concurrency - diff,
-                httpClientOpts,
-              },
-            });
-
-            worker.on('message', (message) => consola.log(`worker ${worker.threadId}: ${JSON.stringify(message)}`));
-
-            threads[index] = { worker, concurrency: concurrency - diff };
-
-            return new Promise((resolve) => worker.on('online', resolve));
-          });
-        }
+        await updater(req.body);
 
         res.json(threads.map(({ worker, ...data }) => ({ id: worker.threadId, ...data })));
       });
@@ -149,6 +162,8 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
         });
         res.sendStatus(201);
       });
+
+      if (opts.start) await updater({ threads: opts.threads || 1, workers: opts.workers || 1 });
 
       return new Promise<void>((resolve, reject) => {
         server.on('close', resolve);

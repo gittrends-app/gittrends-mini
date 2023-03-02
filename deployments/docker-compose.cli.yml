@@ -60,6 +60,7 @@ services:
       context: ..
       dockerfile: deployments/cli/Dockerfile
     restart: unless-stopped
+    command: yarn cli-runtime bull-board --threads ${CLI_THREADS:-0} --workers ${CLI_WORKERS:-0}
     environment:
       CLI_API_URL: http://proxy:80
       CLI_DATABASE: postgres
