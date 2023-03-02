@@ -7,4 +7,6 @@ WORKDIR /proxy-server
 RUN yarn init -y
 RUN yarn add gittrends-app/github-proxy-server
 
-CMD yarn github-proxy-server
+ENTRYPOINT [ "yarn", "github-proxy-server" ]
+
+CMD [ "--help" ]

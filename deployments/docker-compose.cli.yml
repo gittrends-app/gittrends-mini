@@ -47,9 +47,12 @@ services:
       context: ..
       dockerfile: deployments/github-proxy-server/Dockerfile
     restart: unless-stopped
-    command: yarn github-proxy-server --tokens /tokens.txt
+    command: --tokens /tokens.txt
     environment:
       PORT: 80
+      GPS_REQUEST_INTERVAL: ${GPS_REQUEST_INTERVAL:-100}
+      GPS_REQUEST_TIMEOUT: ${GPS_REQUEST_TIMEOUT:-30000}
+      GPS_MIN_REMAINING: ${GPS_MIN_REMAINING:-100}
     ports:
       - 3000:80
     volumes:
