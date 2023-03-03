@@ -220,9 +220,12 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
       new Option('-r, --resources [string...]', 'Resources to update')
         .choices(UpdatebleResourcesList.map((r) => r.__name))
         .argParser<Partial<typeof UpdatebleResourcesList>>((value, resources) =>
-          compact([...(resources || []), UpdatebleResourcesList.find((ur) => ur.__name === value)]),
+          compact([
+            ...(resources === UpdatebleResourcesList ? [] : resources),
+            UpdatebleResourcesList.find((ur) => ur.__name === value),
+          ]),
         )
-        .default(UpdatebleResourcesList.map((ur) => ur.__name)),
+        .default(UpdatebleResourcesList),
     )
     .addOption(new Option('--no-progress', 'Disable progress bars'))
     .addOption(new Option('--schedule', 'Schedule repositories before updating'))

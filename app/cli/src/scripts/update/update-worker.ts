@@ -1,7 +1,7 @@
 import dayjs from 'dayjs';
 import { chunk, compact, get } from 'lodash';
 
-import { PersistenceService, Service } from '@gittrends/service';
+import { BatchService, PersistenceService, Service } from '@gittrends/service';
 
 import { Actor, Metadata, Repository } from '@gittrends/entities';
 import { debug } from '@gittrends/helpers';
@@ -33,7 +33,8 @@ export async function updater(name: string, opts: UpdaterOpts) {
 
   await withDatabase(name, async (dataRepo) => {
     const iterations = opts.iterationsToPersist || 3;
-    const service = new PersistenceService(opts.service, dataRepo);
+
+    const service = new PersistenceService(new BatchService(opts.service, iterations), dataRepo);
 
     logger('Finding repository localy...');
     let repo = await dataRepo.get(Repository).findByName(name);
@@ -66,7 +67,6 @@ export async function updater(name: string, opts: UpdaterOpts) {
         current: cachedCount,
         total,
         endCursor: meta?.end_cursor,
-        iterations,
       };
     });
 
