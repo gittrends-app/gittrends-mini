@@ -15,6 +15,7 @@ import { ServerRequestError } from '@gittrends/github';
 
 import { Actor, Dependency, Release, Repository, Stargazer, Tag, Watcher } from '@gittrends/entities';
 import { Issue, PullRequest } from '@gittrends/entities';
+import { debug } from '@gittrends/helpers';
 
 import { Iterable, IterableResources, Service } from '../Service';
 import { ComponentBuilder } from './ComponentBuilder';
@@ -24,6 +25,8 @@ import { ReleasesComponentBuilder } from './Components/ReleasesComponentBuilder'
 import { StargazersComponentBuilder } from './Components/StargazersComponentBuilder';
 import { TagsComponentBuilder } from './Components/TagsComponentBuilder';
 import { WatchersComponentBuilder } from './Components/WatchersComponentBuilder';
+
+const logger = debug('github-service');
 
 class ServiceRequestError extends BaseError {
   public readonly components: ComponentBuilder[];
@@ -43,6 +46,8 @@ async function request(
   builders: ComponentBuilder[],
 ): Promise<ReturnType<ComponentBuilder['parse']>[]> {
   const results = await (async function _request(builders: ComponentBuilder[], previousError?: Error): Promise<any> {
+    logger(`requesting data from ${builders.length} resource(s)`);
+
     const components = builders.map((builder) => {
       const _component = builder.build(previousError);
       return Array.isArray(_component) ? _component : [_component];
@@ -58,6 +63,7 @@ async function request(
         newAliases.map((na) => mapKeys(pick(response, na), (_, key) => key.replace(/__\d+_\d+$/i, ''))),
       )
       .catch(async (error) => {
+        logger(`error: ${error.message || error}`);
         if (builders.length === 1) return _request(builders, error as Error);
         return flatten(await mapSeries(builders, (builder) => _request([builder])));
       })
@@ -75,6 +81,7 @@ async function request(
   );
 
   if (partialResultsIndexes.length > 0) {
+    logger('resultas are partial and more requests are needed');
     const finalPartialResults = await request(
       httpClient,
       builders.filter((_, index) => partialResultsIndexes.includes(index)),
@@ -122,6 +129,8 @@ class ResourceIterator implements Iterable<IterableResources> {
 
     const pendingResources = this.resourcesStatus.filter((rs) => rs.hasMore);
 
+    logger(`iterating over ${pendingResources.length} resource(s)`);
+
     const results = await request(
       this.httpClient,
       pendingResources.map((rs) => rs.builder),
@@ -166,6 +175,7 @@ export class GitHubService implements Service {
   }
 
   async get(id: string): Promise<Repository | undefined> {
+    logger(`requesting repository ${id}`);
     return Query.create(this.httpClient)
       .compose(
         new RepositoryComponent(id)
@@ -190,6 +200,8 @@ export class GitHubService implements Service {
   async getActor(id: any): Promise<any> {
     const ids = Array.isArray(id) ? id : [id];
 
+    logger(`requesting ${ids.length} actors`);
+
     if (ids.length > 15) return flatten(await mapSeries(chunk(ids, 15), (iChunk) => this.getActor(iChunk)));
 
     const components = ids.map((id, index) => new ActorComponent(id).setAlias(`actor_${index}`));
@@ -211,6 +223,7 @@ export class GitHubService implements Service {
   }
 
   async find(name: string): Promise<Repository | undefined> {
+    logger(`finding for repository with name ${name}`);
     return Query.create(this.httpClient)
       .compose(new SearchComponent({ repo: name }, { first: 1 }).setAlias('search'))
       .run()
@@ -218,6 +231,8 @@ export class GitHubService implements Service {
   }
 
   search({ limit, ...queryOpts }: SearchComponentQuery & { limit: number }): Iterable<Repository> {
+    logger(`searching repositories with ${JSON.stringify({ limit, ...queryOpts })}`);
+
     const { httpClient } = this;
 
     const cachedIds = new Set();

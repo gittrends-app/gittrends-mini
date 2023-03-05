@@ -49,15 +49,23 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
           consola.info('Starting reproducer...');
           consola.log(prettyjson.render(responses));
 
+          const apiURL = new URL(process.env.CLI_API_URL || 'https://api.github.com');
+
           const service = new GitHubService(
-            new HttpClient({ host: 'localhost', protocol: 'http', port: 3000, timeout: 60000 }),
+            new HttpClient({
+              host: apiURL.hostname,
+              protocol: apiURL.protocol.slice(0, -1),
+              port: parseInt(apiURL.port),
+              timeout: 60000,
+              retries: 2,
+            }),
           );
 
           consola.info('Preparing GitHubService resources iterator...');
           const iterator = service.resources(responses.repository, [
             {
               resource: UpdatebleResourcesList.find((e) => e.__name === responses.resource),
-              endCursor: responses.endCursor,
+              endCursor: responses.endCursor || undefined,
             },
           ] as any[]);
 

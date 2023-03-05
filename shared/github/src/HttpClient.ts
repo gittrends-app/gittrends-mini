@@ -4,6 +4,8 @@
 import axios, { AxiosError, AxiosInstance } from 'axios';
 import * as rax from 'retry-axios';
 
+import { debug } from '@gittrends/helpers';
+
 import { RequestError } from './RequestError';
 
 export type HttpClientOpts = {
@@ -23,11 +25,15 @@ export type HttpClientResponse = {
   headers: Record<string, string | string[] | undefined>;
 };
 
+const logger = debug('http-client');
+
 export class HttpClient {
   readonly baseUrl: string;
   readonly timeout: number;
   readonly retries: number;
   readonly client: AxiosInstance;
+
+  private requestsCount = 0;
 
   constructor(private opts: HttpClientOpts | string) {
     if (typeof opts === 'string') {
@@ -71,12 +77,19 @@ export class HttpClient {
   }
 
   async request(data: string | Record<string, unknown>): Promise<HttpClientResponse> {
+    const requestId = this.requestsCount++;
+    logger(`request #${requestId}: requesting data (size: ${JSON.stringify(data).length}) ...`);
+
     return this.client
       .post('/graphql', data)
-      .then(({ status, statusText, data, headers }) => ({ status, statusText, data, headers }))
-      .catch((err: AxiosError) =>
-        Promise.reject(RequestError.create(err, { status: err.response?.status, data: err.response?.data })),
-      );
+      .then(({ status, statusText, data, headers }) => {
+        logger(`request #${requestId}: response received (status: ${status}, size: ${JSON.stringify(data).length})`);
+        return { status, statusText, data, headers };
+      })
+      .catch((err: AxiosError) => {
+        logger(`request #${requestId}: request error: ${err.message}`);
+        return Promise.reject(RequestError.create(err, { status: err.response?.status, data: err.response?.data }));
+      });
   }
 
   toJSON(): HttpClientOpts | string {

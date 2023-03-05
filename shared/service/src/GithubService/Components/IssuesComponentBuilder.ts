@@ -20,6 +20,7 @@ import {
   TimelineEvent,
   isntanceOfReactable,
 } from '@gittrends/entities';
+import { debug } from '@gittrends/helpers';
 
 import { ComponentBuilder } from '../ComponentBuilder';
 
@@ -32,6 +33,8 @@ enum Stages {
 
 type TMeta = { first: number; endCursor?: string; hasNextPage?: boolean };
 
+const logger = debug('issues-component-builder');
+
 class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Component, T[]> {
   private Entity;
   private EntityComponent: typeof IssueComponent;
@@ -42,7 +45,7 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
   protected defaultBatchSize = 25;
 
   private meta: TMeta = { first: this.defaultBatchSize };
-  private issuesMeta: (TMeta & { issue: T })[] = [];
+  private issuesMeta: (TMeta & { issue: T; timelineItems?: number })[] = [];
   private reactablesMeta: (TMeta & { reactable: Reactable })[] = [];
 
   private get pendingDetails() {
@@ -50,7 +53,10 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
   }
 
   private get pendingIssues() {
-    return this.issuesMeta.filter((rm) => rm.hasNextPage).slice(0, this.meta.first);
+    return this.issuesMeta
+      .filter((rm) => rm.hasNextPage)
+      .sort((a, b) => (a.timelineItems || 0) - (b.timelineItems || 0))
+      .slice(0, this.meta.first);
   }
 
   private get pendingReactables() {
@@ -71,12 +77,16 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
 
     if (isGithubRequestError || isServerRequestError) {
       if (this.meta.first > 1) {
-        return (this.meta.first = Math.floor(this.meta.first / 2));
+        this.meta.first = Math.floor(this.meta.first / 2);
+        if (this.currentStage == Stages.GET_TIMELINE_EVENTS) {
+          this.pendingIssues.forEach((pIssue) => {
+            if (pIssue.first > 1) pIssue.first = Math.floor(pIssue.first / 2);
+          });
+        }
+        return;
       }
       if (this.meta.first === 1 && this.currentStage == Stages.GET_TIMELINE_EVENTS) {
-        if (this.pendingIssues[0].first > 1)
-          return (this.pendingIssues[0].first = Math.floor(this.pendingIssues[0].first / 2));
-        else if (this.pendingIssues[0].first === 1 && isGithubRequestError) {
+        if (this.pendingIssues[0].first === 1 && isGithubRequestError) {
           return (this.pendingIssues[0].hasNextPage = false);
         }
       }
@@ -87,6 +97,20 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
 
   build(error?: Error): RepositoryComponent | IssueComponent[] | ReactionComponent[] {
     if (error) this.errorHandler(error);
+
+    const loggerData = {
+      stage: Stages[this.currentStage],
+      first: this.meta.first,
+      details: this.issuesMeta.filter((rm) => !(rm.issue instanceof this.Entity)).length,
+      timeline: this.issuesMeta.filter((rm) => rm.hasNextPage).length,
+      reactables: this.reactablesMeta.filter((rm) => rm.hasNextPage).length,
+    };
+
+    logger(
+      `build component (${Object.entries(loggerData)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join(', ')})`,
+    );
 
     switch (this.currentStage) {
       case Stages.GET_ISSUES_LIST: {
@@ -156,6 +180,8 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
           const labels = get<any[]>(_labels, 'nodes', []);
           const participants = get<any[]>(_participants, 'nodes', []).map((p) => Actor.from(p));
 
+          iMeta.timelineItems = iData.timeline_items;
+
           iMeta.issue = new this.Entity({
             suggested_reviewers: [],
             ...iData,
@@ -177,6 +203,8 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
       }
 
       case Stages.GET_TIMELINE_EVENTS: {
+        this.meta.first = Math.min(this.defaultBatchSize, this.meta.first * 2);
+
         this.pendingIssues.forEach((iMeta, index) => {
           iMeta.first = Math.min(50, iMeta.first * 2);
 
