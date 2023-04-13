@@ -102,7 +102,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
       }
     };
 
-    const actorsUpdater = async function (): Promise<void> {
+    async function actorsUpdater(): Promise<void> {
       logger('Starting actors update...');
       logger('Finding for not updated actors...');
 
@@ -129,7 +129,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
       }
 
       logger(`${actorsIds.length} actors updated...`);
-    };
+    }
 
     let resourcesDone = false;
 

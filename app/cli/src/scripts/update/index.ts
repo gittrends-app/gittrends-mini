@@ -15,16 +15,28 @@ import { File } from 'winston/lib/winston/transports';
 
 import { HttpClient } from '@gittrends/github';
 
-import { CachedService, GitHubService } from '@gittrends/service';
+import { CachedService, GitHubService, PersistenceService } from '@gittrends/service';
 
-import { Actor, Dependency, Issue, PullRequest, Release, Stargazer, Tag, Watcher } from '@gittrends/entities';
+import {
+  Actor,
+  Dependency,
+  Issue,
+  PullRequest,
+  Release,
+  Repository,
+  Stargazer,
+  Tag,
+  Watcher,
+} from '@gittrends/entities';
 
 import { withBullEvents, withBullQueue } from '../../helpers/withBullQueue';
 import { withCache } from '../../helpers/withCache';
 import { withMultibar } from '../../helpers/withMultibar';
 import { version } from '../../package.json';
 import { schedule } from '../schedule';
+import { updater as updateWorker } from './update-worker';
 import { updater } from './update-worker';
+import { withDatabase } from 'src/helpers/withDatabase';
 
 readline.emitKeypressEvents(process.stdin);
 if (process.stdin.isTTY) process.stdin.setRawMode(true);
@@ -32,6 +44,8 @@ if (process.stdin.isTTY) process.stdin.setRawMode(true);
 process.stdin.on('keypress', (chunk, key) => {
   if (key && key.name === 'c' && key.ctrl === true) process.exit();
 });
+
+const IS_SINGLE_SCHEMA = process.env.CLI_USE_SINGLE_SCHEMA === 'true';
 
 export const errorLogger = consola.create({
   reporters: [
@@ -145,6 +159,7 @@ export async function redisQueue(opts: {
         cacheSize: parseInt(process.env.CACHE_SIZE || '100000'),
         concurrency: concurrency,
         httpClientOpts: opts.httpClient.toJSON(),
+        updateActors: !IS_SINGLE_SCHEMA,
       },
     });
 
@@ -177,6 +192,28 @@ export async function redisQueue(opts: {
 
   const threads = threadsConcurrency.map((workers, index) => createWorker(workers, index));
 
+  if (IS_SINGLE_SCHEMA) {
+    const progressBar: SingleBar | undefined = opts.multibar?.create(Infinity, 0);
+
+    await withDatabase(async (db) => {
+      const name = await db.knex
+        .table(Repository.__name)
+        .select('name_with_owner')
+        .limit(1)
+        .then(([data]) => data.name_with_owner);
+
+      return updateWorker(name, {
+        resources: [Actor],
+        service: new PersistenceService(new CachedService(new GitHubService(opts.httpClient), withCache()), db),
+        iterationsToPersist: parseInt(`${process.env.CLI_UPDATER_ITERATIONS || 3}`),
+        onProgress(progress) {
+          progressBar?.setTotal(progress.actors.total);
+          progressBar?.update(progress.actors.current, { resource: '<actors>' });
+        },
+      });
+    });
+  }
+
   process.stdin.on('keypress', (chunk, key) => {
     if (!key) return;
     if (key.sequence === '+') {
@@ -205,7 +242,6 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
     token?: string;
     apiUrl?: string;
     resources: UpdatableResource[];
-    allResources: boolean;
     progress: boolean;
     schedule: boolean;
     workers: number;
@@ -219,31 +255,19 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
     .addOption(
       new Option('-r, --resources [string...]', 'Resources to update')
         .choices(UpdatebleResourcesList.map((r) => r.__name))
-        .argParser<Partial<typeof UpdatebleResourcesList>>((value, resources) =>
-          compact([
-            ...(resources === UpdatebleResourcesList ? [] : resources),
-            UpdatebleResourcesList.find((ur) => ur.__name === value),
-          ]),
-        )
-        .default(UpdatebleResourcesList),
+        .default(UpdatebleResourcesList.map((r) => r.__name)),
     )
     .addOption(new Option('--no-progress', 'Disable progress bars'))
     .addOption(new Option('--schedule', 'Schedule repositories before updating'))
     .addOption(new Option('--workers [number]', 'Number of workers per thread').default(1).argParser(Number))
     .addOption(new Option('--threads [number]', 'Use threads processing').default(1).argParser(Number))
-    .action(async (names: string[], opts: CliOptions) => {
+    .action(async (names: string[], opts: Omit<CliOptions, 'resources'> & { resources: string[] }) => {
       const interval = setInterval(() => globalThis.gc && globalThis.gc(), 5000);
 
       if (!opts.apiUrl && !opts.token) program.error('--token or --api-url is mandatory!');
-      if (opts.allResources) UpdatebleResourcesList.forEach((res) => opts.resources.push(res as any));
 
       consola.info('Running updater with the following parameters: ');
-      consola.log(
-        `\n${prettyjson.render(
-          { names, opts: { ...opts, resources: opts.resources.map((r) => r.__name) } },
-          { inlineArrays: true },
-        )}\n`,
-      );
+      consola.log(`\n${prettyjson.render({ names, opts }, { inlineArrays: true })}\n`);
 
       const apiURL = new URL((opts.token ? 'https://api.github.com' : opts.apiUrl) as string);
 
@@ -257,7 +281,12 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
       });
 
       await withMultibar(async (multibar) => {
-        const processorOpts = { ...opts, httpClient, multibar: opts.progress ? multibar : undefined };
+        const resources = compact(
+          opts.resources.map((resource) => UpdatebleResourcesList.find((ur) => ur.__name === resource)),
+        ) as UpdatableResource[];
+
+        const processorOpts = { ...opts, resources, httpClient, multibar: opts.progress ? multibar : undefined };
+
         if (names.length) {
           return asyncQueue(names, processorOpts);
         } else {
