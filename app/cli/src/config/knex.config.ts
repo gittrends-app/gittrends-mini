@@ -108,7 +108,7 @@ function getConnectionSettings(repo: string): Knex.Config & Knex.MigratorConfig 
 }
 
 export async function createOrConnectDatabase(repo: string) {
-  const schemaOrDbName = getDatabasePath(repo);
+  const schemaOrDbName = process.env.CLI_USE_SINGLE_SCHEMA === 'true' ? 'public' : getDatabasePath(repo);
   const config = getConnectionSettings(schemaOrDbName);
 
   const conn = knex({

@@ -27,6 +27,7 @@ declare global {
 
       CLI_MIGRATIONS_WORKERS?: string;
       CLI_MIGRATIONS_DISABLE_VALIDATION?: string;
+      CLI_USE_SINGLE_SCHEMA?: 'true' | 'false' | string;
 
       CLI_SCHEDULER_WORKERS?: string;
       CLI_SCHEDULER_ATTEMPS?: string;
