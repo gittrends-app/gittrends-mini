@@ -36,7 +36,7 @@ import { version } from '../../package.json';
 import { schedule } from '../schedule';
 import { updater as updateWorker } from './update-worker';
 import { updater } from './update-worker';
-import { withDatabase } from 'src/helpers/withDatabase';
+import { withDatabase } from '../../helpers/withDatabase';
 
 readline.emitKeypressEvents(process.stdin);
 if (process.stdin.isTTY) process.stdin.setRawMode(true);
