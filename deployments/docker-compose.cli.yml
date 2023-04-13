@@ -79,6 +79,7 @@ services:
       CLI_REDIS_DB: 0
       CLI_CACHE_HOST: cache
       CLI_CACHE_PORT: 80
+      CLI_USE_SINGLE_SCHEMA: ${CLI_USE_SINGLE_SCHEMA:-false}
       CLI_UPDATER_ITERATIONS: ${CLI_UPDATER_ITERATIONS:-3}
     ports:
       - 8080:80
