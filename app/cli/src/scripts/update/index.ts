@@ -17,26 +17,16 @@ import { HttpClient } from '@gittrends/github';
 
 import { CachedService, GitHubService, PersistenceService } from '@gittrends/service';
 
-import {
-  Actor,
-  Dependency,
-  Issue,
-  PullRequest,
-  Release,
-  Repository,
-  Stargazer,
-  Tag,
-  Watcher,
-} from '@gittrends/entities';
+import { Actor, Dependency, Issue, PullRequest, Release, Stargazer, Tag, Watcher } from '@gittrends/entities';
 
 import { withBullEvents, withBullQueue } from '../../helpers/withBullQueue';
 import { withCache } from '../../helpers/withCache';
+import { withDatabase } from '../../helpers/withDatabase';
 import { withMultibar } from '../../helpers/withMultibar';
 import { version } from '../../package.json';
 import { schedule } from '../schedule';
-import { updater as updateWorker } from './update-worker';
+import { actorsUpdater } from './update-worker';
 import { updater } from './update-worker';
-import { withDatabase } from '../../helpers/withDatabase';
 
 readline.emitKeypressEvents(process.stdin);
 if (process.stdin.isTTY) process.stdin.setRawMode(true);
@@ -195,23 +185,20 @@ export async function redisQueue(opts: {
   if (IS_SINGLE_SCHEMA) {
     const progressBar: SingleBar | undefined = opts.multibar?.create(Infinity, 0);
 
-    await withDatabase(async (db) => {
-      const name = await db.knex
-        .table(Repository.__name)
-        .select('name_with_owner')
-        .limit(1)
-        .then(([data]) => data.name_with_owner);
-
-      return updateWorker(name, {
-        resources: [Actor],
-        service: new PersistenceService(new CachedService(new GitHubService(opts.httpClient), withCache()), db),
-        iterationsToPersist: parseInt(`${process.env.CLI_UPDATER_ITERATIONS || 3}`),
-        onProgress(progress) {
-          progressBar?.setTotal(progress.actors.total);
-          progressBar?.update(progress.actors.current, { resource: '<actors>' });
-        },
-      });
-    });
+    while (threads.some((thread) => !thread.closed)) {
+      await withDatabase(async (db) =>
+        actorsUpdater({
+          knex: db.knex,
+          service: new PersistenceService(new CachedService(new GitHubService(opts.httpClient), withCache()), db),
+          concurrency: opts.workers,
+          before: new Date(),
+          onUpdate: (progress) => {
+            progressBar?.setTotal(progress.total);
+            progressBar?.update(progress.current, { resource: '<actors>' });
+          },
+        }),
+      );
+    }
   }
 
   process.stdin.on('keypress', (chunk, key) => {

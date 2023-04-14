@@ -1,5 +1,7 @@
 import dayjs from 'dayjs';
+import { Knex } from 'knex';
 import { chunk, compact, get } from 'lodash';
+import PQueue from 'p-queue';
 
 import { BatchService, PersistenceService, Service } from '@gittrends/service';
 
@@ -21,6 +23,49 @@ export type UpdaterOpts = {
   iterationsToPersist?: number;
   onProgress?: (progress: Record<string, { done: boolean; current: number; total: number }>) => void | Promise<void>;
 };
+
+export async function actorsUpdater(opts: {
+  knex: Knex;
+  service: Service;
+  concurrency?: number;
+  before?: Date;
+  force?: boolean;
+  onUpdate?: (status: { current: number; total: number; done: boolean }) => void;
+}): Promise<void> {
+  logger('Starting actors update...');
+  logger('Finding for not updated actors...');
+
+  const before = opts.before || new Date();
+  const query = opts.knex.select('id').from(Actor.__name).whereNull('__updated_at');
+
+  const actorsIds: Array<{ id: string }> = await (opts.force
+    ? query.orWhere('__updated_at', '<', before).orderBy([{ column: '__updated_at', order: 'asc' }])
+    : query);
+
+  if (!actorsIds?.length) return;
+
+  const status = { current: 0, total: actorsIds.length, done: false };
+
+  if (opts.onUpdate) opts.onUpdate(status);
+
+  const actorsChunks = chunk(actorsIds, 100);
+
+  const queue = new PQueue({ autoStart: true, concurrency: opts.concurrency || 1 });
+
+  await queue.addAll(
+    actorsChunks.map((iChunk, index) => async () => {
+      logger(`Updating ${iChunk.length * index + iChunk.length} (of ${actorsIds.length}) actors...`);
+      const actors = await opts.service.getActor(iChunk.map((i) => i.id)).then(compact);
+      if (iChunk.length > actors.length) logger(`${iChunk.length - actors.length} actors could not be resolved...`);
+      status.current += iChunk.length;
+      if (actorsChunks.length - 1 === index) status.done = true;
+      if (opts.onUpdate) opts.onUpdate(status);
+      console.log('🚀 ~ file: update-worker.ts:65 ~ actorsChunks.map ~ status:', status);
+    }),
+  );
+
+  logger(`${actorsIds.length} actors updated...`);
+}
 
 export async function updater(name: string, opts: UpdaterOpts) {
   const before = opts.before || new Date();
@@ -102,40 +147,22 @@ export async function updater(name: string, opts: UpdaterOpts) {
       }
     };
 
-    async function actorsUpdater(): Promise<void> {
-      logger('Starting actors update...');
-      logger('Finding for not updated actors...');
-
-      const query = dataRepo.knex.select('id').from(Actor.__name).whereNull('__updated_at');
-
-      const actorsIds: Array<{ id: string }> = await (opts.force
-        ? query.orWhere('__updated_at', '<', before).orderBy([{ column: '__updated_at', order: 'asc' }])
-        : query);
-
-      if (!actorsIds?.length) return;
-
-      usersResourceInfo.done = false;
-      usersResourceInfo.total += actorsIds.length;
-
-      const actorsChunks = chunk(actorsIds, iterations * 100);
-
-      for (const [index, iChunk] of actorsChunks.entries()) {
-        logger(`Updating ${iChunk.length * index + iChunk.length} (of ${actorsIds.length}) actors...`);
-        const actors = await service.getActor(iChunk.map((i) => i.id)).then(compact);
-        if (iChunk.length > actors.length) logger(`${iChunk.length - actors.length} actors could not be resolved...`);
-        usersResourceInfo.current += iChunk.length;
-        if (actorsChunks.length - 1 === index) usersResourceInfo.done = true;
-        await reportCurrentProgress();
-      }
-
-      logger(`${actorsIds.length} actors updated...`);
-    }
-
     let resourcesDone = false;
 
     const actorsReSchedule = async function (): Promise<void> {
       if (opts.resources.includes(Actor))
-        await actorsUpdater().then(() => (resourcesDone === false ? delay(15000).then(actorsReSchedule) : null));
+        await actorsUpdater({
+          knex: dataRepo.knex,
+          service: opts.service,
+          before: before,
+          force: opts.force,
+          onUpdate: (status) => {
+            usersResourceInfo.current = status.current;
+            usersResourceInfo.total = status.total;
+            usersResourceInfo.done = status.done;
+            reportCurrentProgress();
+          },
+        }).then(() => (resourcesDone === false ? delay(15000).then(actorsReSchedule) : null));
     };
 
     logger('Waiting update process to finish...');
