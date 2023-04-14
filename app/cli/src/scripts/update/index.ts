@@ -185,7 +185,7 @@ export async function redisQueue(opts: {
   if (IS_SINGLE_SCHEMA) {
     const progressBar: SingleBar | undefined = opts.multibar?.create(Infinity, 0);
 
-    while (threads.some((thread) => !thread.closed)) {
+    do {
       await withDatabase(async (db) =>
         actorsUpdater({
           knex: db.knex,
@@ -198,7 +198,7 @@ export async function redisQueue(opts: {
           },
         }),
       );
-    }
+    } while (threads.some((thread) => !thread.closed));
   }
 
   process.stdin.on('keypress', (chunk, key) => {

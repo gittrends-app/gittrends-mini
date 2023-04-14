@@ -60,7 +60,6 @@ export async function actorsUpdater(opts: {
       status.current += iChunk.length;
       if (actorsChunks.length - 1 === index) status.done = true;
       if (opts.onUpdate) opts.onUpdate(status);
-      console.log('🚀 ~ file: update-worker.ts:65 ~ actorsChunks.map ~ status:', status);
     }),
   );
 
