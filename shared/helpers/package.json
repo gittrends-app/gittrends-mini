@@ -5,7 +5,7 @@
   "types": "dist",
   "license": "MIT",
   "scripts": {
-    "build": "yarn install && rm -rf dist tsconfig.tsbuildinfo && tsc"
+    "build": "yarn install && shx rm -rf dist tsconfig.tsbuildinfo && tsc"
   },
   "dependencies": {
     "@types/debug": "^4.1.7",
