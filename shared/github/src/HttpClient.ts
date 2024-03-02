@@ -22,7 +22,7 @@ export type HttpClientResponse = {
   status: number;
   statusText: string;
   data: any;
-  headers: Record<string, string | string[] | undefined>;
+  headers: Record<string, any>;
 };
 
 const logger = debug('http-client');

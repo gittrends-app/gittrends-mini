@@ -8,7 +8,8 @@ import { plural } from 'pluralize';
 
 function enumerable(value: boolean) {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    descriptor.enumerable = value;
+    if (descriptor) descriptor.enumerable = value;
+    return descriptor;
   };
 }
 

@@ -56,7 +56,7 @@ services:
     ports:
       - 3000:80
     volumes:
-      - ../tokens.${NODE_ENV:-development}.txt:/tokens.txt:ro
+      - ../tokens.${NODE_ENV:-dev}.txt:/tokens.txt:ro
 
   cli:
     build:

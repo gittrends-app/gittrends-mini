@@ -15,6 +15,6 @@
     "pluralize": "^8.0.0"
   },
   "devDependencies": {
-    "@types/pluralize": "^0.0.29"
+    "@types/pluralize": "^0.0.33"
   }
 }

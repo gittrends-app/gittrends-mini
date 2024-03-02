@@ -24,7 +24,7 @@
     "@types/webpack-dev-server": "^4.7.2",
     "apicache": "^1.6.3",
     "async": "^3.2.4",
-    "better-sqlite3": "^7.6.2",
+    "better-sqlite3": "^9.4.3",
     "bluebird": "^3.7.2",
     "body-parser": "^1.20.1",
     "bullmq": "^2.1.3",

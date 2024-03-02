@@ -6,7 +6,7 @@ import { CacheServiceAPI } from './CacheAPI';
 
 export default class FileCache implements CacheServiceAPI {
   private cache: LevelUp;
-  private interval: NodeJS.Timer;
+  private interval: NodeJS.Timeout;
 
   constructor(opts: { db: string; cacheSize?: number; cleanupInterval?: string | number }) {
     this.cache = levelup(leveldown(opts.db), { cacheSize: (opts.cacheSize || 8) * 1024 * 1024 });
