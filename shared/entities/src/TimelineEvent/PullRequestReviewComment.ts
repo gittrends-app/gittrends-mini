@@ -3,7 +3,8 @@ import Joi from 'joi';
 import { CommitComment } from './CommitComment';
 
 export class PullRequestReviewComment extends CommitComment {
-  diff_hunk!: string;
+  // TODO - According to the documentation, this field is required, but it is not present in the response
+  diff_hunk?: string;
   drafted_at!: Date;
   is_minimized!: boolean;
   minimized_reason?: string;
@@ -16,7 +17,7 @@ export class PullRequestReviewComment extends CommitComment {
   public static get __schema(): Joi.ObjectSchema<PullRequestReviewComment> {
     return super.__schema
       .append<PullRequestReviewComment>({
-        diff_hunk: Joi.string().required(),
+        diff_hunk: Joi.string(),
         drafted_at: Joi.date().required(),
         is_minimized: Joi.boolean().required(),
         minimized_reason: Joi.string(),
