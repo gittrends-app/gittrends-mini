@@ -2,7 +2,7 @@ import { queue } from 'async';
 import { Queue, QueueEvents } from 'bullmq';
 import { MultiBar, SingleBar } from 'cli-progress';
 import { Argument, Option, program } from 'commander';
-import consola, { WinstonReporter } from 'consola';
+import consola from 'consola';
 import { compact, pick, sum, values } from 'lodash';
 import path, { extname } from 'node:path';
 import readline from 'node:readline';
@@ -10,8 +10,8 @@ import { clearInterval } from 'node:timers';
 import { URL } from 'node:url';
 import { Worker } from 'node:worker_threads';
 import prettyjson from 'prettyjson';
-import { LoggerOptions, format } from 'winston';
-import { File } from 'winston/lib/winston/transports';
+import { createLogger, format } from 'winston';
+import { Console, File } from 'winston/lib/winston/transports';
 
 import { HttpClient } from '@gittrends/github';
 
@@ -37,19 +37,17 @@ process.stdin.on('keypress', (chunk, key) => {
 
 const IS_SINGLE_SCHEMA = process.env.CLI_USE_SINGLE_SCHEMA === 'true';
 
-export const errorLogger = consola.create({
-  reporters: [
-    new WinstonReporter({
-      format: format.combine(
-        format.errors({ stack: true }),
-        format.printf((info) => {
-          const log = `${info.level}: ${info.message}`;
-          return info.stack ? `${log}\n${info.stack}` : log;
-        }),
-      ),
-      transports: [new File({ filename: 'update-error.log' })],
-    } as LoggerOptions),
-  ],
+export const errorLogger = createLogger({
+  level: 'error',
+  format: format.combine(
+    format.errors({ stack: true }),
+    format.printf(
+      (info) =>
+        (info.meta ? `Metadata: ${JSON.stringify(info.meta)}\n` : '') +
+        (info.stack ? `${info.level}: ${info.stack}` : `${info.level}: ${info.message}`),
+    ),
+  ),
+  transports: [new File({ filename: 'update-error.log' }), new Console({ log: (error) => consola.error(error) })],
 });
 
 export type UpdatableRepositoryResource = EntityConstructor<
@@ -82,10 +80,10 @@ async function asyncQueue(
       })
         .then(() => callback())
         .catch((error) => {
-          consola.error(error);
           opts.multibar?.log(error.message || JSON.stringify(error));
-          errorLogger.error('Metadata: ' + JSON.stringify({ repository: name, resources: opts.resources }));
-          errorLogger.error(error);
+          errorLogger.error(
+            Object.assign(error, { meta: { repository: name, resources: opts.resources.map((r) => r.__name) } }),
+          );
           callback(error);
         }),
     opts.workers,

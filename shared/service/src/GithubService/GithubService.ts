@@ -8,6 +8,7 @@ import {
   HttpClient,
   Query,
   RepositoryComponent,
+  RequestError,
   SearchComponent,
   SearchComponentQuery,
 } from '@gittrends/github';
@@ -59,12 +60,27 @@ async function request(
     return Query.create(httpClient)
       .compose(...flatten(componentsWithNewAliases))
       .run()
+      .catch(async (error) => {
+        // TODO - Refactor this when GitHub fix this issue
+        if (builders.length === 1 && error instanceof RequestError && error.response?.data?.errors?.length) {
+          const canIgnore: boolean = error.response?.data?.errors.every(
+            (e: { type: string; message: string }) =>
+              e.type === 'FORBIDDEN' &&
+              e.message.toLocaleLowerCase().includes('you appear to have the correct authorization credentials'),
+          );
+          if (canIgnore) return get(error.response?.data, 'data', {});
+        }
+        throw error;
+      })
       .then((response) =>
         newAliases.map((na) => mapKeys(pick(response, na), (_, key) => key.replace(/__\d+_\d+$/i, ''))),
       )
       .catch(async (error) => {
         logger(`error: ${error.message || error}`);
-        if (builders.length === 1) return _request(builders, error as Error);
+        if (builders.length === 1) {
+          if (!previousError) return _request(builders, error as Error);
+          throw error;
+        }
         return flatten(await mapSeries(builders, (builder) => _request([builder])));
       })
       .finally(() => components.map((ca) => ca.map((comp) => comp.setAlias(comp.alias.replace(/__\d+_\d+$/i, '')))));
@@ -107,7 +123,10 @@ class ResourceIterator implements Iterable<IterableResources> {
   private readonly resourcesStatus: { hasMore: boolean; builder: ComponentBuilder; endCursor?: string }[];
   private errors?: ServiceRequestError[];
 
-  constructor(components: ComponentBuilder[], private httpClient: HttpClient) {
+  constructor(
+    components: ComponentBuilder[],
+    private httpClient: HttpClient,
+  ) {
     this.resourcesStatus = components.map((component) => ({ hasMore: true, builder: component }));
   }
 

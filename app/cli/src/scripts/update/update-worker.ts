@@ -165,6 +165,6 @@ export async function updater(name: string, opts: UpdaterOpts) {
     };
 
     logger('Waiting update process to finish...');
-    return Promise.allSettled([resourcesUpdate().finally(() => (resourcesDone = true)), actorsReSchedule()]);
+    return Promise.all([resourcesUpdate().finally(() => (resourcesDone = true)), actorsReSchedule()]);
   });
 }
