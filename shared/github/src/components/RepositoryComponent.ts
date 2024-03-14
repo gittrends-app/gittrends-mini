@@ -136,9 +136,9 @@ export class RepositoryComponent extends Component {
     this.includes.dependencies = include && {
       textFragment: `
         ${alias}:dependencyGraphManifests(${super.argsToString({
-        after,
-        first,
-      })}) {
+          after,
+          first,
+        })}) {
           pageInfo { hasNextPage endCursor }
           nodes { blobPath dependenciesCount exceedsMaxSize filename id parseable }
         }
