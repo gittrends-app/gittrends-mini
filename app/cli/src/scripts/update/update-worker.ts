@@ -3,7 +3,7 @@ import { Knex } from 'knex';
 import { chunk, compact, get } from 'lodash';
 import PQueue from 'p-queue';
 
-import { BatchService, PersistenceService, Service } from '@gittrends/service';
+import { BatchService, IResourceRepository, PersistenceService, Service } from '@gittrends/service';
 
 import { Actor, Metadata, Repository } from '@gittrends/entities';
 import { debug } from '@gittrends/helpers';
@@ -96,7 +96,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
       .filter((r) => r !== Actor)
       .map((resource) => ({
         resource: resource as UpdatableRepositoryResource,
-        repository: dataRepo.get(resource),
+        repository: dataRepo.get(resource) as unknown as IResourceRepository<any>,
       }));
 
     logger('Getting resources metadata...');

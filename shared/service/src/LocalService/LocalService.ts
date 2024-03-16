@@ -44,8 +44,8 @@ export class LocalService implements Service {
   ): Iterable<IterableResources> {
     const iterators: Iterable<IterableResources>[] = resources.map(
       (it) =>
-        new ResourceIterator(repositoryId, {
-          repository: this.persistence.get(it.resource),
+        new ResourceIterator<IterableResources>(repositoryId, {
+          repository: this.persistence.get<IterableResources>(it.resource),
           limit: 1000,
           skip: 0,
         }),

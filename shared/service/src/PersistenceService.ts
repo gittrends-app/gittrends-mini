@@ -1,6 +1,6 @@
 import { compact } from 'lodash';
 
-import { SearchComponentQuery } from '@gittrends/github/dist';
+import { SearchComponentQuery } from '@gittrends/github';
 
 import { Actor, Entity, Metadata, Repository, RepositoryResource } from '@gittrends/entities';
 

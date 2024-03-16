@@ -5,8 +5,8 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "build": "yarn build-shared && yarn build-cache && yarn build-cli",
-    "build-shared": "yarn build-env && yarn build-helpers && yarn build-entities && yarn build-github && yarn build-service",
+    "build": "run-s build-shared build-cache build-cli",
+    "build-shared": "run-s build-env build-helpers build-entities build-github build-service",
     "build-entities": "yarn workspace @gittrends/entities build",
     "build-env": "yarn workspace @gittrends/env build",
     "build-github": "yarn workspace @gittrends/github build",
@@ -24,22 +24,23 @@
     ]
   },
   "devDependencies": {
-    "@commitlint/cli": "^18.6.1",
-    "@commitlint/config-conventional": "^18.6.2",
+    "@commitlint/cli": "^19.2.0",
+    "@commitlint/config-conventional": "^19.1.0",
     "@trivago/prettier-plugin-sort-imports": "^4.3.0",
-    "@types/node": "20.11.20",
-    "@typescript-eslint/eslint-plugin": "^7.1.0",
-    "@typescript-eslint/parser": "^7.1.0",
+    "@types/node": "20.11.28",
+    "@typescript-eslint/eslint-plugin": "^7.2.0",
+    "@typescript-eslint/parser": "^7.2.0",
     "commitizen": "^4.2.5",
     "cz-conventional-changelog": "3.3.0",
     "eslint": "8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "husky": "^9.0.11",
+    "npm-run-all": "^4.1.5",
     "prettier": "^3.2.5",
     "ts-node": "^10.9.1",
     "ts-node-dev": "^2.0.0",
     "tsconfig-paths": "^4.1.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.4.2"
   },
   "config": {
     "commitizen": {

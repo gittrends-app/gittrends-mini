@@ -32,7 +32,7 @@ export class AppCache implements Cache<EntityKey> {
     return await this.provider.get(this.getCacheKey(key)).then((res) => {
       if (!res) return undefined;
       if (EntityRef.prototype === Actor.prototype) return Actor.from(JSON.parse(res.toString()));
-      return new EntityRef.prototype.constructor(JSON.parse(res.toString()));
+      return new (EntityRef as any)(JSON.parse(res.toString()));
     });
   }
 
