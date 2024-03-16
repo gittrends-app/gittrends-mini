@@ -29,7 +29,7 @@ type AddRequestType = Static<typeof POSTRequest>;
 type GetRequestType = Static<typeof GETRequest>;
 type DelRequestType = Static<typeof DELRequest>;
 
-export async function server(cache: CacheServiceAPI, opts: { port: number; silent?: boolean }): Promise<Server> {
+export function app(cache: CacheServiceAPI, opts: { silent?: boolean | undefined }) {
   const fastify = Fastify({
     logger: opts.silent ? false : { transport: { target: 'pino-pretty', options: { singleLine: true } } },
   }).withTypeProvider<TypeBoxTypeProvider>();
@@ -83,6 +83,11 @@ export async function server(cache: CacheServiceAPI, opts: { port: number; silen
         throw error;
       });
   });
+  return fastify;
+}
+
+export async function server(cache: CacheServiceAPI, opts: { port: number; silent?: boolean }): Promise<Server> {
+  const fastify = app(cache, opts);
 
   await fastify
     .listen({ port: opts.port, host: '0.0.0.0' })
