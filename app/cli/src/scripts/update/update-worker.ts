@@ -152,7 +152,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
       if (opts.resources.includes(Actor))
         await actorsUpdater({
           knex: dataRepo.knex,
-          service: opts.service,
+          service: service,
           before: before,
           force: opts.force,
           onUpdate: (status) => {
