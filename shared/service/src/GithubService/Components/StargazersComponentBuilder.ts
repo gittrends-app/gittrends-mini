@@ -28,8 +28,7 @@ export class StargazersComponentBuilder implements ComponentBuilder<RepositoryCo
       hasNextPage: get(data, 'repo.stars.page_info.has_next_page', false),
       endCursor: (this.endCursor = get(data, 'repo.stars.page_info.end_cursor', this.endCursor)),
       data: get<{ user: any; starred_at: Date }[]>(data, 'repo.stars.edges', []).map((data) =>
-        Entity.validate<Stargazer>({
-          type: 'Stargazer',
+        Entity.stargazer({
           repository: this.repositoryId,
           user: data.user,
           starred_at: data.starred_at,

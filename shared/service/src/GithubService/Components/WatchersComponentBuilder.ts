@@ -28,7 +28,7 @@ export class WatchersComponentBuilder implements ComponentBuilder<RepositoryComp
       hasNextPage: get(data, 'repo.watchers.page_info.has_next_page', false),
       endCursor: (this.endCursor = get(data, 'repo.watchers.page_info.end_cursor', this.endCursor)),
       data: get<any[]>(data, 'repo.watchers.nodes', []).map((user) =>
-        Entity.validate<Watcher>({ type: 'Watcher', repository: this.repositoryId, user }),
+        Entity.watcher({ type: 'Watcher', repository: this.repositoryId, user }),
       ),
     };
   }

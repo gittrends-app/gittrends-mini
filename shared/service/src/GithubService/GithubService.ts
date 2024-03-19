@@ -204,8 +204,7 @@ export class GitHubService implements Service {
       )
       .run()
       .then(({ repository: { _languages, _topics, ...repo } }) =>
-        Entity.validate<Repository>({
-          type: 'Repository',
+        Entity.repository({
           ...repo,
           languages: _languages?.edges,
           repository_topics: _topics?.nodes?.map((n: any) => n.topic),
@@ -228,7 +227,7 @@ export class GitHubService implements Service {
       .compose(...components)
       .run()
       .then((result) =>
-        components.map((comp) => (result[comp.alias] ? Entity.validate<Actor>(result[comp.alias]) : undefined)),
+        components.map((comp) => (result[comp.alias] ? <Actor>(result[comp.alias]) : undefined)),
       )
       .catch(async (error) => {
         if (error instanceof Error && [GithubRequestError.name, ServerRequestError.name].includes(error.name)) {
@@ -293,7 +292,7 @@ export class GitHubService implements Service {
           hasNextPage = get<boolean>(result, 'search.page_info.has_next_page', false);
           endCursor = get<string | undefined>(result, 'search.page_info.end_cursor', endCursor);
 
-          const repos = get<any[]>(result, 'search.nodes', []).map((data) => Entity.validate<Repository>(data));
+          const repos = get<any[]>(result, 'search.nodes', []).map((data) => Entity.repository(data));
           const newRepos = repos.filter((repo) => !cachedIds.has(repo.id));
 
           if (repos.length === 0) return { done: true, value: undefined };

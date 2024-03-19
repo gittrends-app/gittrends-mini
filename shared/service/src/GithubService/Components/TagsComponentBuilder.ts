@@ -2,7 +2,7 @@ import { get } from 'lodash';
 
 import { RepositoryComponent } from '@gittrends/github';
 
-import { Actor, Entity, Tag } from '@gittrends/entities';
+import { Entity, Tag } from '@gittrends/entities';
 
 import { ComponentBuilder } from '../ComponentBuilder';
 
@@ -32,8 +32,7 @@ export class TagsComponentBuilder implements ComponentBuilder<RepositoryComponen
     const parsedData = get<any[]>(data, 'repo.tags.nodes', []).map((node) => {
       if (node.target.type === 'Tag') {
         const target = node.target;
-        return Entity.validate<Tag>({
-          type: 'Tag',
+        return Entity.tag({
           id: target.id,
           message: target.message,
           name: target.name,
@@ -41,13 +40,12 @@ export class TagsComponentBuilder implements ComponentBuilder<RepositoryComponen
           repository: this.repositoryId,
           tagger: target.tagger && {
             ...target.tagger,
-            ...(target.tagger.user ? { user: Entity.validate<Actor>(target.tagger.user) } : {}),
+            ...(target.tagger.user ? { user: Entity.actor(target.tagger.user) } : {}),
           },
           target: target.target?.oid,
         });
       } else {
-        return Entity.validate<Tag>({
-          type: 'Tag',
+        return Entity.tag({
           id: `commit_${node.target.id}`,
           message: node.target.message,
           name: node.name,
@@ -55,7 +53,7 @@ export class TagsComponentBuilder implements ComponentBuilder<RepositoryComponen
           repository: this.repositoryId,
           tagger: {
             ...node.target.author,
-            ...(node.target.author?.user ? { user: Entity.validate<Actor>(node.target.author.user) } : {}),
+            ...(node.target.author?.user ? { user: Entity.actor(node.target.author.user) } : {}),
           },
           target: node.target.oid,
         });

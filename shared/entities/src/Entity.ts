@@ -1,49 +1,33 @@
 /*
  *  Author: Hudson S. Borges
  */
-import { cloneDeep } from 'lodash';
 import { BaseError } from 'make-error-cause';
 import { extname } from 'path';
 import { ZodError, ZodType } from 'zod';
 
 import {
+  Actor,
   BotSchema,
   EnterpriseUserAccountSchema,
   MannequinSchema,
   OrganizationSchema,
   UserSchema,
 } from './validators/Actor';
-import { DependencySchema } from './validators/Dependency';
-import { IssueSchema } from './validators/Issue';
-import { PullRequestSchema } from './validators/PullRequest';
-import { ReactionSchema } from './validators/Reaction';
-import { ReleaseSchema } from './validators/Release';
-import { RepositorySchema } from './validators/Repository';
-import { StargazerSchema } from './validators/Stargazer';
-import { TagSchema } from './validators/Tag';
-import { TimelineEventSchema } from './validators/TimelineEvent';
-import { WatcherSchema } from './validators/Watcher';
+import { Dependency, DependencySchema } from './validators/Dependency';
+import { Issue, IssueSchema } from './validators/Issue';
+import { PullRequest, PullRequestSchema } from './validators/PullRequest';
+import { Reaction, ReactionSchema } from './validators/Reaction';
+import { Release, ReleaseSchema } from './validators/Release';
+import { Repository, RepositorySchema } from './validators/Repository';
+import { Stargazer, StargazerSchema } from './validators/Stargazer';
+import { Tag, TagSchema } from './validators/Tag';
+import { TimelineEvent, TimelineEventSchema } from './validators/TimelineEvent';
+import { Watcher, WatcherSchema } from './validators/Watcher';
 
-function enumerable(value: boolean) {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    if (descriptor) descriptor.enumerable = value;
-    return descriptor;
-  };
-}
+export class Entity {
+  protected constructor() {}
 
-export class Entity<T extends { type: string }> {
-  public readonly data: T;
-
-  constructor(object: T & { [k: string]: unknown }) {
-    this.data = Entity.validate<T>(object);
-  }
-
-  @enumerable(false)
-  public toJSON(): T {
-    return cloneDeep(this.data);
-  }
-
-  public static getSchemaValidator(type: string): ZodType | undefined {
+  public static getSchema(type: string): ZodType | undefined {
     let validator: ZodType | undefined = undefined;
 
     if (type === 'User') validator = UserSchema;
@@ -74,8 +58,8 @@ export class Entity<T extends { type: string }> {
     return validator;
   }
 
-  public static validate<T>(object: { type: string; [k: string]: unknown }): T {
-    const validator = Entity.getSchemaValidator(object.type);
+  protected static validate<T>(object: { type: string; [k: string]: unknown }): T {
+    const validator = Entity.getSchema(object.type);
 
     if (!validator) throw new EntityTypeError(`Unknown entity type "${object.type}"`);
 
@@ -87,6 +71,19 @@ export class Entity<T extends { type: string }> {
 
     return result.data as T;
   }
+
+  static actor = (object: Record<string, any>) => this.validate<Actor>({ type: 'Actor', ...object });
+  static repository = (object: Record<string, any>) => this.validate<Repository>({ type: 'Repository', ...object });
+  static stargazer = (object: Record<string, any>) => this.validate<Stargazer>({ type: 'Stargazer', ...object });
+  static watcher = (object: Record<string, any>) => this.validate<Watcher>({ type: 'Watcher', ...object });
+  static tag = (object: Record<string, any>) => this.validate<Tag>({ type: 'Tag', ...object });
+  static reaction = (object: Record<string, any>) => this.validate<Reaction>({ type: 'Reaction', ...object });
+  static release = (object: Record<string, any>) => this.validate<Release>({ type: 'Release', ...object });
+  static dependency = (object: Record<string, any>) => this.validate<Dependency>({ type: 'Dependency', ...object });
+  static timeline_event = (object: Record<string, any>) =>
+    this.validate<TimelineEvent>({ type: object.type, ...object });
+  static issue = (object: Record<string, any>) => this.validate<Issue>({ type: 'Issue', ...object });
+  static pull_request = (object: Record<string, any>) => this.validate<PullRequest>({ type: 'PullRequest', ...object });
 }
 
 export class EntityValidationError extends BaseError {

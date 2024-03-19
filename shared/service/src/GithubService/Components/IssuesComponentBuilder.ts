@@ -192,13 +192,13 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
         this.pendingDetails.forEach((iMeta, index) => {
           const { _assignees, _labels, _participants, ...iData } = data?.[`issue_${index}`] || {};
 
-          const assignees = get<any[]>(_assignees, 'nodes', []).map((a) => Entity.validate<Actor>(a));
+          const assignees = get<any[]>(_assignees, 'nodes', []).map((a) => Entity.actor(a));
           const labels = get<any[]>(_labels, 'nodes', []);
-          const participants = get<any[]>(_participants, 'nodes', []).map((p) => Entity.validate<Actor>(p));
+          const participants = get<any[]>(_participants, 'nodes', []).map((p) => Entity.actor(p));
 
           iMeta.timelineItems = iData.timeline_items;
 
-          iMeta.issue = Entity.validate<T>({
+          iMeta.issue = Entity[this.type === 'Issue' ? 'issue' : 'pull_request']({
             type: this.type,
             suggested_reviewers: [],
             ...iData,
@@ -208,7 +208,7 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
             assignees,
             labels,
             participants,
-          });
+          }) as unknown as T;
 
           iMeta.processed = true;
         });
@@ -228,9 +228,7 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
 
           const nodes = get<any[]>(data, `issue_${index}.tl.nodes`, [])
             .map((node) => transformTimelineEvent(node, { repository: this.repositoryId, issue: iMeta.issue.id }))
-            .map((node) =>
-              Entity.validate<TimelineEvent>({ ...node, repository: this.repositoryId, issue: iMeta.issue.id }),
-            );
+            .map((node) => Entity.timeline_event({ ...node, repository: this.repositoryId, issue: iMeta.issue.id }));
 
           const pageInfo = get(data, `issue_${index}.tl.page_info`, {});
           iMeta.endCursor = pageInfo.end_cursor || iMeta.endCursor;
@@ -257,8 +255,7 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
       case Stages.GET_REACTIONS: {
         this.pendingReactables.forEach((pr, index) => {
           const nodes = get<any[]>(data, `reactable_${index}.reactions.nodes`, []).map((data) =>
-            Entity.validate<Reaction>({
-              type: 'Reaction',
+            Entity.reaction({
               ...data,
               repository: this.repositoryId,
               reactable: pr.reactable.id,

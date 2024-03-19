@@ -2,7 +2,7 @@ import { get } from 'lodash';
 
 import { GithubRequestError, ReactionComponent, RepositoryComponent, ServerRequestError } from '@gittrends/github';
 
-import { Actor, Entity, Reaction, Release } from '@gittrends/entities';
+import { Entity, Reaction, Release } from '@gittrends/entities';
 
 import { ComponentBuilder } from '../ComponentBuilder';
 
@@ -70,13 +70,12 @@ export class ReleasesComponentBuilder implements ComponentBuilder<RepositoryComp
 
     if (this.currentStage === Stages.GET_RELEASES) {
       this.releasesMeta = get<any[]>(data, 'repo.releases.nodes', []).map((node) => ({
-        release: Entity.validate<Release>({
-          type: 'Release',
+        release: Entity.release({
           reaction_groups: {},
           reactions: [],
           ...node,
           repository: this.repositoryId,
-          author: node.author && Entity.validate<Actor>(node.author),
+          author: node.author && Entity.actor(node.author),
         }),
         hasNextPage: true,
       }));
@@ -93,8 +92,7 @@ export class ReleasesComponentBuilder implements ComponentBuilder<RepositoryComp
         meta.hasNextPage = pageInfo.has_next_page || false;
         (meta.release.reactions as Reaction[]).push(
           ...get<any[]>(data, `reactable_${index}.reactions.nodes`, []).map((rd) =>
-            Entity.validate<Reaction>({
-              type: 'Reaction',
+            Entity.reaction({
               ...rd,
               repository: this.repositoryId,
               reactable: meta.release.id,
