@@ -2,7 +2,7 @@ import { SearchComponentQuery } from '@gittrends/github/dist';
 
 import { Actor, Repository } from '@gittrends/entities';
 
-import { Iterable, IterableResources, Service } from './Service';
+import { Iterable, RepositoryResource, RepositoryResourceName, Service } from './Service';
 
 export class BatchService implements Service {
   private service: Service;
@@ -28,12 +28,8 @@ export class BatchService implements Service {
 
   resources(
     repositoryId: string,
-    resources: {
-      resource: EntityPrototype<IterableResources>;
-      endCursor?: string | undefined;
-      hasNextPage?: boolean | undefined;
-    }[],
-  ): Iterable<IterableResources> {
+    resources: { resource: RepositoryResourceName; endCursor?: string; hasNextPage?: boolean }[],
+  ): Iterable<RepositoryResource> {
     const iterator = this.service.resources(repositoryId, resources);
 
     const next = iterator.next.bind(iterator);
@@ -42,7 +38,7 @@ export class BatchService implements Service {
       let iteration = 0;
 
       const accumulator = resources.map<{
-        items: IterableResources[];
+        items: RepositoryResource[];
         endCursor?: string;
         hasNextPage?: boolean;
       }>(() => ({ items: [] }), {});

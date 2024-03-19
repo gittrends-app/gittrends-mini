@@ -2,14 +2,17 @@ import { get } from 'lodash';
 
 import { RepositoryComponent } from '@gittrends/github';
 
-import { Tag, User } from '@gittrends/entities';
+import { Actor, Entity, Tag } from '@gittrends/entities';
 
 import { ComponentBuilder } from '../ComponentBuilder';
 
 export class TagsComponentBuilder implements ComponentBuilder<RepositoryComponent, Tag[]> {
   private first = 100;
 
-  constructor(private repositoryId: string, private endCursor?: string) {}
+  constructor(
+    private repositoryId: string,
+    private endCursor?: string,
+  ) {}
 
   build(error?: Error): RepositoryComponent {
     if (error) {
@@ -29,7 +32,8 @@ export class TagsComponentBuilder implements ComponentBuilder<RepositoryComponen
     const parsedData = get<any[]>(data, 'repo.tags.nodes', []).map((node) => {
       if (node.target.type === 'Tag') {
         const target = node.target;
-        return new Tag({
+        return Entity.validate<Tag>({
+          type: 'Tag',
           id: target.id,
           message: target.message,
           name: target.name,
@@ -37,12 +41,13 @@ export class TagsComponentBuilder implements ComponentBuilder<RepositoryComponen
           repository: this.repositoryId,
           tagger: target.tagger && {
             ...target.tagger,
-            ...(target.tagger.user ? { user: new User(target.tagger.user) } : {}),
+            ...(target.tagger.user ? { user: Entity.validate<Actor>(target.tagger.user) } : {}),
           },
           target: target.target?.oid,
         });
       } else {
-        return new Tag({
+        return Entity.validate<Tag>({
+          type: 'Tag',
           id: `commit_${node.target.id}`,
           message: node.target.message,
           name: node.name,
@@ -50,7 +55,7 @@ export class TagsComponentBuilder implements ComponentBuilder<RepositoryComponen
           repository: this.repositoryId,
           tagger: {
             ...node.target.author,
-            ...(node.target.author?.user ? { user: new User(node.target.author.user) } : {}),
+            ...(node.target.author?.user ? { user: Entity.validate<Actor>(node.target.author.user) } : {}),
           },
           target: node.target.oid,
         });

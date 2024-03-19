@@ -2,14 +2,17 @@ import { get } from 'lodash';
 
 import { RepositoryComponent } from '@gittrends/github';
 
-import { Watcher } from '@gittrends/entities';
+import { Entity, Watcher } from '@gittrends/entities';
 
 import { ComponentBuilder } from '../ComponentBuilder';
 
 export class WatchersComponentBuilder implements ComponentBuilder<RepositoryComponent, Watcher[]> {
   private first = 100;
 
-  constructor(private repositoryId: string, private endCursor?: string) {}
+  constructor(
+    private repositoryId: string,
+    private endCursor?: string,
+  ) {}
 
   build(error?: Error): RepositoryComponent {
     if (error) throw error;
@@ -24,8 +27,8 @@ export class WatchersComponentBuilder implements ComponentBuilder<RepositoryComp
     return {
       hasNextPage: get(data, 'repo.watchers.page_info.has_next_page', false),
       endCursor: (this.endCursor = get(data, 'repo.watchers.page_info.end_cursor', this.endCursor)),
-      data: get<any[]>(data, 'repo.watchers.nodes', []).map(
-        (user) => new Watcher({ repository: this.repositoryId, user }),
+      data: get<any[]>(data, 'repo.watchers.nodes', []).map((user) =>
+        Entity.validate<Watcher>({ type: 'Watcher', repository: this.repositoryId, user }),
       ),
     };
   }

@@ -14,11 +14,10 @@ import {
 } from '@gittrends/github';
 import { ServerRequestError } from '@gittrends/github';
 
-import { Actor, Dependency, Release, Repository, Stargazer, Tag, Watcher } from '@gittrends/entities';
-import { Issue, PullRequest } from '@gittrends/entities';
+import { Actor, Entity, Repository } from '@gittrends/entities';
 import { debug } from '@gittrends/helpers';
 
-import { Iterable, IterableResources, Service } from '../Service';
+import { Iterable, RepositoryResource, RepositoryResourceName, Service } from '../Service';
 import { ComponentBuilder } from './ComponentBuilder';
 import { DependenciesComponentBuilder } from './Components/DependenciesComponentBuilder';
 import { IssuesComponentBuilder, PullRequestsComponentBuilder } from './Components/IssuesComponentBuilder';
@@ -108,18 +107,18 @@ async function request(
   return parseResults;
 }
 
-function getComponentBuilder(Target: EntityPrototype<IterableResources>) {
-  if (Target === Stargazer) return StargazersComponentBuilder;
-  else if (Target === Tag) return TagsComponentBuilder;
-  else if (Target === Release) return ReleasesComponentBuilder;
-  else if (Target === Watcher) return WatchersComponentBuilder;
-  else if (Target === Dependency) return DependenciesComponentBuilder;
-  else if (Target === Issue) return IssuesComponentBuilder;
-  else if (Target === PullRequest) return PullRequestsComponentBuilder;
+function getComponentBuilder(Target: RepositoryResourceName) {
+  if (Target === 'stargazers') return StargazersComponentBuilder;
+  else if (Target === 'tags') return TagsComponentBuilder;
+  else if (Target === 'releases') return ReleasesComponentBuilder;
+  else if (Target === 'watchers') return WatchersComponentBuilder;
+  else if (Target === 'dependencies') return DependenciesComponentBuilder;
+  else if (Target === 'issues') return IssuesComponentBuilder;
+  else if (Target === 'pull_requests') return PullRequestsComponentBuilder;
   throw new Error('No ComponentBuilder found for ' + Target);
 }
 
-class ResourceIterator implements Iterable<IterableResources> {
+class ResourceIterator implements Iterable<RepositoryResource> {
   private readonly resourcesStatus: { hasMore: boolean; builder: ComponentBuilder; endCursor?: string }[];
   private errors?: ServiceRequestError[];
 
@@ -134,7 +133,7 @@ class ResourceIterator implements Iterable<IterableResources> {
     return this;
   }
 
-  async next(): Promise<IteratorResult<{ items: IterableResources[]; endCursor?: string; hasNextPage: boolean }[]>> {
+  async next(): Promise<IteratorResult<{ items: RepositoryResource[]; endCursor?: string; hasNextPage: boolean }[]>> {
     const done = this.resourcesStatus.every((rs) => !rs.hasMore);
 
     if (done) {
@@ -204,13 +203,13 @@ export class GitHubService implements Service {
           .includeTopics(true, { first: 100 }),
       )
       .run()
-      .then(
-        ({ repository: { _languages, _topics, ...repo } }) =>
-          new Repository({
-            ...repo,
-            languages: _languages?.edges,
-            repository_topics: _topics?.nodes?.map((n: any) => n.topic),
-          }),
+      .then(({ repository: { _languages, _topics, ...repo } }) =>
+        Entity.validate<Repository>({
+          type: 'Repository',
+          ...repo,
+          languages: _languages?.edges,
+          repository_topics: _topics?.nodes?.map((n: any) => n.topic),
+        }),
       );
   }
 
@@ -228,7 +227,9 @@ export class GitHubService implements Service {
     const actors = await Query.create(this.httpClient)
       .compose(...components)
       .run()
-      .then((result) => components.map((comp) => (result[comp.alias] ? Actor.from(result[comp.alias]) : undefined)))
+      .then((result) =>
+        components.map((comp) => (result[comp.alias] ? Entity.validate<Actor>(result[comp.alias]) : undefined)),
+      )
       .catch(async (error) => {
         if (error instanceof Error && [GithubRequestError.name, ServerRequestError.name].includes(error.name)) {
           if (ids.length > 1)
@@ -292,7 +293,7 @@ export class GitHubService implements Service {
           hasNextPage = get<boolean>(result, 'search.page_info.has_next_page', false);
           endCursor = get<string | undefined>(result, 'search.page_info.end_cursor', endCursor);
 
-          const repos = get<any[]>(result, 'search.nodes', []).map((data) => new Repository(data));
+          const repos = get<any[]>(result, 'search.nodes', []).map((data) => Entity.validate<Repository>(data));
           const newRepos = repos.filter((repo) => !cachedIds.has(repo.id));
 
           if (repos.length === 0) return { done: true, value: undefined };
@@ -312,7 +313,7 @@ export class GitHubService implements Service {
     };
   }
 
-  resources(repositoryId: string, resources: { resource: EntityPrototype<IterableResources>; endCursor?: string }[]) {
+  resources(repositoryId: string, resources: { resource: RepositoryResourceName; endCursor?: string }[]) {
     return new ResourceIterator(
       resources.map((res) => new (getComponentBuilder(res.resource))(repositoryId, res.endCursor)),
       this.httpClient,

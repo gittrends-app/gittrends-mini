@@ -2,16 +2,16 @@ import { compact } from 'lodash';
 
 import { SearchComponentQuery } from '@gittrends/github';
 
-import { Actor, Entity, Metadata, Repository, RepositoryResource } from '@gittrends/entities';
+import type { Actor, Repository } from '@gittrends/entities';
 
 import { IActorsRepository, IMetadataRepository, IRepositoriesRepository, IResourceRepository } from './Repositories';
-import { Iterable, IterableResources, Service } from './Service';
+import { Iterable, RepositoryResource, RepositoryResourceName, Service } from './Service';
 
 export type EntityRepositories = {
-  get(Ref: Prototype<Actor>): IActorsRepository;
-  get(Ref: Prototype<Repository>): IRepositoriesRepository;
-  get(Ref: Prototype<Metadata>): IMetadataRepository;
-  get<T extends Entity & RepositoryResource>(Ref: Prototype<T>): IResourceRepository<T>;
+  get(entity: 'actors'): IActorsRepository;
+  get(entity: 'repositories'): IRepositoriesRepository;
+  get(entity: 'metadata'): IMetadataRepository;
+  get(entity: RepositoryResourceName): IResourceRepository<RepositoryResource>;
 };
 
 export class PersistenceService implements Service {
@@ -25,14 +25,14 @@ export class PersistenceService implements Service {
 
   async get(id: string): Promise<Repository | undefined> {
     return this.service.get(id).then(async (value) => {
-      if (value) await this.repositories.get(Repository).upsert(value);
+      if (value) await this.repositories.get('repositories').upsert(value);
       return value;
     });
   }
 
   async find(name: string): Promise<Repository | undefined> {
     return this.service.find(name).then(async (value) => {
-      if (value) await this.repositories.get(Repository).insert(value);
+      if (value) await this.repositories.get('repositories').insert(value);
       return value;
     });
   }
@@ -44,12 +44,8 @@ export class PersistenceService implements Service {
 
   resources(
     repositoryId: string,
-    resources: {
-      resource: EntityPrototype<IterableResources>;
-      endCursor?: string | undefined;
-      hasNextPage?: boolean | undefined;
-    }[],
-  ): Iterable<IterableResources> {
+    resources: { resource: RepositoryResourceName; endCursor?: string; hasNextPage?: boolean }[],
+  ): Iterable<RepositoryResource> {
     const iterator = this.service.resources(repositoryId, resources);
 
     const next = iterator.next.bind(iterator);
@@ -62,15 +58,13 @@ export class PersistenceService implements Service {
 
             await this.repositories.get(resource).insert(items);
 
-            await this.repositories.get(Metadata).upsert(
-              new Metadata({
-                resource: resource.__name,
-                repository: repositoryId,
-                end_cursor: endCursor || resources[index].endCursor,
-                updated_at: new Date(),
-                finished_at: hasNextPage ? undefined : new Date(),
-              }),
-            );
+            await this.repositories.get('metadata').upsert({
+              resource: 'metadata',
+              repository: repositoryId,
+              end_cursor: endCursor || resources[index].endCursor,
+              updated_at: new Date(),
+              finished_at: hasNextPage ? undefined : new Date(),
+            });
           }
         }
 
@@ -94,7 +88,7 @@ export class PersistenceService implements Service {
 
       if (persistable.length) {
         await this.repositories
-          .get(Actor)
+          .get('actors')
           .upsert(persistable.map((user) => Object.assign(user, { __updated_at: new Date() })));
       }
 

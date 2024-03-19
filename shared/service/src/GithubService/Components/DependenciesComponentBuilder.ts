@@ -2,7 +2,7 @@ import { flatten, get } from 'lodash';
 
 import { Component, DependencyGraphManifestComponent, RepositoryComponent } from '@gittrends/github';
 
-import { Dependency } from '@gittrends/entities';
+import { Dependency, Entity } from '@gittrends/entities';
 
 import { ComponentBuilder } from '../ComponentBuilder';
 
@@ -26,7 +26,10 @@ export class DependenciesComponentBuilder implements ComponentBuilder<Component,
     dependencies: Dependency[];
   }[] = [];
 
-  constructor(private repositoryId: string, endCursor?: string) {
+  constructor(
+    private repositoryId: string,
+    endCursor?: string,
+  ) {
     this.previousEndCursor = endCursor;
     this.manifestsMeta.endCursor = endCursor;
   }
@@ -91,15 +94,15 @@ export class DependenciesComponentBuilder implements ComponentBuilder<Component,
           pendingManifest.endCursor,
         );
         pendingManifest.dependencies.push(
-          ...get<any[]>(data, `repo_${index}.dependencies.nodes`, []).map(
-            (d) =>
-              new Dependency({
-                ...d,
-                repository: this.repositoryId,
-                manifest: pendingManifest.manifest.id,
-                filename: pendingManifest.manifest.filename,
-                blob_path: pendingManifest.manifest.blob_path,
-              }),
+          ...get<any[]>(data, `repo_${index}.dependencies.nodes`, []).map((d) =>
+            Entity.validate<Dependency>({
+              type: 'Dependency',
+              ...d,
+              repository: this.repositoryId,
+              manifest: pendingManifest.manifest.id,
+              filename: pendingManifest.manifest.filename,
+              blob_path: pendingManifest.manifest.blob_path,
+            }),
           ),
         );
       });

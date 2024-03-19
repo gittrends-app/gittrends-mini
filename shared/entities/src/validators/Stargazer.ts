@@ -11,4 +11,4 @@ export const StargazerSchema = z.object({
   starred_at: z.date(),
 });
 
-export type TStargazer = z.infer<typeof StargazerSchema>;
+export type Stargazer = z.infer<typeof StargazerSchema>;

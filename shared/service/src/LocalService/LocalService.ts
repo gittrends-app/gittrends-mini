@@ -2,7 +2,7 @@ import { Actor } from '@gittrends/entities';
 import { Repository } from '@gittrends/entities';
 
 import { EntityRepositories } from '../PersistenceService';
-import { Iterable, IterableResources, Service } from '../Service';
+import { Iterable, RepositoryResource, RepositoryResourceName, Service } from '../Service';
 import { ResourceIterator } from './ResourcesIterator';
 
 export class LocalService implements Service {
@@ -13,10 +13,10 @@ export class LocalService implements Service {
   }
 
   async get(id: string): Promise<Repository | undefined> {
-    const repo = await this.persistence.get(Repository).findById(id);
+    const repo = await this.persistence.get('repositories').findById(id);
 
     if (repo?.owner && typeof repo.owner === 'string') {
-      repo.owner = (await this.persistence.get(Actor).findById(repo.owner)) || repo.owner;
+      repo.owner = (await this.persistence.get('actors').findById(repo.owner)) || repo.owner;
     }
 
     return repo;
@@ -25,27 +25,24 @@ export class LocalService implements Service {
   async getActor(id: string): Promise<Actor | undefined>;
   async getActor(id: string[]): Promise<(Actor | undefined)[]>;
   async getActor(id: any): Promise<any> {
-    return this.persistence.get(Actor).findById(id);
+    return this.persistence.get('actors').findById(id);
   }
 
   async find(name: string): Promise<Repository | undefined> {
-    const repo = await this.persistence.get(Repository).findByName(name);
+    const repo = await this.persistence.get('repositories').findByName(name);
 
     if (repo?.owner && typeof repo.owner === 'string') {
-      repo.owner = (await this.persistence.get(Actor).findById(repo.owner)) || repo.owner;
+      repo.owner = (await this.persistence.get('actors').findById(repo.owner)) || repo.owner;
     }
 
     return repo;
   }
 
-  resources(
-    repositoryId: string,
-    resources: { resource: EntityPrototype<IterableResources> }[],
-  ): Iterable<IterableResources> {
-    const iterators: Iterable<IterableResources>[] = resources.map(
+  resources(repositoryId: string, resources: { resource: RepositoryResourceName }[]): Iterable<RepositoryResource> {
+    const iterators: Iterable<RepositoryResource>[] = resources.map(
       (it) =>
-        new ResourceIterator<IterableResources>(repositoryId, {
-          repository: this.persistence.get<IterableResources>(it.resource),
+        new ResourceIterator<RepositoryResource>(repositoryId, {
+          repository: this.persistence.get(it.resource),
           limit: 1000,
           skip: 0,
         }),
@@ -55,20 +52,20 @@ export class LocalService implements Service {
   }
 }
 
-class ResourcesIterator implements Iterable<IterableResources> {
-  constructor(private iterables: Iterable<IterableResources>[]) {}
+class ResourcesIterator implements Iterable<RepositoryResource> {
+  constructor(private iterables: Iterable<RepositoryResource>[]) {}
 
   [Symbol.asyncIterator]() {
     return this;
   }
 
-  async next(): Promise<IteratorResult<{ items: IterableResources[]; endCursor?: string; hasNextPage?: boolean }[]>> {
+  async next(): Promise<IteratorResult<{ items: RepositoryResource[]; endCursor?: string; hasNextPage?: boolean }[]>> {
     if (this.iterables.length === 0) return Promise.resolve({ done: true, value: undefined });
 
     const results = await Promise.all(this.iterables.map((pi) => pi.next()));
 
     const finalResult = results.reduce(
-      (memo: { items: IterableResources[]; endCursor?: string; hasNextPage?: boolean }[], { done, value }) =>
+      (memo: { items: RepositoryResource[]; endCursor?: string; hasNextPage?: boolean }[], { done, value }) =>
         done ? memo : memo.concat(value),
       [],
     );

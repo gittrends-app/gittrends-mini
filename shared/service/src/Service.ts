@@ -1,9 +1,8 @@
 import { SearchComponentQuery } from '@gittrends/github';
 
-import {
+import type {
   Actor,
   Dependency,
-  Entity,
   Issue,
   IssueOrPull,
   PullRequest,
@@ -14,11 +13,18 @@ import {
   Watcher,
 } from '@gittrends/entities';
 
-export type Iterable<T extends Entity> = AsyncIterableIterator<
-  { items: T[]; endCursor?: string; hasNextPage?: boolean }[]
->;
+export type Iterable<T> = AsyncIterableIterator<{ items: T[]; endCursor?: string; hasNextPage?: boolean }[]>;
 
-export type IterableResources = Dependency | IssueOrPull | Issue | PullRequest | Release | Stargazer | Tag | Watcher;
+export type RepositoryResource = Dependency | IssueOrPull | Issue | PullRequest | Release | Stargazer | Tag | Watcher;
+
+export type RepositoryResourceName =
+  | 'dependencies'
+  | 'issues'
+  | 'pull_requests'
+  | 'releases'
+  | 'stargazers'
+  | 'tags'
+  | 'watchers';
 
 export interface Service {
   get(id: string): Promise<Repository | undefined>;
@@ -27,12 +33,8 @@ export interface Service {
 
   resources(
     repositoryId: string,
-    resources: {
-      resource: EntityPrototype<IterableResources>;
-      endCursor?: string;
-      hasNextPage?: boolean;
-    }[],
-  ): Iterable<IterableResources>;
+    resources: { resource: RepositoryResourceName; endCursor?: string; hasNextPage?: boolean }[],
+  ): Iterable<RepositoryResource>;
 
   getActor(id: string): Promise<Actor | undefined>;
   getActor(ids: string[]): Promise<(Actor | undefined)[]>;

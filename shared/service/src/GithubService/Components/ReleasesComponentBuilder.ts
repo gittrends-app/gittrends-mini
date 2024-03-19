@@ -2,7 +2,7 @@ import { get } from 'lodash';
 
 import { GithubRequestError, ReactionComponent, RepositoryComponent, ServerRequestError } from '@gittrends/github';
 
-import { Actor, Reaction, Release } from '@gittrends/entities';
+import { Actor, Entity, Reaction, Release } from '@gittrends/entities';
 
 import { ComponentBuilder } from '../ComponentBuilder';
 
@@ -20,7 +20,10 @@ export class ReleasesComponentBuilder implements ComponentBuilder<RepositoryComp
   private batchSize = 25;
   private releasesMeta: { release: Release; endCursor?: string; hasNextPage?: boolean }[] = [];
 
-  constructor(private repositoryId: string, private endCursor?: string) {
+  constructor(
+    private repositoryId: string,
+    private endCursor?: string,
+  ) {
     this.previousEndCursor = endCursor;
   }
 
@@ -67,12 +70,13 @@ export class ReleasesComponentBuilder implements ComponentBuilder<RepositoryComp
 
     if (this.currentStage === Stages.GET_RELEASES) {
       this.releasesMeta = get<any[]>(data, 'repo.releases.nodes', []).map((node) => ({
-        release: new Release({
+        release: Entity.validate<Release>({
+          type: 'Release',
           reaction_groups: {},
           reactions: [],
           ...node,
           repository: this.repositoryId,
-          author: node.author && Actor.from(node.author),
+          author: node.author && Entity.validate<Actor>(node.author),
         }),
         hasNextPage: true,
       }));
@@ -88,14 +92,14 @@ export class ReleasesComponentBuilder implements ComponentBuilder<RepositoryComp
         meta.endCursor = pageInfo.end_cursor || meta.endCursor;
         meta.hasNextPage = pageInfo.has_next_page || false;
         (meta.release.reactions as Reaction[]).push(
-          ...get<any[]>(data, `reactable_${index}.reactions.nodes`, []).map(
-            (rd) =>
-              new Reaction({
-                ...rd,
-                repository: this.repositoryId,
-                reactable: meta.release.id,
-                reactable_type: meta.release.constructor.name,
-              }),
+          ...get<any[]>(data, `reactable_${index}.reactions.nodes`, []).map((rd) =>
+            Entity.validate<Reaction>({
+              type: 'Reaction',
+              ...rd,
+              repository: this.repositoryId,
+              reactable: meta.release.id,
+              reactable_type: meta.release.constructor.name,
+            }),
           ),
         );
       });

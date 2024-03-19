@@ -12,13 +12,13 @@ import {
 
 import {
   Actor,
+  Entity,
   Issue,
   IssueOrPull,
   PullRequest,
-  Reactable,
   Reaction,
+  Repository,
   TimelineEvent,
-  isntanceOfReactable,
 } from '@gittrends/entities';
 import { debug } from '@gittrends/helpers';
 
@@ -33,10 +33,23 @@ enum Stages {
 
 type TMeta = { first: number; endCursor?: string; hasNextPage?: boolean };
 
+type Reactable = {
+  id: string;
+  repository: string | Repository;
+  reaction_groups: Record<string, number>;
+  reactions: number | Reaction[];
+};
+
+function isntanceOfReactable(object: any): object is Reactable {
+  return (
+    typeof object === 'object' &&
+    ['id', 'repository', 'reaction_groups', 'reactions'].reduce((is, field) => is && field in object, true)
+  );
+}
+
 const logger = debug('issues-component-builder');
 
 class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Component, T[]> {
-  private Entity;
   private EntityComponent: typeof IssueComponent;
 
   private previousEndCursor: string | undefined;
@@ -45,11 +58,11 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
   protected defaultBatchSize = 25;
 
   private meta: TMeta = { first: this.defaultBatchSize };
-  private issuesMeta: (TMeta & { issue: T; timelineItems?: number })[] = [];
+  private issuesMeta: (TMeta & { issue: T; timelineItems?: number; processed: boolean })[] = [];
   private reactablesMeta: (TMeta & { reactable: Reactable })[] = [];
 
   private get pendingDetails() {
-    return this.issuesMeta.filter((rm) => !(rm.issue instanceof this.Entity)).slice(0, this.meta.first);
+    return this.issuesMeta.filter((rm) => !rm.processed).slice(0, this.meta.first);
   }
 
   private get pendingIssues() {
@@ -63,10 +76,13 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
     return this.reactablesMeta.filter((rm) => rm.hasNextPage).slice(0, this.meta.first);
   }
 
-  constructor(private repositoryId: string, endCursor?: string, Class?: new (...args: any[]) => T) {
+  constructor(
+    private repositoryId: string,
+    endCursor?: string,
+    private type: 'Issue' | 'PullRequest' = 'Issue',
+  ) {
     this.meta.endCursor = this.previousEndCursor = endCursor;
-    this.Entity = Class || Issue;
-    this.EntityComponent = this.Entity === Issue ? IssueComponent : PullRequestComponent;
+    this.EntityComponent = type === 'Issue' ? IssueComponent : PullRequestComponent;
   }
 
   private errorHandler(error: Error) {
@@ -101,7 +117,7 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
     const loggerData = {
       stage: Stages[this.currentStage],
       first: this.meta.first,
-      details: this.issuesMeta.filter((rm) => !(rm.issue instanceof this.Entity)).length,
+      details: this.issuesMeta.filter((rm) => !rm.processed).length,
       timeline: this.issuesMeta.filter((rm) => rm.hasNextPage).length,
       reactables: this.reactablesMeta.filter((rm) => rm.hasNextPage).length,
     };
@@ -114,7 +130,7 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
 
     switch (this.currentStage) {
       case Stages.GET_ISSUES_LIST: {
-        const iFunc = this.Entity === Issue ? 'includeIssues' : 'includePullRequests';
+        const iFunc = this.type === 'Issue' ? 'includeIssues' : 'includePullRequests';
         return new RepositoryComponent(this.repositoryId).setAlias('repo').includeDetails(false)[iFunc](true, {
           after: this.meta.endCursor,
           first: this.meta.first,
@@ -160,7 +176,7 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
         this.meta.first = Math.min(this.defaultBatchSize, this.meta.first * 2);
 
         const nodes = get<any[]>(data, 'repo.issues.nodes', []);
-        this.issuesMeta = nodes.map((issue) => ({ issue, first: 50, hasNextPage: true }));
+        this.issuesMeta = nodes.map((issue) => ({ issue, first: 50, hasNextPage: true, processed: false }));
 
         const pageInfo = get(data, 'repo.issues.page_info', {});
         this.meta.hasNextPage = get(pageInfo, 'has_next_page', false);
@@ -176,13 +192,14 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
         this.pendingDetails.forEach((iMeta, index) => {
           const { _assignees, _labels, _participants, ...iData } = data?.[`issue_${index}`] || {};
 
-          const assignees = get<any[]>(_assignees, 'nodes', []).map((a) => Actor.from(a));
+          const assignees = get<any[]>(_assignees, 'nodes', []).map((a) => Entity.validate<Actor>(a));
           const labels = get<any[]>(_labels, 'nodes', []);
-          const participants = get<any[]>(_participants, 'nodes', []).map((p) => Actor.from(p));
+          const participants = get<any[]>(_participants, 'nodes', []).map((p) => Entity.validate<Actor>(p));
 
           iMeta.timelineItems = iData.timeline_items;
 
-          iMeta.issue = new this.Entity({
+          iMeta.issue = Entity.validate<T>({
+            type: this.type,
             suggested_reviewers: [],
             ...iData,
             repository: this.repositoryId,
@@ -191,13 +208,14 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
             assignees,
             labels,
             participants,
-          }) as T;
+          });
+
+          iMeta.processed = true;
         });
 
         this.meta.first = Math.min(this.defaultBatchSize, this.meta.first * 2);
 
-        if (this.issuesMeta.every((iMeta) => iMeta.issue instanceof this.Entity))
-          this.currentStage = Stages.GET_TIMELINE_EVENTS;
+        if (this.issuesMeta.every((iMeta) => iMeta.processed)) this.currentStage = Stages.GET_TIMELINE_EVENTS;
 
         break;
       }
@@ -210,7 +228,9 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
 
           const nodes = get<any[]>(data, `issue_${index}.tl.nodes`, [])
             .map((node) => transformTimelineEvent(node, { repository: this.repositoryId, issue: iMeta.issue.id }))
-            .map((node) => TimelineEvent.from({ ...node, repository: this.repositoryId, issue: iMeta.issue.id }));
+            .map((node) =>
+              Entity.validate<TimelineEvent>({ ...node, repository: this.repositoryId, issue: iMeta.issue.id }),
+            );
 
           const pageInfo = get(data, `issue_${index}.tl.page_info`, {});
           iMeta.endCursor = pageInfo.end_cursor || iMeta.endCursor;
@@ -236,14 +256,14 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
 
       case Stages.GET_REACTIONS: {
         this.pendingReactables.forEach((pr, index) => {
-          const nodes = get<any[]>(data, `reactable_${index}.reactions.nodes`, []).map(
-            (data) =>
-              new Reaction({
-                ...data,
-                repository: this.repositoryId,
-                reactable: pr.reactable.id,
-                reactable_type: pr.reactable.constructor.name,
-              }),
+          const nodes = get<any[]>(data, `reactable_${index}.reactions.nodes`, []).map((data) =>
+            Entity.validate<Reaction>({
+              type: 'Reaction',
+              ...data,
+              repository: this.repositoryId,
+              reactable: pr.reactable.id,
+              reactable_type: pr.reactable.constructor.name,
+            }),
           );
 
           (pr.reactable.reactions as Reaction[]).push(...nodes);
@@ -321,7 +341,7 @@ function findReactables(data: any | any[]): Reactable[] {
 
 export class IssuesComponentBuilder extends GenericBuilder<Issue> {
   constructor(repositoryId: string, endCursor?: string) {
-    super(repositoryId, endCursor, Issue);
+    super(repositoryId, endCursor, 'Issue');
   }
 }
 
@@ -329,6 +349,6 @@ export class PullRequestsComponentBuilder extends GenericBuilder<PullRequest> {
   protected defaultBatchSize = 15;
 
   constructor(repositoryId: string, endCursor?: string) {
-    super(repositoryId, endCursor, PullRequest);
+    super(repositoryId, endCursor, 'PullRequest');
   }
 }

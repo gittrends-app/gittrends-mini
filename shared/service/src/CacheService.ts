@@ -3,12 +3,17 @@ import { compact, difference } from 'lodash';
 
 import { SearchComponentQuery } from '@gittrends/github/dist';
 
-import { Actor, Node, Repository } from '@gittrends/entities';
+import { Actor, Repository } from '@gittrends/entities';
 
-import { Cache } from './Cache';
-import { Iterable, IterableResources, Service } from './Service';
+import { Iterable, RepositoryResource, RepositoryResourceName, Service } from './Service';
 
-type TCache = Cache<Partial<Node & { name: string }>>;
+export interface Cache<K extends Record<string, unknown>> {
+  add(entity: K, scope: string): Promise<void>;
+  delete(entity: K, scope: string): Promise<void>;
+  get<T>(props: K, scope: string): Promise<T | undefined>;
+}
+
+type TCache = Cache<Partial<{ id: string; name: string }>>;
 
 export class CachedService implements Service {
   private service: Service;
@@ -20,21 +25,21 @@ export class CachedService implements Service {
   }
 
   async get(id: string): Promise<Repository | undefined> {
-    const cachedValue = await this.cache.get(Repository, { id });
+    const cachedValue = await this.cache.get<Repository>({ id }, 'repositories');
     if (cachedValue) return cachedValue;
 
     return this.service.get(id).then(async (value) => {
-      if (value) await this.cache.add(value);
+      if (value) await this.cache.add(value, 'repositories');
       return value;
     });
   }
 
   async find(name: string): Promise<Repository | undefined> {
-    const cachedValue = await this.cache.get(Repository, { name });
-    if (cachedValue) return new Repository(cachedValue as any);
+    const cachedValue = await this.cache.get<Repository>({ name }, 'repositories');
+    if (cachedValue) return cachedValue;
 
     return this.service.find(name).then(async (value) => {
-      if (value) await this.cache.add(value);
+      if (value) await this.cache.add(value, 'repositories');
       return value;
     });
   }
@@ -46,12 +51,8 @@ export class CachedService implements Service {
 
   resources(
     repositoryId: string,
-    resources: {
-      resource: EntityPrototype<IterableResources>;
-      endCursor?: string | undefined;
-      hasNextPage?: boolean | undefined;
-    }[],
-  ): Iterable<IterableResources> {
+    resources: { resource: RepositoryResourceName; endCursor?: string; hasNextPage?: boolean }[],
+  ): Iterable<RepositoryResource> {
     return this.service.resources(repositoryId, resources);
   }
 
@@ -60,7 +61,7 @@ export class CachedService implements Service {
   async getActor(id: any): Promise<any> {
     const actorIds = Array.isArray(id) ? id : [id];
 
-    const actors = compact(await mapSeries(actorIds, (id) => this.cache.get(Actor, { id })));
+    const actors = compact(await mapSeries(actorIds, (id) => this.cache.get<Actor>({ id }, 'actors')));
 
     const pendingIds = difference(
       actorIds,
@@ -68,7 +69,7 @@ export class CachedService implements Service {
     );
 
     const response = await this.service.getActor(pendingIds).then(async (actors) => {
-      await each(actors, (actor) => actor && this.cache.add(actor));
+      await each(actors, (actor) => actor && this.cache.add(actor, 'actors'));
       return actors;
     });
 

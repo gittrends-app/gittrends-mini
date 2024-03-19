@@ -2,14 +2,17 @@ import { get } from 'lodash';
 
 import { RepositoryComponent } from '@gittrends/github';
 
-import { Stargazer } from '@gittrends/entities';
+import { Entity, Stargazer } from '@gittrends/entities';
 
 import { ComponentBuilder } from '../ComponentBuilder';
 
 export class StargazersComponentBuilder implements ComponentBuilder<RepositoryComponent, Stargazer[]> {
   private first = 100;
 
-  constructor(private repositoryId: string, private endCursor?: string) {}
+  constructor(
+    private repositoryId: string,
+    private endCursor?: string,
+  ) {}
 
   build(error?: Error): RepositoryComponent {
     if (error) throw error;
@@ -24,8 +27,13 @@ export class StargazersComponentBuilder implements ComponentBuilder<RepositoryCo
     return {
       hasNextPage: get(data, 'repo.stars.page_info.has_next_page', false),
       endCursor: (this.endCursor = get(data, 'repo.stars.page_info.end_cursor', this.endCursor)),
-      data: get<{ user: any; starred_at: Date }[]>(data, 'repo.stars.edges', []).map(
-        (data) => new Stargazer({ repository: this.repositoryId, user: data.user, starred_at: data.starred_at }),
+      data: get<{ user: any; starred_at: Date }[]>(data, 'repo.stars.edges', []).map((data) =>
+        Entity.validate<Stargazer>({
+          type: 'Stargazer',
+          repository: this.repositoryId,
+          user: data.user,
+          starred_at: data.starred_at,
+        }),
       ),
     };
   }
