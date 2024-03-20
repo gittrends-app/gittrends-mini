@@ -2,7 +2,7 @@ import { Knex } from 'knex';
 
 import { IActorsRepository } from '@gittrends/service';
 
-import { Actor } from '@gittrends/entities';
+import { Actor, Entity } from '@gittrends/entities';
 
 import { asyncIterator } from '../config/knex.config';
 
@@ -16,18 +16,18 @@ export class ActorsRepository implements IActorsRepository {
 
     const actors = await asyncIterator(ids, async (id) =>
       this.db
-        .table(Actor.__name)
+        .table('actors')
         .first('*')
         .where('id', id)
-        .then((actor) => (actor ? Actor.from(actor) : undefined)),
+        .then((actor) => (actor ? Entity.actor(actor) : undefined)),
     );
 
     return Array.isArray(id) ? actors : actors.at(0);
   }
 
   async findByLogin(login: string): Promise<Actor | undefined> {
-    const actor = await this.db.table(Actor.__name).select('*').where('login', login).first();
-    return actor && actor.__updated_at ? Actor.from(actor) : undefined;
+    const actor = await this.db.table('actors').select('*').where('login', login).first();
+    return actor && actor.__updated_at ? Entity.actor(actor) : undefined;
   }
 
   private async _insert(
@@ -40,7 +40,7 @@ export class ActorsRepository implements IActorsRepository {
     const actors = Array.isArray(user) ? user : [user];
 
     await asyncIterator(actors, (actor) =>
-      this.db.table(Actor.__name).insertEntity(actor).onConflict('id')?.[onConflict]().transacting(transaction),
+      this.db.table('actors').insertEntity(actor).onConflict('id')?.[onConflict]().transacting(transaction),
     )
       .then(async () => (!trx ? transaction.commit() : null))
       .catch(async (error) => {

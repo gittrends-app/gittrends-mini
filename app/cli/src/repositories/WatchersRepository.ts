@@ -3,10 +3,10 @@ import { cloneDeep } from 'lodash';
 
 import { IResourceRepository } from '@gittrends/service';
 
-import { Actor, Watcher } from '@gittrends/entities';
+import { Entity, Watcher } from '@gittrends/entities';
 
 import { asyncIterator } from '../config/knex.config';
-import { extractEntityInstances } from '../helpers/extract';
+import { extractActors } from '../helpers/extract';
 import { ActorsRepository } from './ActorRepository';
 
 export class WatchersRepository implements IResourceRepository<Watcher> {
@@ -18,7 +18,7 @@ export class WatchersRepository implements IResourceRepository<Watcher> {
 
   async countByRepository(repository: string): Promise<number> {
     const [{ count }] = await this.db
-      .table(Watcher.__name)
+      .table('watchers')
       .where('repository', repository)
       .count('repository', { as: 'count' });
     return parseInt(count);
@@ -26,13 +26,13 @@ export class WatchersRepository implements IResourceRepository<Watcher> {
 
   async findByRepository(repository: string, opts?: { limit: number; skip: number } | undefined): Promise<Watcher[]> {
     const watcher = await this.db
-      .table(Watcher.__name)
+      .table('watchers')
       .select('*')
       .where('repository', repository)
       .limit(opts?.limit || 1000)
       .offset(opts?.skip || 0);
 
-    return watcher.map((watcher) => new Watcher(watcher));
+    return watcher.map((watcher) => Entity.watcher(watcher));
   }
 
   private async save(
@@ -41,7 +41,7 @@ export class WatchersRepository implements IResourceRepository<Watcher> {
     onConflict: 'ignore' | 'merge' = 'ignore',
   ): Promise<void> {
     const watchers = cloneDeep(Array.isArray(watcher) ? watcher : [watcher]);
-    const actors = extractEntityInstances<Actor>(watchers, Actor as any);
+    const actors = extractActors(watchers);
 
     const transaction = trx || (await this.db.transaction());
 
@@ -49,7 +49,7 @@ export class WatchersRepository implements IResourceRepository<Watcher> {
       this.actorsRepo.insert(actors, transaction),
       asyncIterator(watchers, (watcher) =>
         this.db
-          .table(Watcher.__name)
+          .table('watchers')
           .insertEntity(watcher)
           .onConflict(['repository', 'user'])
           ?.[onConflict]()

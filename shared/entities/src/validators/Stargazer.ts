@@ -8,7 +8,7 @@ import { UserSchema } from './Actor';
 export const StargazerSchema = z.object({
   repository: z.string(),
   user: z.union([z.string(), UserSchema]),
-  starred_at: z.date(),
+  starred_at: z.coerce.date(),
 });
 
 export type Stargazer = z.infer<typeof StargazerSchema>;

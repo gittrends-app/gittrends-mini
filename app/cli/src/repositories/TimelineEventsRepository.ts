@@ -3,10 +3,10 @@ import { cloneDeep, size } from 'lodash';
 
 import { IResourceRepository } from '@gittrends/service';
 
-import { Actor, Reaction, TimelineEvent } from '@gittrends/entities';
+import { Entity, TimelineEvent } from '@gittrends/entities';
 
 import { asyncIterator } from '../config/knex.config';
-import { extractEntityInstances } from '../helpers/extract';
+import { extractActors, extractReactions } from '../helpers/extract';
 import { ActorsRepository } from './ActorRepository';
 import { ReactionsRepository } from './ReactionsRepository';
 
@@ -21,7 +21,7 @@ export class TimelineEventsRepository implements IResourceRepository<TimelineEve
 
   async countByRepository(repository: string): Promise<number> {
     const [{ count }] = await this.db
-      .table(TimelineEvent.__name)
+      .table('timeline_events')
       .where('repository', repository)
       .count('repository', { as: 'count' });
     return parseInt(count);
@@ -32,13 +32,13 @@ export class TimelineEventsRepository implements IResourceRepository<TimelineEve
     opts?: { limit: number; skip: number } | undefined,
   ): Promise<TimelineEvent[]> {
     const events = await this.db
-      .table(TimelineEvent.__name)
+      .table('timeline_events')
       .select('*')
       .where('repository', repository)
       .limit(opts?.limit || 1000)
       .offset(opts?.skip || 0);
 
-    return events.map((event) => TimelineEvent.from(event));
+    return events.map((event) => Entity.timeline_event(event));
   }
 
   private async save<T extends TimelineEvent>(
@@ -51,8 +51,8 @@ export class TimelineEventsRepository implements IResourceRepository<TimelineEve
       return { id, repository, type, issue, payload: size(payload) > 0 ? payload : undefined };
     });
 
-    const actors = extractEntityInstances<Actor>(events, Actor as any);
-    const reactables = extractEntityInstances<Reaction>(events, Reaction);
+    const actors = extractActors(events);
+    const reactables = extractReactions(events);
 
     const transaction = trx || (await this.db.transaction());
 
@@ -60,12 +60,7 @@ export class TimelineEventsRepository implements IResourceRepository<TimelineEve
       this.actorsRepo.insert(actors, transaction),
       this.reactionsRepo.insert(reactables, transaction),
       asyncIterator(events, (event) =>
-        this.db
-          .table(TimelineEvent.__name)
-          .insertEntity(event)
-          .onConflict('id')
-          ?.[onConflict]()
-          .transacting(transaction),
+        this.db.table('timeline_events').insertEntity(event).onConflict('id')?.[onConflict]().transacting(transaction),
       ),
     ])
       .then(async () => (!trx ? transaction.commit() : null))

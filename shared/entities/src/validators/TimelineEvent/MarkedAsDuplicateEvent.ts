@@ -8,7 +8,7 @@ import { TimelineEventSchema } from '../TimelineEvent';
 export const MarkedAsDuplicateEventSchema = TimelineEventSchema.extend({
   actor: z.union([z.string(), ActorSchema]).optional(),
   canonical: z.union([z.string(), IssueSchema, PullRequestSchema]),
-  created_at: z.date(),
+  created_at: z.coerce.date(),
   duplicate: z.union([z.string(), IssueSchema, PullRequestSchema]).optional(),
   is_cross_repository: z.boolean(),
 });

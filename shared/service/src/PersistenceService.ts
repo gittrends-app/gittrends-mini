@@ -50,18 +50,22 @@ export class PersistenceService implements Service {
 
     const next = iterator.next.bind(iterator);
 
+    const endCursors = resources.map(({ endCursor }) => endCursor);
+
     iterator.next = async (...args: [] | [any]) => {
       return next(...args).then(async (response) => {
         if (!response.done) {
           for (const [index, { resource }] of resources.entries()) {
             const { items, endCursor, hasNextPage } = response.value[index];
 
+            if (endCursor) endCursors[index] = endCursor;
+
             await this.repositories.get(resource).insert(items);
 
             await this.repositories.get('metadata').upsert({
-              resource: 'metadata',
+              resource: resource,
               repository: repositoryId,
-              end_cursor: endCursor || resources[index].endCursor,
+              end_cursor: endCursors[index],
               updated_at: new Date(),
               finished_at: hasNextPage ? undefined : new Date(),
             });

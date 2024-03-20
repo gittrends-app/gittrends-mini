@@ -5,7 +5,7 @@ import { TimelineEventSchema } from '../TimelineEvent';
 
 export const ReviewRequestRemovedEventSchema = TimelineEventSchema.extend({
   actor: z.union([z.string(), ActorSchema]).optional(),
-  created_at: z.date(),
+  created_at: z.coerce.date(),
   requested_reviewer: z.union([z.string(), ActorSchema]).optional(),
 });
 

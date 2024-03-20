@@ -5,7 +5,7 @@ import { TimelineEventSchema } from '../TimelineEvent';
 
 export const MovedColumnsInProjectEventSchema = TimelineEventSchema.extend({
   actor: z.union([z.string(), ActorSchema]).optional(),
-  created_at: z.date(),
+  created_at: z.coerce.date(),
   previous_project_column_name: z.string(),
   project: z.string().optional(),
   project_card: z.string().optional(),

@@ -12,7 +12,7 @@ export const TagSchema = z.object({
   name: z.string(),
   oid: z.string(),
   tagger: z.object({
-    date: z.date(),
+    date: z.coerce.date(),
     email: z.string().optional(),
     name: z.string(),
     user: z.union([z.string(), UserSchema]),

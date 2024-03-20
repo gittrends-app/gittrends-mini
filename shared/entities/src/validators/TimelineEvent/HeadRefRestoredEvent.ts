@@ -5,7 +5,7 @@ import { TimelineEventSchema } from '../TimelineEvent';
 
 export const HeadRefRestoredEventSchema = TimelineEventSchema.extend({
   actor: z.union([z.string(), ActorSchema]).optional(),
-  created_at: z.date(),
+  created_at: z.coerce.date(),
 });
 
 export type HeadRefRestoredEvent = z.infer<typeof HeadRefRestoredEventSchema>;

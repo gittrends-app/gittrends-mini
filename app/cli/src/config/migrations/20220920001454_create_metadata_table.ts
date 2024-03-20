@@ -1,9 +1,7 @@
 import { Knex } from 'knex';
 
-import { Metadata } from '@gittrends/entities';
-
 export async function up(knex: Knex): Promise<void> {
-  return knex.schema.createTable(Metadata.__name, (table) => {
+  return knex.schema.createTable('metadata', (table) => {
     table.text('repository').notNullable();
     table.text('resource').notNullable();
     table.text('end_cursor');
@@ -17,5 +15,5 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 export async function down(knex: Knex): Promise<void> {
-  return knex.schema.dropTable(Metadata.__name);
+  return knex.schema.dropTable('metadata');
 }

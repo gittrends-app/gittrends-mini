@@ -1,9 +1,7 @@
 import { Knex } from 'knex';
 
-import { Stargazer } from '@gittrends/entities';
-
 export async function up(knex: Knex): Promise<void> {
-  return knex.schema.createTable(Stargazer.__name, (table) => {
+  return knex.schema.createTable('stargazers', (table) => {
     table.text('repository').notNullable();
     table.text('user').notNullable();
     table.timestamp('starred_at').notNullable();
@@ -14,5 +12,5 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 export async function down(knex: Knex): Promise<void> {
-  return knex.schema.dropTable(Stargazer.__name);
+  return knex.schema.dropTable('stargazers');
 }

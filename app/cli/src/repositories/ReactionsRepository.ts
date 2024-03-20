@@ -3,10 +3,10 @@ import { cloneDeep } from 'lodash';
 
 import { IResourceRepository } from '@gittrends/service';
 
-import { Actor, Reaction } from '@gittrends/entities';
+import { Entity, Reaction, User } from '@gittrends/entities';
 
 import { asyncIterator } from '../config/knex.config';
-import { extractEntityInstances } from '../helpers/extract';
+import { extractActors } from '../helpers/extract';
 import { ActorsRepository } from './ActorRepository';
 
 export class ReactionsRepository implements IResourceRepository<Reaction> {
@@ -18,7 +18,7 @@ export class ReactionsRepository implements IResourceRepository<Reaction> {
 
   async countByRepository(repository: string): Promise<number> {
     const [{ count }] = await this.db
-      .table(Reaction.__name)
+      .table('reactions')
       .where('repository', repository)
       .count('repository', { as: 'count' });
     return parseInt(count);
@@ -26,13 +26,13 @@ export class ReactionsRepository implements IResourceRepository<Reaction> {
 
   async findByRepository(repository: string, opts?: { limit: number; skip: number } | undefined): Promise<Reaction[]> {
     const reactions = await this.db
-      .table(Reaction.__name)
+      .table('reactions')
       .select('*')
       .where('repository', repository)
       .limit(opts?.limit || 1000)
       .offset(opts?.skip || 0);
 
-    return reactions.map((reaction) => new Reaction(reaction));
+    return reactions.map((reaction) => Entity.reaction(reaction));
   }
 
   private async save(
@@ -41,7 +41,7 @@ export class ReactionsRepository implements IResourceRepository<Reaction> {
     onConflict: 'ignore' | 'merge' = 'ignore',
   ): Promise<void> {
     const reactions = cloneDeep(Array.isArray(reaction) ? reaction : [reaction]);
-    const actors = extractEntityInstances<Actor>(reactions, Actor as any);
+    const actors = extractActors(reactions) as User[];
 
     const transaction = trx || (await this.db.transaction());
 
@@ -49,7 +49,7 @@ export class ReactionsRepository implements IResourceRepository<Reaction> {
       this.actorsRepo.insert(actors, transaction),
       asyncIterator(reactions, (reaction) => {
         return this.db
-          .table(Reaction.__name)
+          .table('reactions')
           .insertEntity(reaction)
           .onConflict('id')
           ?.[onConflict]()

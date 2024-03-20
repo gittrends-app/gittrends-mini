@@ -9,8 +9,8 @@ export const MetadataSchema = z
     resource: z.string(),
     resource_id: z.string().optional(),
     end_cursor: z.string().optional(),
-    updated_at: z.date().optional(),
-    finished_at: z.date().optional(),
+    updated_at: z.coerce.date().optional(),
+    finished_at: z.coerce.date().optional(),
   })
   .passthrough();
 

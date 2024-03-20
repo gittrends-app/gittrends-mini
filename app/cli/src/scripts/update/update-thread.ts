@@ -4,13 +4,12 @@ import { isMainThread, parentPort, threadId, workerData } from 'node:worker_thre
 
 import { HttpClient } from '@gittrends/github';
 
-import { CachedService, GitHubService } from '@gittrends/service';
+import { CachedService, GitHubService, RepositoryResourceName } from '@gittrends/service';
 
 import { debug } from '@gittrends/helpers';
 
 import { withBullWorker } from '../../helpers/withBullQueue';
 import { withCache } from '../../helpers/withCache';
-import { UpdatableResource, UpdatebleResourcesList } from './index';
 import { updater } from './update-worker';
 
 export const logger = debug('cli:update-thread');
@@ -29,10 +28,8 @@ async function workerThread(): Promise<void> {
     parentPort?.postMessage({ event: 'started', name: job.data.name_with_owner });
 
     const resources = compact(
-      job.data.__resources
-        .filter((r) => (r === 'actors' ? workerData.updateActors : true))
-        .map((r) => UpdatebleResourcesList.find((ur) => ur.__name === r)),
-    ) as UpdatableResource[];
+      job.data.__resources.filter((r) => (r === 'actors' ? workerData.updateActors : true)),
+    ) as Array<RepositoryResourceName | 'actors'>;
 
     return updater(job.data.name_with_owner, {
       resources: resources,

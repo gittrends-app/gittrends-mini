@@ -8,11 +8,21 @@ import { HttpClient } from '@gittrends/github';
 import { GitHubService } from '@gittrends/service';
 
 import { version } from '../package.json';
-import { UpdatebleResourcesList } from './update';
+
+const resources = [
+  'actors',
+  'dependencies',
+  'issues',
+  'pull_requests',
+  'releases',
+  'stargazers',
+  'tags',
+  'watchers',
+] as const;
 
 export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promise<void> {
   program
-    .addArgument(new Argument('[resource]', 'Component name').choices(UpdatebleResourcesList.map((e) => e.__name)))
+    .addArgument(new Argument('[resource]', 'Component name').choices(resources))
     .addArgument(new Argument('[repository]', 'Repository identifier'))
     .addArgument(new Argument('[end_cursor]', 'End cursor'))
     .action(async (resource?: string, repository?: string, endCursor?: string) => {
@@ -21,7 +31,7 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
           type: 'list',
           name: 'resource',
           message: 'Select the resource to reproduce',
-          choices: UpdatebleResourcesList.map((e) => ({ name: e.__name, value: e.__name })),
+          choices: resources.map((e) => ({ name: e, value: e })),
           default: resource,
           when: !resource,
         },
@@ -64,7 +74,7 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
           consola.info('Preparing GitHubService resources iterator...');
           const iterator = service.resources(responses.repository, [
             {
-              resource: UpdatebleResourcesList.find((e) => e.__name === responses.resource),
+              resource: resources.find((e) => e === responses.resource),
               endCursor: responses.endCursor || undefined,
             },
           ] as any[]);

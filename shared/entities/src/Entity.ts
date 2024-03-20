@@ -5,6 +5,7 @@ import { BaseError } from 'make-error-cause';
 import { extname } from 'path';
 import { ZodError, ZodType } from 'zod';
 
+import { Metadata, MetadataSchema } from './Metadata';
 import {
   Actor,
   BotSchema,
@@ -30,7 +31,8 @@ export class Entity {
   public static getSchema(type: string): ZodType | undefined {
     let validator: ZodType | undefined = undefined;
 
-    if (type === 'User') validator = UserSchema;
+    if (type === 'Metadata') validator = MetadataSchema;
+    else if (type === 'User') validator = UserSchema;
     else if (type === 'Organization') validator = OrganizationSchema;
     else if (type === 'Mannequin') validator = MannequinSchema;
     else if (type === 'Bot') validator = BotSchema;
@@ -66,7 +68,7 @@ export class Entity {
     const result = validator.safeParse(object);
 
     if (result.success === false) {
-      throw new EntityValidationError(result.error);
+      throw new EntityValidationError(result.error, object);
     }
 
     return result.data as T;
@@ -84,11 +86,12 @@ export class Entity {
     this.validate<TimelineEvent>({ type: object.type, ...object });
   static issue = (object: Record<string, any>) => this.validate<Issue>({ type: 'Issue', ...object });
   static pull_request = (object: Record<string, any>) => this.validate<PullRequest>({ type: 'PullRequest', ...object });
+  static metadata = (object: Record<string, any>) => this.validate<Metadata>({ type: 'Metadata', ...object });
 }
 
 export class EntityValidationError extends BaseError {
-  constructor(error: ZodError) {
-    super(error.message, error);
+  constructor(error: ZodError, object: Record<string, any>) {
+    super(`Object: ${JSON.stringify(object)} - Error: ${error.message}`, error);
     this.name = this.constructor.name;
   }
 }

@@ -6,7 +6,7 @@ import { TimelineEventSchema } from '../TimelineEvent';
 export const MergedEventSchema = TimelineEventSchema.extend({
   actor: z.union([z.string(), ActorSchema]).optional(),
   commit: z.string().optional(),
-  created_at: z.date(),
+  created_at: z.coerce.date(),
   merge_ref: z.object({ name: z.string(), target: z.string() }).optional(),
   merge_ref_name: z.string(),
 });

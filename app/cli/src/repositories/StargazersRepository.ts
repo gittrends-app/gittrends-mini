@@ -3,10 +3,10 @@ import { cloneDeep } from 'lodash';
 
 import { IResourceRepository } from '@gittrends/service';
 
-import { Actor, Stargazer } from '@gittrends/entities';
+import { Entity, Stargazer } from '@gittrends/entities';
 
 import { asyncIterator } from '../config/knex.config';
-import { extractEntityInstances } from '../helpers/extract';
+import { extractActors } from '../helpers/extract';
 import { ActorsRepository } from './ActorRepository';
 
 export class StargazersRepository implements IResourceRepository<Stargazer> {
@@ -18,7 +18,7 @@ export class StargazersRepository implements IResourceRepository<Stargazer> {
 
   async countByRepository(repository: string): Promise<number> {
     const [{ count }] = await this.db
-      .table(Stargazer.__name)
+      .table('stargazers')
       .where('repository', repository)
       .count('repository', { as: 'count' });
     return parseInt(count);
@@ -26,14 +26,14 @@ export class StargazersRepository implements IResourceRepository<Stargazer> {
 
   async findByRepository(repository: string, opts?: { limit: number; skip: number } | undefined): Promise<Stargazer[]> {
     const stars = await this.db
-      .table(Stargazer.__name)
+      .table('stargazers')
       .select('*')
       .where('repository', repository)
       .orderBy('starred_at', 'asc')
       .limit(opts?.limit || 1000)
       .offset(opts?.skip || 0);
 
-    return stars.map((star) => new Stargazer(star));
+    return stars.map((star) => Entity.stargazer(star));
   }
 
   private async save(
@@ -42,7 +42,7 @@ export class StargazersRepository implements IResourceRepository<Stargazer> {
     onConflict: 'ignore' | 'merge' = 'ignore',
   ): Promise<void> {
     const stars = cloneDeep(Array.isArray(stargazer) ? stargazer : [stargazer]);
-    const actors = extractEntityInstances<Actor>(stars, Actor as any);
+    const actors = extractActors(stars);
 
     const transaction = trx || (await this.db.transaction());
 
@@ -50,7 +50,7 @@ export class StargazersRepository implements IResourceRepository<Stargazer> {
       this.actorsRepo.insert(actors, transaction),
       asyncIterator(stars, (star) =>
         this.db
-          .table(Stargazer.__name)
+          .table('stargazers')
           .insertEntity(star)
           .onConflict(['repository', 'user', 'starred_at'])
           ?.[onConflict]()

@@ -7,7 +7,7 @@ export const BaseRefForcePushedEventSchema = TimelineEventSchema.extend({
   actor: z.union([z.string(), ActorSchema]).optional(),
   after_commit: z.string().optional(),
   before_commit: z.string().optional(),
-  created_at: z.date(),
+  created_at: z.coerce.date(),
   ref: z.object({ name: z.string(), target: z.string() }).optional(),
 });
 

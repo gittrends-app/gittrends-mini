@@ -2,8 +2,6 @@ import { AsyncWorker, queue } from 'async';
 import { Argument, Command, program } from 'commander';
 import consola from 'consola';
 
-import { Repository } from '@gittrends/entities';
-
 import { createOrConnectDatabase, migrate, rollback } from '../config/knex.config';
 import { withDatabase } from '../helpers/withDatabase';
 import { version } from '../package.json';
@@ -15,7 +13,7 @@ async function forEach(queueFunction: AsyncWorker<string>) {
   q.push(
     await withDatabase({ name: 'public', migrate: true }, ({ knex }) =>
       knex
-        .from(Repository.__name)
+        .from('repositories')
         .select('name_with_owner')
         .then((repos: { name_with_owner: string }[]) => repos.map((repo) => repo.name_with_owner)),
     ),

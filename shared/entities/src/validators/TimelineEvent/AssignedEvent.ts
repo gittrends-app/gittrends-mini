@@ -6,7 +6,7 @@ import { TimelineEventSchema } from '../TimelineEvent';
 export const AssignedEventSchema = TimelineEventSchema.extend({
   actor: z.union([z.string(), ActorSchema]).optional(),
   assignee: z.union([z.string(), ActorSchema]).optional(),
-  created_at: z.date(),
+  created_at: z.coerce.date(),
 });
 
 export type AssignedEvent = z.infer<typeof AssignedEventSchema>;

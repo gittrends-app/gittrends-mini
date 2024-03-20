@@ -11,7 +11,7 @@ export const ReactionSchema = z.object({
   reactable: z.string(),
   reactable_type: z.string(),
   content: z.string(),
-  created_at: z.date(),
+  created_at: z.coerce.date(),
   user: z.union([z.string(), ActorSchema]).optional(),
 });
 

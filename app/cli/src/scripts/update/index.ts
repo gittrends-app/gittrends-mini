@@ -3,7 +3,7 @@ import { Queue, QueueEvents } from 'bullmq';
 import { MultiBar, SingleBar } from 'cli-progress';
 import { Argument, Option, program } from 'commander';
 import consola from 'consola';
-import { compact, pick, sum, values } from 'lodash';
+import { pick, sum, values } from 'lodash';
 import path, { extname } from 'node:path';
 import readline from 'node:readline';
 import { clearInterval } from 'node:timers';
@@ -16,8 +16,6 @@ import { Console, File } from 'winston/lib/winston/transports';
 import { HttpClient } from '@gittrends/github';
 
 import { CachedService, GitHubService, PersistenceService } from '@gittrends/service';
-
-import { Actor, Dependency, Issue, PullRequest, Release, Stargazer, Tag, Watcher } from '@gittrends/entities';
 
 import { withBullEvents, withBullQueue } from '../../helpers/withBullQueue';
 import { withCache } from '../../helpers/withCache';
@@ -50,18 +48,10 @@ export const errorLogger = createLogger({
   transports: [new File({ filename: 'update-error.log' }), new Console({ log: (error) => consola.error(error) })],
 });
 
-export type UpdatableRepositoryResource = EntityConstructor<
-  Stargazer | Tag | Release | Watcher | Dependency | Issue | PullRequest
->;
-
-export type UpdatableResource = UpdatableRepositoryResource | EntityPrototype<Actor>;
-
-export const UpdatebleResourcesList = [Stargazer, Tag, Release, Watcher, Dependency, Issue, PullRequest, Actor];
-
 async function asyncQueue(
   names: string[],
   opts: {
-    resources: UpdatableResource[];
+    resources: Parameters<typeof updater>[1]['resources'];
     workers: number;
     httpClient: HttpClient;
     multibar?: MultiBar;
@@ -81,9 +71,7 @@ async function asyncQueue(
         .then(() => callback())
         .catch((error) => {
           opts.multibar?.log(error.message || JSON.stringify(error));
-          errorLogger.error(
-            Object.assign(error, { meta: { repository: name, resources: opts.resources.map((r) => r.__name) } }),
-          );
+          errorLogger.error(Object.assign(error, { meta: { repository: name, resources: opts.resources } }));
           callback(error);
         }),
     opts.workers,
@@ -226,12 +214,23 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
   type CliOptions = {
     token?: string;
     apiUrl?: string;
-    resources: UpdatableResource[];
+    resources: Parameters<typeof updater>[1]['resources'];
     progress: boolean;
     schedule: boolean;
     workers: number;
     threads: number;
   };
+
+  const defaultResources: CliOptions['resources'] = [
+    'actors',
+    'dependencies',
+    'issues',
+    'pull_requests',
+    'releases',
+    'stargazers',
+    'tags',
+    'watchers',
+  ] as const;
 
   await program
     .addArgument(new Argument('[repo...]', 'Repository name with format <owner/name>'))
@@ -239,14 +238,14 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
     .addOption(new Option('--api-url [string]', 'URL of the target API').env('CLI_API_URL').conflicts('token'))
     .addOption(
       new Option('-r, --resources [string...]', 'Resources to update')
-        .choices(UpdatebleResourcesList.map((r) => r.__name))
-        .default(UpdatebleResourcesList.map((r) => r.__name)),
+        .choices(defaultResources)
+        .default(defaultResources),
     )
     .addOption(new Option('--no-progress', 'Disable progress bars'))
     .addOption(new Option('--schedule', 'Schedule repositories before updating'))
     .addOption(new Option('--workers [number]', 'Number of workers per thread').default(1).argParser(Number))
     .addOption(new Option('--threads [number]', 'Use threads processing').default(1).argParser(Number))
-    .action(async (names: string[], opts: Omit<CliOptions, 'resources'> & { resources: string[] }) => {
+    .action(async (names: string[], opts: CliOptions) => {
       const interval = setInterval(() => globalThis.gc && globalThis.gc(), 5000);
 
       if (!opts.apiUrl && !opts.token) program.error('--token or --api-url is mandatory!');
@@ -266,11 +265,12 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
       });
 
       await withMultibar(async (multibar) => {
-        const resources = compact(
-          opts.resources.map((resource) => UpdatebleResourcesList.find((ur) => ur.__name === resource)),
-        ) as UpdatableResource[];
-
-        const processorOpts = { ...opts, resources, httpClient, multibar: opts.progress ? multibar : undefined };
+        const processorOpts = {
+          ...opts,
+          resources: opts.resources,
+          httpClient,
+          multibar: opts.progress ? multibar : undefined,
+        };
 
         if (names.length) {
           return asyncQueue(names, processorOpts);

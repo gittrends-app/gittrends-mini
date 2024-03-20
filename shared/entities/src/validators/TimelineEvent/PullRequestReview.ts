@@ -12,17 +12,17 @@ export const PullRequestReviewSchema = TimelineEventSchema.extend({
   body: z.string().optional(),
   comments: z.array(PullRequestReviewCommentSchema),
   commit: z.string().optional(),
-  created_at: z.date(),
+  created_at: z.coerce.date(),
   created_via_email: z.boolean(),
   editor: z.union([z.string(), ActorSchema]).optional(),
   includes_created_edit: z.boolean(),
-  last_edited_at: z.date().optional(),
-  published_at: z.date().optional(),
+  last_edited_at: z.coerce.date().optional(),
+  published_at: z.coerce.date().optional(),
   reaction_groups: z.record(z.number()),
   reactions: z.union([z.number(), z.array(ReactionSchema)]),
   state: z.string(),
-  submitted_at: z.date().optional(),
-  updated_at: z.date(),
+  submitted_at: z.coerce.date().optional(),
+  updated_at: z.coerce.date(),
 });
 
 export type PullRequestReview = z.infer<typeof PullRequestReviewSchema>;

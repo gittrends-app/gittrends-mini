@@ -2,7 +2,7 @@ import { Knex } from 'knex';
 
 import { IResourceRepository } from '@gittrends/service';
 
-import { Dependency } from '@gittrends/entities';
+import { Dependency, Entity } from '@gittrends/entities';
 
 import { asyncIterator } from '../config/knex.config';
 
@@ -11,7 +11,7 @@ export class DependenciesRepository implements IResourceRepository<Dependency> {
 
   async countByRepository(repository: string): Promise<number> {
     const [{ count }] = await this.db
-      .table(Dependency.__name)
+      .table('dependencies')
       .where('repository', repository)
       .count('repository', { as: 'count' });
     return parseInt(count);
@@ -19,7 +19,7 @@ export class DependenciesRepository implements IResourceRepository<Dependency> {
 
   async findByRepository(repository: string, opts?: { limit: number; skip: number }): Promise<Dependency[]> {
     const dependencies = await this.db
-      .table(Dependency.__name)
+      .table('dependencies')
       .select('*')
       .where('repository', repository)
       .orderBy([
@@ -30,7 +30,7 @@ export class DependenciesRepository implements IResourceRepository<Dependency> {
       .limit(opts?.limit || 1000)
       .offset(opts?.skip || 0);
 
-    return dependencies.map((dep) => new Dependency(dep));
+    return dependencies.map((dep) => Entity.dependency(dep));
   }
 
   private async save(
@@ -44,7 +44,7 @@ export class DependenciesRepository implements IResourceRepository<Dependency> {
 
     await asyncIterator(dependencies, (dep) =>
       this.db
-        .table(Dependency.__name)
+        .table('dependencies')
         .insertEntity(dep)
         .onConflict(['repository', 'manifest', 'package_name', 'requirements'])
         ?.[onConflict]()

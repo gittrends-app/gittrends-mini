@@ -2,7 +2,7 @@ import { Knex } from 'knex';
 
 import { IMetadataRepository } from '@gittrends/service';
 
-import { Metadata } from '@gittrends/entities';
+import { Entity, Metadata } from '@gittrends/entities';
 
 import { asyncIterator } from '../config/knex.config';
 
@@ -11,11 +11,11 @@ export class MetadataRepository implements IMetadataRepository {
 
   async findByRepository(repository: string, resource?: string): Promise<Metadata[]> {
     const metas = await this.db
-      .table(Metadata.__name)
+      .table('metadata')
       .select('*')
       .where({ repository, ...(resource ? { resource } : {}) });
 
-    return metas.map(({ payload, ...meta }) => new Metadata({ ...meta, ...payload }));
+    return metas.map(({ payload, ...meta }) => Entity.metadata({ ...meta, ...payload }));
   }
 
   private async save(
@@ -30,7 +30,7 @@ export class MetadataRepository implements IMetadataRepository {
     await asyncIterator(metas, (meta) => {
       const { repository, resource, end_cursor, updated_at, finished_at, ...payload } = meta;
       return this.db
-        .table(Metadata.__name)
+        .table('metadata')
         .insertEntity({ repository, resource, end_cursor, updated_at, finished_at, payload: payload })
         .onConflict(['repository', 'resource'])
         ?.[onConflict]()

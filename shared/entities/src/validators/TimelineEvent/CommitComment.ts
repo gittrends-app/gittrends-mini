@@ -9,17 +9,17 @@ export const CommitCommentSchema = TimelineEventSchema.extend({
   author: z.union([z.string(), ActorSchema]).optional(),
   body: z.string(),
   commit: z.string().optional(),
-  created_at: z.date(),
+  created_at: z.coerce.date(),
   created_via_email: z.boolean(),
   editor: z.union([z.string(), ActorSchema]).optional(),
   includes_created_edit: z.boolean(),
-  last_edited_at: z.date().optional(),
+  last_edited_at: z.coerce.date().optional(),
   path: z.string().optional(),
   position: z.number().optional(),
-  published_at: z.date().optional(),
+  published_at: z.coerce.date().optional(),
   reaction_groups: z.record(z.number()),
-  reactions: z.union([z.number(), z.array(ReactionSchema)]),
-  updated_at: z.date(),
+  reactions: z.union([z.number(), z.array(ReactionSchema)]).optional(),
+  updated_at: z.coerce.date(),
 });
 
 export type CommitComment = z.infer<typeof CommitCommentSchema>;

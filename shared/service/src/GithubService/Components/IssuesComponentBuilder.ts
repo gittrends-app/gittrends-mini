@@ -10,16 +10,7 @@ import {
   ServerRequestError,
 } from '@gittrends/github';
 
-import {
-  Actor,
-  Entity,
-  Issue,
-  IssueOrPull,
-  PullRequest,
-  Reaction,
-  Repository,
-  TimelineEvent,
-} from '@gittrends/entities';
+import { Entity, Issue, IssueOrPull, PullRequest, Reaction, Repository, TimelineEvent } from '@gittrends/entities';
 import { debug } from '@gittrends/helpers';
 
 import { ComponentBuilder } from '../ComponentBuilder';
@@ -35,6 +26,7 @@ type TMeta = { first: number; endCursor?: string; hasNextPage?: boolean };
 
 type Reactable = {
   id: string;
+  type: string;
   repository: string | Repository;
   reaction_groups: Record<string, number>;
   reactions: number | Reaction[];
@@ -240,10 +232,7 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
         if (this.issuesMeta.every((iMeta) => !iMeta.hasNextPage)) {
           const reactables = findReactables(
             flatten(compact(this.issuesMeta.map((iMeta) => iMeta.issue.timeline_items as TimelineEvent[]))),
-          ).map((reactable) => {
-            reactable.reactions = [];
-            return reactable;
-          });
+          ).map((reactable) => ({ ...reactable, reactions: [] }));
 
           this.reactablesMeta = reactables.map((reactable) => ({ reactable, first: 100, hasNextPage: true }));
           this.currentStage = Stages.GET_REACTIONS;
@@ -259,7 +248,7 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
               ...data,
               repository: this.repositoryId,
               reactable: pr.reactable.id,
-              reactable_type: pr.reactable.constructor.name,
+              reactable_type: pr.reactable.type,
             }),
           );
 

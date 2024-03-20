@@ -3,28 +3,23 @@ import { Argument, Option, program } from 'commander';
 import dayjs from 'dayjs';
 import { compact } from 'lodash';
 
-import {
-  Actor,
-  Dependency,
-  EntityValidationError,
-  Issue,
-  Metadata,
-  PullRequest,
-  Release,
-  Repository,
-  Stargazer,
-  Tag,
-  Watcher,
-} from '@gittrends/entities';
+import { Actor, EntityValidationError } from '@gittrends/entities';
 import { debug } from '@gittrends/helpers';
 
 import { CliJobType, withBullQueue } from '../helpers/withBullQueue';
 import { withDatabase } from '../helpers/withDatabase';
 import { version } from '../package.json';
 
-const Resources = [Actor, Stargazer, Watcher, Tag, Release, Dependency, Issue, PullRequest].map(
-  (entity) => entity.__name,
-);
+const Resources = [
+  'actors',
+  'stargazers',
+  'watchers',
+  'tags',
+  'releases',
+  'dependencies',
+  'issues',
+  'pull_requests',
+] as const;
 
 const logger = debug('schedule');
 
@@ -36,12 +31,12 @@ export async function schedule(args: CliOptions & { repos?: string[] } = { wait:
 
     async function _schedule(repo: string) {
       const { details, metadata } = await withDatabase(repo, async (repos) => {
-        const details = await repos.get(Repository).findByName(repo);
+        const details = await repos.get('repositories').findByName(repo);
         if (!details) throw new Error(`Database corrupted, repository "${repo}" details not found!`);
 
-        details.owner = (await repos.get(Actor).findById(details.owner as string)) || details.owner;
+        details.owner = (await repos.get('actors').findById(details.owner as string)) || details.owner;
 
-        return { details, metadata: await repos.get(Metadata).findByRepository(details.id) };
+        return { details, metadata: await repos.get('metadata').findByRepository(details.id) };
       });
 
       const updatedBefore = dayjs().subtract(args.wait, 'hour').toDate();
@@ -75,7 +70,7 @@ export async function schedule(args: CliOptions & { repos?: string[] } = { wait:
             url: details.url,
             watchers: details.watchers,
 
-            __resources: Resources,
+            __resources: [...Resources],
             __updated_before: updatedBefore,
             __force: args.force,
           };
@@ -100,16 +95,19 @@ export async function schedule(args: CliOptions & { repos?: string[] } = { wait:
       : await withDatabase(({ knex }) =>
           knex
             .select('name_with_owner')
-            .from(Repository.__name)
+            .from('repositories')
             .then((records: { name_with_owner: string }[]) => records.map((record) => record.name_with_owner)),
         );
 
-    const scheduleQueue = asyncQueue<[string, number]>(([name, index], callback) => {
-      logger(`Scheduling ${name} (index: ${index})...`);
-      _schedule(name)
-        .then(() => callback())
-        .catch(callback);
-    }, parseInt(process.env.CLI_SCHEDULER_WORKERS || '10'));
+    const scheduleQueue = asyncQueue<[string, number]>(
+      ([name, index], callback) => {
+        logger(`Scheduling ${name} (index: ${index})...`);
+        _schedule(name)
+          .then(() => callback())
+          .catch(callback);
+      },
+      parseInt(process.env.CLI_SCHEDULER_WORKERS || '10'),
+    );
 
     scheduleQueue.push(list.map((name, index) => [name, index]) as Array<[string, number]>);
 

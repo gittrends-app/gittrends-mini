@@ -5,7 +5,7 @@ import { TimelineEventSchema } from '../TimelineEvent';
 
 export const RenamedTitleEventSchema = TimelineEventSchema.extend({
   actor: z.union([z.string(), ActorSchema]).optional(),
-  created_at: z.date(),
+  created_at: z.coerce.date(),
   current_title: z.string(),
   previous_title: z.string(),
 });

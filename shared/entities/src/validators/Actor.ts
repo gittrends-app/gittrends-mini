@@ -8,14 +8,14 @@ export const ActorSchema = z.object({
   type: z.enum(['User', 'Organization', 'Mannequin', 'Bot', 'EnterpriseUserAccount']),
   login: z.string(),
   avatar_url: z.string().optional(),
-  __updated_at: z.date().optional(),
+  __updated_at: z.coerce.date().optional(),
 });
 
 export const UserSchema = ActorSchema.extend({
   type: z.literal('User'),
   bio: z.string().optional(),
   company: z.string().optional(),
-  created_at: z.date().optional(),
+  created_at: z.coerce.date().optional(),
   database_id: z.number().optional(),
   email: z.string().optional(),
   followers: z.number().optional(),
@@ -36,23 +36,23 @@ export const UserSchema = ActorSchema.extend({
   starred_repositories: z.number().optional(),
   status: z
     .object({
-      created_at: z.date(),
+      created_at: z.coerce.date(),
       emoji: z.string().optional(),
-      expires_at: z.date().optional(),
+      expires_at: z.coerce.date().optional(),
       indicates_limited_availability: z.boolean().optional(),
       message: z.string().optional(),
-      updated_at: z.date().optional(),
+      updated_at: z.coerce.date().optional(),
     })
     .optional(),
   twitter_username: z.string().optional(),
-  updated_at: z.date().optional(),
+  updated_at: z.coerce.date().optional(),
   watching: z.number().optional(),
   website_url: z.string().optional(),
 });
 
 export const OrganizationSchema = ActorSchema.extend({
   type: z.literal('Organization'),
-  created_at: z.date().optional(),
+  created_at: z.coerce.date().optional(),
   database_id: z.number().optional(),
   description: z.string().optional(),
   email: z.string().optional(),
@@ -63,30 +63,30 @@ export const OrganizationSchema = ActorSchema.extend({
   repositories: z.number().optional(),
   teams: z.number().optional(),
   twitter_username: z.string().optional(),
-  updated_at: z.date().optional(),
+  updated_at: z.coerce.date().optional(),
   website_url: z.string().optional(),
 });
 
 export const MannequinSchema = ActorSchema.extend({
   type: z.literal('Mannequin'),
-  created_at: z.date().optional(),
+  created_at: z.coerce.date().optional(),
   database_id: z.number().optional(),
   email: z.string().optional(),
-  updated_at: z.date().optional(),
+  updated_at: z.coerce.date().optional(),
 });
 
 export const BotSchema = ActorSchema.extend({
   type: z.literal('Bot'),
-  created_at: z.date().optional(),
+  created_at: z.coerce.date().optional(),
   database_id: z.number().optional(),
-  updated_at: z.date().optional(),
+  updated_at: z.coerce.date().optional(),
 });
 
 export const EnterpriseUserAccountSchema = ActorSchema.extend({
   type: z.literal('EnterpriseUserAccount'),
-  created_at: z.date().optional(),
+  created_at: z.coerce.date().optional(),
   name: z.string().optional(),
-  updated_at: z.date().optional(),
+  updated_at: z.coerce.date().optional(),
   user: z.string().optional(),
 });
 

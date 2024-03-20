@@ -7,7 +7,7 @@ export const ReferencedEventSchema = TimelineEventSchema.extend({
   actor: z.union([z.string(), ActorSchema]).optional(),
   commit: z.string().optional(),
   commit_repository: z.string(),
-  created_at: z.date(),
+  created_at: z.coerce.date(),
   is_cross_repository: z.boolean(),
   is_direct_reference: z.boolean(),
 });

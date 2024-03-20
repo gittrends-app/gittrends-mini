@@ -1,9 +1,7 @@
 import { Knex } from 'knex';
 
-import { Tag } from '@gittrends/entities';
-
 export async function up(knex: Knex): Promise<void> {
-  return knex.schema.createTable(Tag.__name, (table) => {
+  return knex.schema.createTable('tags', (table) => {
     table.text('id').primary();
     table.text('repository').notNullable();
     table.text('message');
@@ -17,5 +15,5 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 export async function down(knex: Knex): Promise<void> {
-  return knex.schema.dropTable(Tag.__name);
+  return knex.schema.dropTable('tags');
 }

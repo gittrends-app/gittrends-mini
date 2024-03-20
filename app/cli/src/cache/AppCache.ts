@@ -2,12 +2,11 @@ import { isNil, omitBy } from 'lodash';
 
 import { Cache } from '@gittrends/service';
 
-import { Actor, Entity, Node } from '@gittrends/entities';
 import { debug } from '@gittrends/helpers';
 
 export const logger = debug('cli:entities-cache');
 
-type EntityKey = Partial<Node & { name: string }>;
+type EntityKey = Partial<{ id: string; name: string }>;
 
 export interface CacheProvider {
   add(key: string, value: string | Buffer, expires: number): Promise<void>;
@@ -21,28 +20,27 @@ export class AppCache implements Cache<EntityKey> {
     logger(`Configuring entities cache...`);
   }
 
-  private getCacheKey(entity: EntityKey): string {
-    if (entity.id) return entity.id;
-    else if (entity.name) return entity.name;
-    throw new Error('Cannot key enity key');
+  private getCacheKey(entity: EntityKey, scope?: string): string {
+    if (!entity.id && !entity.name) throw new Error('Cannot key enity key');
+    const suffix = (entity.id ?? entity.name) as string;
+    return scope ? `${scope}_${suffix}` : suffix;
   }
 
-  async get<T extends Entity>(EntityRef: EntityPrototype<T>, key: EntityKey): Promise<T | undefined> {
+  async get<T>(key: EntityKey, scope: string): Promise<T | undefined> {
     logger(`Finding reference for ${key.id || key.name} on cache...`);
-    return await this.provider.get(this.getCacheKey(key)).then((res) => {
+    return await this.provider.get(this.getCacheKey(key, scope)).then((res) => {
       if (!res) return undefined;
-      if (EntityRef.prototype === Actor.prototype) return Actor.from(JSON.parse(res.toString()));
-      return new (EntityRef as any)(JSON.parse(res.toString()));
+      return JSON.parse(res.toString()) as T;
     });
   }
 
-  async add(entity: Entity & EntityKey): Promise<void> {
+  async add(entity: EntityKey & Record<string, unknown>, scope: string): Promise<void> {
     logger(`Adding ${entity.constructor.name} (key=${this.getCacheKey(entity)}) to cache...`);
-    await this.provider.add(this.getCacheKey(entity), JSON.stringify(omitBy(entity.toJSON(), isNil)), 0);
+    await this.provider.add(this.getCacheKey(entity, scope), JSON.stringify(omitBy(entity, isNil)), 0);
   }
 
-  async delete(entity: Entity & EntityKey): Promise<void> {
-    await this.provider.del(this.getCacheKey(entity));
+  async delete(entity: EntityKey, scope: string): Promise<void> {
+    await this.provider.del(this.getCacheKey(entity, scope));
   }
 
   async close(): Promise<void> {

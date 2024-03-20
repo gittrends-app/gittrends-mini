@@ -5,7 +5,7 @@ import { TimelineEventSchema } from '../TimelineEvent';
 
 export const AutomaticBaseChangeSucceededEventSchema = TimelineEventSchema.extend({
   actor: z.union([z.string(), ActorSchema]),
-  created_at: z.date(),
+  created_at: z.coerce.date(),
   new_base: z.string(),
   old_base: z.string(),
 });

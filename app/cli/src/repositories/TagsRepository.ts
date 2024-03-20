@@ -3,10 +3,10 @@ import { cloneDeep } from 'lodash';
 
 import { IResourceRepository } from '@gittrends/service';
 
-import { Actor, Tag } from '@gittrends/entities';
+import { Entity, Tag } from '@gittrends/entities';
 
 import { asyncIterator } from '../config/knex.config';
-import { extractEntityInstances } from '../helpers/extract';
+import { extractActors } from '../helpers/extract';
 import { ActorsRepository } from './ActorRepository';
 
 export class TagsRepository implements IResourceRepository<Tag> {
@@ -18,7 +18,7 @@ export class TagsRepository implements IResourceRepository<Tag> {
 
   async countByRepository(repository: string): Promise<number> {
     const [{ count }] = await this.db
-      .table(Tag.__name)
+      .table('tags')
       .where('repository', repository)
       .count('repository', { as: 'count' });
     return parseInt(count);
@@ -33,7 +33,7 @@ export class TagsRepository implements IResourceRepository<Tag> {
       .limit(opts?.limit || 1000)
       .offset(opts?.skip || 0);
 
-    return tags.map((tag) => new Tag(tag));
+    return tags.map((tag) => Entity.tag(tag));
   }
 
   private async save(
@@ -42,14 +42,14 @@ export class TagsRepository implements IResourceRepository<Tag> {
     onConflict: 'ignore' | 'merge' = 'ignore',
   ): Promise<void> {
     const tags = cloneDeep(Array.isArray(tag) ? tag : [tag]);
-    const actors = extractEntityInstances<Actor>(tags, Actor as any);
+    const actors = extractActors(tags);
 
     const transaction = trx || (await this.db.transaction());
 
     await Promise.all([
       this.actorsRepo.insert(actors, transaction),
       asyncIterator(tags, (tag) =>
-        this.db.table(Tag.__name).insertEntity(tag).onConflict(['id'])?.[onConflict]().transacting(transaction),
+        this.db.table('tags').insertEntity(tag).onConflict(['id'])?.[onConflict]().transacting(transaction),
       ),
     ])
       .then(async () => (!trx ? transaction.commit() : null))

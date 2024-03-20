@@ -1,7 +1,5 @@
 import { Knex } from 'knex';
 
-import { Issue, PullRequest, Reaction, TimelineEvent } from '@gittrends/entities';
-
 function issueOrPullBuilder(table: Knex.CreateTableBuilder) {
   table.text('id').primary();
   table.text('repository').notNullable();
@@ -36,7 +34,7 @@ function issueOrPullBuilder(table: Knex.CreateTableBuilder) {
 
 export async function up(knex: Knex): Promise<void> {
   await Promise.all([
-    knex.schema.createTable(Issue.__name, (table) => {
+    knex.schema.createTable('issues', (table) => {
       issueOrPullBuilder(table);
       table.boolean('is_pinned');
       table.text('state_reason');
@@ -44,7 +42,7 @@ export async function up(knex: Knex): Promise<void> {
       table.integer('tracked_issues').notNullable();
     }),
 
-    knex.schema.createTable(PullRequest.__name, (table) => {
+    knex.schema.createTable('pull_requests', (table) => {
       issueOrPullBuilder(table);
       table.integer('additions').notNullable();
       table.json('base_ref');
@@ -78,7 +76,7 @@ export async function up(knex: Knex): Promise<void> {
       table.json('suggested_reviewers');
     }),
 
-    knex.schema.createTable(TimelineEvent.__name, (table) => {
+    knex.schema.createTable('timeline_events', (table) => {
       table.text('id').primary();
       table.text('repository').notNullable();
       table.text('issue').notNullable();
@@ -86,7 +84,7 @@ export async function up(knex: Knex): Promise<void> {
       table.json('payload');
     }),
 
-    knex.schema.createTable(Reaction.__name, (table) => {
+    knex.schema.createTable('reactions', (table) => {
       table.text('id').primary();
       table.text('repository').notNullable();
       table.text('reactable').notNullable();
@@ -100,9 +98,9 @@ export async function up(knex: Knex): Promise<void> {
 
 export async function down(knex: Knex): Promise<void> {
   await Promise.all([
-    knex.schema.dropTable(Issue.__name),
-    knex.schema.dropTable(PullRequest.__name),
-    knex.schema.dropTable(TimelineEvent.__name),
-    knex.schema.dropTable(Reaction.__name),
+    knex.schema.dropTable('issues'),
+    knex.schema.dropTable('pull_requests'),
+    knex.schema.dropTable('timeline_events'),
+    knex.schema.dropTable('reactions'),
   ]);
 }

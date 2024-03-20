@@ -6,16 +6,28 @@ import type {
   Issue,
   IssueOrPull,
   PullRequest,
+  Reaction,
   Release,
   Repository,
   Stargazer,
   Tag,
+  TimelineEvent,
   Watcher,
 } from '@gittrends/entities';
 
 export type Iterable<T> = AsyncIterableIterator<{ items: T[]; endCursor?: string; hasNextPage?: boolean }[]>;
 
-export type RepositoryResource = Dependency | IssueOrPull | Issue | PullRequest | Release | Stargazer | Tag | Watcher;
+export type RepositoryResource =
+  | Dependency
+  | IssueOrPull
+  | Issue
+  | PullRequest
+  | Release
+  | Stargazer
+  | Tag
+  | Watcher
+  | Reaction
+  | TimelineEvent;
 
 export type RepositoryResourceName =
   | 'dependencies'

@@ -96,7 +96,7 @@ export class ReleasesComponentBuilder implements ComponentBuilder<RepositoryComp
               ...rd,
               repository: this.repositoryId,
               reactable: meta.release.id,
-              reactable_type: meta.release.constructor.name,
+              reactable_type: 'Release',
             }),
           ),
         );

@@ -3,11 +3,11 @@ import { cloneDeep } from 'lodash';
 
 import { IRepositoriesRepository } from '@gittrends/service';
 
-import { Actor, Repository } from '@gittrends/entities';
+import { Entity, Repository } from '@gittrends/entities';
 
 import { asyncIterator } from '../config/knex.config';
-import { extractEntityInstances } from '../helpers/extract';
 import { ActorsRepository } from './ActorRepository';
+import { extractActors } from 'src/helpers/extract';
 
 export class RepositoriesRepository implements IRepositoriesRepository {
   private readonly actorRepo: ActorsRepository;
@@ -24,9 +24,9 @@ export class RepositoriesRepository implements IRepositoriesRepository {
     const results = await asyncIterator(ids, (id) =>
       this.db
         .first('*')
-        .from(Repository.__name)
+        .from('repositories')
         .where('id', id)
-        .then((result) => result && new Repository(result)),
+        .then((result) => result && Entity.repository(result)),
     );
 
     return Array.isArray(id) ? results : results[0];
@@ -35,9 +35,9 @@ export class RepositoriesRepository implements IRepositoriesRepository {
   async findByName(name: string): Promise<Repository | undefined> {
     return this.db
       .first('*')
-      .from(Repository.__name)
+      .from('repositories')
       .whereRaw('UPPER(name_with_owner) LIKE ?', name.toUpperCase())
-      .then((result) => result && new Repository(result));
+      .then((result) => result && Entity.repository(result));
   }
 
   private async save(
@@ -46,7 +46,7 @@ export class RepositoriesRepository implements IRepositoriesRepository {
     onConflict: 'merge' | 'ignore' = 'ignore',
   ): Promise<void> {
     const repos = cloneDeep(Array.isArray(repo) ? repo : [repo]);
-    const actors = extractEntityInstances<Actor>(repos, Actor as any);
+    const actors = extractActors(repos);
 
     const transaction = trx || (await this.db.transaction());
 
@@ -54,7 +54,7 @@ export class RepositoriesRepository implements IRepositoriesRepository {
       this.actorRepo.insert(actors, transaction),
       asyncIterator(repos, (repo) =>
         this.db
-          .table(Repository.__name)
+          .table('repositories')
           .insertEntity(repo)
           .onConflict('id')
           ?.[onConflict || 'merge']()

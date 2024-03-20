@@ -6,7 +6,7 @@ import { TimelineEventSchema } from '../TimelineEvent';
 export const BaseRefDeletedEventSchema = TimelineEventSchema.extend({
   actor: z.union([z.string(), ActorSchema]).optional(),
   base_ref_name: z.string().optional(),
-  created_at: z.date(),
+  created_at: z.coerce.date(),
 });
 
 export type BaseRefDeletedEvent = z.infer<typeof BaseRefDeletedEventSchema>;

@@ -3,10 +3,10 @@ import { cloneDeep } from 'lodash';
 
 import { IResourceRepository } from '@gittrends/service';
 
-import { Actor, Reaction, Release } from '@gittrends/entities';
+import { Entity, Release } from '@gittrends/entities';
 
 import { asyncIterator } from '../config/knex.config';
-import { extractEntityInstances } from '../helpers/extract';
+import { extractActors, extractReactions } from '../helpers/extract';
 import { ActorsRepository } from './ActorRepository';
 import { ReactionsRepository } from './ReactionsRepository';
 
@@ -21,7 +21,7 @@ export class ReleasesRepository implements IResourceRepository<Release> {
 
   async countByRepository(repository: string): Promise<number> {
     const [{ count }] = await this.db
-      .table(Release.__name)
+      .table('releases')
       .where('repository', repository)
       .count('repository', { as: 'count' });
     return parseInt(count);
@@ -29,14 +29,14 @@ export class ReleasesRepository implements IResourceRepository<Release> {
 
   async findByRepository(repository: string, opts?: { limit: number; skip: number } | undefined): Promise<Release[]> {
     const releases = await this.db
-      .table(Release.__name)
+      .table('releases')
       .select('*')
       .where('repository', repository)
       .orderBy('created_at', 'asc')
       .limit(opts?.limit || 1000)
       .offset(opts?.skip || 0);
 
-    return releases.map((release) => new Release(release));
+    return releases.map((release) => Entity.release(release));
   }
 
   private async save(
@@ -46,8 +46,8 @@ export class ReleasesRepository implements IResourceRepository<Release> {
   ): Promise<void> {
     const releases = cloneDeep(Array.isArray(release) ? release : [release]);
 
-    const actors = extractEntityInstances<Actor>(releases, Actor as any);
-    const reactions = extractEntityInstances<Reaction>(releases, Reaction);
+    const actors = extractActors(releases);
+    const reactions = extractReactions(releases);
 
     const transaction = trx || (await this.db.transaction());
 
@@ -60,12 +60,7 @@ export class ReleasesRepository implements IResourceRepository<Release> {
           return rel;
         }),
         (release) =>
-          this.db
-            .table(Release.__name)
-            .insertEntity(release)
-            .onConflict(['id'])
-            ?.[onConflict]()
-            .transacting(transaction),
+          this.db.table('releases').insertEntity(release).onConflict(['id'])?.[onConflict]().transacting(transaction),
       ),
     ])
       .then(async () => (!trx ? transaction.commit() : null))

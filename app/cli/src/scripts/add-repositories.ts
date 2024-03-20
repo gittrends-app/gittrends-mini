@@ -84,7 +84,7 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
           await Promise.all(
             entityChunk.map((entity) =>
               withDatabase({ name: entity.name_with_owner, migrate: true }, ({ get }) =>
-                Promise.all([publicGet(Repository).insert(entity), get(Repository).insert(entity)]),
+                Promise.all([publicGet('repositories').insert(entity), get('repositories').insert(entity)]),
               ).then(() => progressBar?.increment(1, { resource: entity.name_with_owner })),
             ),
           );

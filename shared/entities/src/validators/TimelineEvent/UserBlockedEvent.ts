@@ -6,7 +6,7 @@ import { TimelineEventSchema } from '../TimelineEvent';
 export const UserBlockedEventSchema = TimelineEventSchema.extend({
   actor: z.union([z.string(), ActorSchema]).optional(),
   block_duration: z.string(),
-  created_at: z.date(),
+  created_at: z.coerce.date(),
   subject: z.union([z.string(), ActorSchema]).optional(),
 });
 

@@ -3,21 +3,19 @@ import { Knex } from 'knex';
 import { chunk, compact, get } from 'lodash';
 import PQueue from 'p-queue';
 
-import { BatchService, IResourceRepository, PersistenceService, Service } from '@gittrends/service';
+import { BatchService, PersistenceService, RepositoryResourceName, Service } from '@gittrends/service';
 
-import { Actor, Metadata, Repository } from '@gittrends/entities';
 import { debug } from '@gittrends/helpers';
 
 import { asyncIterator } from '../../config/knex.config';
 import { delay } from '../../helpers/delay';
 import { withDatabase } from '../../helpers/withDatabase';
-import { UpdatableRepositoryResource, UpdatableResource } from './index';
 
 export const logger = debug('cli:update-worker');
 
 export type UpdaterOpts = {
   service: Service;
-  resources: UpdatableResource[];
+  resources: Array<RepositoryResourceName | 'actors'>;
   before?: Date;
   force?: boolean;
   iterationsToPersist?: number;
@@ -36,7 +34,7 @@ export async function actorsUpdater(opts: {
   logger('Finding for not updated actors...');
 
   const before = opts.before || new Date();
-  const query = opts.knex.select('id').from(Actor.__name).whereNull('__updated_at');
+  const query = opts.knex.select('id').from('actors').whereNull('__updated_at');
 
   const actorsIds: Array<{ id: string }> = await (opts.force
     ? query.orWhere('__updated_at', '<', before).orderBy([{ column: '__updated_at', order: 'asc' }])
@@ -71,7 +69,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
 
   logger(
     `Starting updater for ${name} (resources: ${opts.resources
-      .map((r) => r.__name)
+      .map((r) => r)
       .join(', ')}, before: ${before.toISOString()})`,
   );
 
@@ -81,7 +79,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
     const service = new PersistenceService(new BatchService(opts.service, iterations), dataRepo);
 
     logger('Finding repository localy...');
-    let repo = await dataRepo.get(Repository).findByName(name);
+    let repo = await dataRepo.get('repositories').findByName(name);
     if (!repo) throw new Error(`Database corrupted! Repository ${name} not found!`);
 
     logger('Updating repository data from github...');
@@ -89,21 +87,21 @@ export async function updater(name: string, opts: UpdaterOpts) {
     if (!repo) throw new Error(`Repository ${name} not found!`);
 
     logger('Updating local data...');
-    await withDatabase('public', async ({ get }) => repo && get(Repository).upsert(repo));
+    await withDatabase('public', async ({ get }) => repo && get('repositories').upsert(repo));
 
     logger('Preparing resources metadata...');
     const repositoryResources = opts.resources
-      .filter((r) => r !== Actor)
+      .filter((r) => r !== 'actors')
       .map((resource) => ({
-        resource: resource as UpdatableRepositoryResource,
-        repository: dataRepo.get(resource) as unknown as IResourceRepository<any>,
+        resource: resource as RepositoryResourceName,
+        repository: dataRepo.get(resource as RepositoryResourceName),
       }));
 
     logger('Getting resources metadata...');
     const repositoryResourcesMeta = await asyncIterator(repositoryResources, async (info) => {
-      const [meta] = await dataRepo.get(Metadata).findByRepository(repo?.id as string, info.resource.__name);
+      const [meta] = await dataRepo.get('metadata').findByRepository(repo?.id as string, info.resource);
       const cachedCount = await info.repository.countByRepository(repo?.id as string);
-      const total = get(repo, info.resource.__name, Infinity);
+      const total = get(repo, info.resource, Infinity);
 
       return {
         resource: info.resource,
@@ -114,14 +112,14 @@ export async function updater(name: string, opts: UpdaterOpts) {
       };
     });
 
-    const usersResourceInfo = { resource: Actor, done: true, current: 0, total: 0 };
+    const usersResourceInfo = { resource: 'actors', done: true, current: 0, total: 0 };
 
     const reportCurrentProgress = async function () {
       if (!opts.onProgress) return;
 
       return opts.onProgress(
         [...repositoryResourcesMeta, ...(usersResourceInfo ? [usersResourceInfo] : [])].reduce(
-          (progress, { resource, ...info }) => ({ ...progress, [resource.__name]: info }),
+          (progress, { resource, ...info }) => ({ ...progress, [resource]: info }),
           {},
         ),
       );
@@ -149,7 +147,7 @@ export async function updater(name: string, opts: UpdaterOpts) {
     let resourcesDone = false;
 
     const actorsReSchedule = async function (): Promise<void> {
-      if (opts.resources.includes(Actor))
+      if (opts.resources.includes('actors'))
         await actorsUpdater({
           knex: dataRepo.knex,
           service: service,

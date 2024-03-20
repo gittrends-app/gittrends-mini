@@ -2,19 +2,6 @@ import { Knex } from 'knex';
 
 import { EntityRepositories } from '@gittrends/service';
 
-import {
-  Actor,
-  Dependency,
-  Issue,
-  Metadata,
-  PullRequest,
-  Release,
-  Repository,
-  Stargazer,
-  Tag,
-  Watcher,
-} from '@gittrends/entities';
-
 import { createOrConnectDatabase, migrate } from '../config/knex.config';
 import { ActorsRepository } from '../repositories/ActorRepository';
 import { DependenciesRepository } from '../repositories/DependenciesRepository';
@@ -67,18 +54,18 @@ export async function withDatabase<T>(db: any, context?: any): Promise<T> {
 
   const repos: ExtendedEntityRepositories = {
     knex,
-    get: function (resource: any): any {
-      if (resource === Actor || resource.prototype instanceof Actor) return new ActorsRepository(knex);
-      else if (resource === Repository) return new RepositoriesRepository(knex);
-      else if (resource === Stargazer) return new StargazersRepository(knex);
-      else if (resource === Tag) return new TagsRepository(knex);
-      else if (resource === Release) return new ReleasesRepository(knex);
-      else if (resource === Watcher) return new WatchersRepository(knex);
-      else if (resource === Dependency) return new DependenciesRepository(knex);
-      else if (resource === Metadata) return new MetadataRepository(knex);
-      else if (resource === Issue) return new IssuesRepository(knex);
-      else if (resource === PullRequest) return new PullRequestsRepository(knex);
-      throw new Error(`No repository for ${resource.name}.`);
+    get: function (resource: string): any {
+      if (resource === 'actors') return new ActorsRepository(knex);
+      else if (resource === 'repositories') return new RepositoriesRepository(knex);
+      else if (resource === 'stargazers') return new StargazersRepository(knex);
+      else if (resource === 'tags') return new TagsRepository(knex);
+      else if (resource === 'releases') return new ReleasesRepository(knex);
+      else if (resource === 'watchers') return new WatchersRepository(knex);
+      else if (resource === 'dependencies') return new DependenciesRepository(knex);
+      else if (resource === 'metadata') return new MetadataRepository(knex);
+      else if (resource === 'issues') return new IssuesRepository(knex);
+      else if (resource === 'pull_requests') return new PullRequestsRepository(knex);
+      throw new Error(`No repository for ${resource}.`);
     },
   };
 
