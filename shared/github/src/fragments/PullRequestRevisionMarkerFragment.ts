@@ -13,6 +13,7 @@ export class PullRequestRevisionMarkerFragment extends Fragment {
   toString(): string {
     return `
       fragment ${this.code} on PullRequestRevisionMarker {
+        __typename
         createdAt
         lastSeenCommit { id:oid }
       }

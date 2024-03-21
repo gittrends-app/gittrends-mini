@@ -5,6 +5,7 @@ import { ReactionSchema } from '../Reaction';
 import { TimelineEventSchema } from '../TimelineEvent';
 
 export const CommitCommentSchema = TimelineEventSchema.extend({
+  __type: z.literal('CommitComment'),
   author_association: z.string(),
   author: z.union([z.string(), ActorSchema]).optional(),
   body: z.string(),

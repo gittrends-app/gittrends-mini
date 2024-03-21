@@ -4,9 +4,11 @@
 import { z } from 'zod';
 
 import { ActorSchema } from './Actor';
+import { GithubEntitySchema } from './GithubEntity';
 import { ReactionSchema } from './Reaction';
 
-export const ReleaseSchema = z.object({
+export const ReleaseSchema = GithubEntitySchema.extend({
+  __type: z.literal('Release'),
   id: z.string(),
   repository: z.string(),
   author: z.union([z.string(), ActorSchema]).optional(),

@@ -15,6 +15,7 @@ export class DeploymentStatusFragment extends Fragment {
   toString(): string {
     return `
       fragment ${this.code} on DeploymentStatus {
+        __typename
         createdAt
         creator { ...${SimplifiedActorFragment.code} }
         deployment { ...${DeploymentFragment.code} }

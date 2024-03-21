@@ -4,15 +4,16 @@
 import { z } from 'zod';
 
 import { ActorSchema } from './Actor';
+import { GithubEntitySchema } from './GithubEntity';
 import { ReactionSchema } from './Reaction';
 import { TimelineEventSchema } from './TimelineEvent';
 
-export const IssueOrPullSchema = z.object({
+export const IssueOrPullSchema = GithubEntitySchema.extend({
+  __type: z.enum(['Issue', 'PullRequest']),
   id: z.string(),
   repository: z.string(),
   reaction_groups: z.record(z.number()),
   reactions: z.union([z.number(), z.array(ReactionSchema)]),
-  type: z.enum(['Issue', 'PullRequest']),
   active_lock_reason: z.string().optional(),
   assignees: z.array(z.union([z.string(), ActorSchema])).optional(),
   author: z.union([z.string(), ActorSchema]).optional(),
@@ -38,7 +39,7 @@ export const IssueOrPullSchema = z.object({
 });
 
 export const IssueSchema = IssueOrPullSchema.extend({
-  type: z.literal('Issue'),
+  __type: z.literal('Issue'),
   is_pinned: z.boolean().optional(),
   state_reason: z.string().optional(),
   tracked_in_issues: z.number(),

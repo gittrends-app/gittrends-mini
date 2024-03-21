@@ -15,6 +15,7 @@ export class ReleaseFragment extends Fragment {
   toString(): string {
     return `
     fragment ${this.code} on Release {
+      __typename
       author { ...${SimplifiedActorFragment.code} }
       createdAt
       description

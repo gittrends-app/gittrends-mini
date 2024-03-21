@@ -29,6 +29,7 @@ export class StargazersComponentBuilder implements ComponentBuilder<RepositoryCo
       endCursor: (this.endCursor = get(data, 'repo.stars.page_info.end_cursor', this.endCursor)),
       data: get<{ user: any; starred_at: Date }[]>(data, 'repo.stars.edges', []).map((data) =>
         Entity.stargazer({
+          __type: 'Stargazer',
           repository: this.repositoryId,
           user: data.user,
           starred_at: data.starred_at,

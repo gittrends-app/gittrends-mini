@@ -3,7 +3,10 @@
  */
 import { z } from 'zod';
 
-export const DependencySchema = z.object({
+import { GithubEntitySchema } from './GithubEntity';
+
+export const DependencySchema = GithubEntitySchema.extend({
+  __type: z.literal('Dependency'),
   repository: z.string(),
   manifest: z.string(),
   package_name: z.string(),

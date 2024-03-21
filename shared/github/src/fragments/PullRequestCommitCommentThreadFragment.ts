@@ -14,6 +14,7 @@ export class PullRequestCommitCommentThreadFragment extends Fragment {
   toString(): string {
     return `
       fragment ${this.code} on PullRequestCommitCommentThread {
+        __typename
         comments(first: 100) { nodes { ...${CommitCommentFragment.code} } }
         commit { id:oid }
         path

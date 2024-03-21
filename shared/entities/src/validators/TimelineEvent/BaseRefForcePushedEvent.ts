@@ -4,6 +4,7 @@ import { ActorSchema } from '../Actor';
 import { TimelineEventSchema } from '../TimelineEvent';
 
 export const BaseRefForcePushedEventSchema = TimelineEventSchema.extend({
+  __type: z.literal('BaseRefForcePushedEvent'),
   actor: z.union([z.string(), ActorSchema]).optional(),
   after_commit: z.string().optional(),
   before_commit: z.string().optional(),

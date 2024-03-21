@@ -5,6 +5,7 @@ import { TimelineEventSchema } from '../TimelineEvent';
 import { PullRequestReviewCommentSchema } from './PullRequestReviewComment';
 
 export const PullRequestReviewThreadSchema = TimelineEventSchema.extend({
+  __type: z.literal('PullRequestReviewThread'),
   comments: z.array(PullRequestReviewCommentSchema),
   diff_side: z.string(),
   is_collapsed: z.boolean(),

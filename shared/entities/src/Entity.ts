@@ -60,10 +60,10 @@ export class Entity {
     return validator;
   }
 
-  protected static validate<T>(object: { type: string; [k: string]: unknown }): T {
-    const validator = Entity.getSchema(object.type);
+  protected static validate<T>(object: { [k: string]: unknown }, type: string): T {
+    const validator = Entity.getSchema(type);
 
-    if (!validator) throw new EntityTypeError(`Unknown entity type "${object.type}"`);
+    if (!validator) throw new EntityTypeError(`Unknown entity type "${type}"`);
 
     const result = validator.safeParse(object);
 
@@ -74,19 +74,18 @@ export class Entity {
     return result.data as T;
   }
 
-  static actor = (object: Record<string, any>) => this.validate<Actor>({ type: 'Actor', ...object });
-  static repository = (object: Record<string, any>) => this.validate<Repository>({ type: 'Repository', ...object });
-  static stargazer = (object: Record<string, any>) => this.validate<Stargazer>({ type: 'Stargazer', ...object });
-  static watcher = (object: Record<string, any>) => this.validate<Watcher>({ type: 'Watcher', ...object });
-  static tag = (object: Record<string, any>) => this.validate<Tag>({ type: 'Tag', ...object });
-  static reaction = (object: Record<string, any>) => this.validate<Reaction>({ type: 'Reaction', ...object });
-  static release = (object: Record<string, any>) => this.validate<Release>({ type: 'Release', ...object });
-  static dependency = (object: Record<string, any>) => this.validate<Dependency>({ type: 'Dependency', ...object });
-  static timeline_event = (object: Record<string, any>) =>
-    this.validate<TimelineEvent>({ type: object.type, ...object });
-  static issue = (object: Record<string, any>) => this.validate<Issue>({ type: 'Issue', ...object });
-  static pull_request = (object: Record<string, any>) => this.validate<PullRequest>({ type: 'PullRequest', ...object });
-  static metadata = (object: Record<string, any>) => this.validate<Metadata>({ type: 'Metadata', ...object });
+  static actor = (object: Record<string, any>) => this.validate<Actor>(object, object.__type);
+  static repository = (object: Record<string, any>) => this.validate<Repository>(object, 'Repository');
+  static stargazer = (object: Record<string, any>) => this.validate<Stargazer>(object, 'Stargazer');
+  static watcher = (object: Record<string, any>) => this.validate<Watcher>(object, 'Watcher');
+  static tag = (object: Record<string, any>) => this.validate<Tag>(object, 'Tag');
+  static reaction = (object: Record<string, any>) => this.validate<Reaction>(object, 'Reaction');
+  static release = (object: Record<string, any>) => this.validate<Release>(object, 'Release');
+  static dependency = (object: Record<string, any>) => this.validate<Dependency>(object, 'Dependency');
+  static timeline_event = (object: Record<string, any>) => this.validate<TimelineEvent>(object, object.__type);
+  static issue = (object: Record<string, any>) => this.validate<Issue>(object, 'Issue');
+  static pull_request = (object: Record<string, any>) => this.validate<PullRequest>(object, 'PullRequest');
+  static metadata = (object: Record<string, any>) => this.validate<Metadata>(object, 'Metadata');
 }
 
 export class EntityValidationError extends BaseError {

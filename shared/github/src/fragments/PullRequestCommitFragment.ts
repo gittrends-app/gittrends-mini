@@ -13,6 +13,7 @@ export class PullRequestCommitFragment extends Fragment {
   toString(): string {
     return `
       fragment ${this.code} on PullRequestCommit {
+        __typename
         commit { id:oid }
       }
     `;

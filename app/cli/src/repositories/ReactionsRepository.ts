@@ -1,5 +1,5 @@
 import { Knex } from 'knex';
-import { cloneDeep } from 'lodash';
+import { cloneDeep, omit } from 'lodash';
 
 import { IResourceRepository } from '@gittrends/service';
 
@@ -32,7 +32,7 @@ export class ReactionsRepository implements IResourceRepository<Reaction> {
       .limit(opts?.limit || 1000)
       .offset(opts?.skip || 0);
 
-    return reactions.map((reaction) => Entity.reaction(reaction));
+    return reactions.map((reaction) => Entity.reaction({ __type: 'Reaction', ...reaction }));
   }
 
   private async save(
@@ -50,7 +50,7 @@ export class ReactionsRepository implements IResourceRepository<Reaction> {
       asyncIterator(reactions, (reaction) => {
         return this.db
           .table('reactions')
-          .insertEntity(reaction)
+          .insertEntity(omit(reaction, ['__type']))
           .onConflict('id')
           ?.[onConflict]()
           .transacting(transaction);

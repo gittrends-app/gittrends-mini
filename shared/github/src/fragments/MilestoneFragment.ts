@@ -14,7 +14,7 @@ export class MilestoneFragment extends Fragment {
   toString(): string {
     return `
       fragment ${this.code} on Milestone {
-        type:__typename
+        __typename
         repository { id }
         creator { ...${SimplifiedActorFragment.code} }
         description

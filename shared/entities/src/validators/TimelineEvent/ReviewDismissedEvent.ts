@@ -6,6 +6,7 @@ import { PullRequestCommitSchema } from './PullRequestCommit';
 import { PullRequestReviewSchema } from './PullRequestReview';
 
 export const ReviewDismissedEventSchema = TimelineEventSchema.extend({
+  __type: z.literal('ReviewDismissedEvent'),
   actor: z.union([z.string(), ActorSchema]).optional(),
   created_at: z.coerce.date(),
   dismissal_message: z.string().optional(),

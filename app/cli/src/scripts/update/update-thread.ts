@@ -51,7 +51,7 @@ async function workerThread(): Promise<void> {
     })
       .catch((error: Error) => {
         logger(`Error: ${error.message}`);
-        parentPort?.postMessage({ event: 'error', name: job.data.name_with_owner, message: error.message });
+        parentPort?.postMessage({ event: 'error', name: job.data.name_with_owner, error: error.message });
         throw error;
       })
       .finally(() => {

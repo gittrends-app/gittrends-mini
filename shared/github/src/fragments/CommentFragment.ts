@@ -14,6 +14,7 @@ export class CommentFragment extends Fragment {
   toString(): string {
     return `
       fragment ${this.code} on Comment {
+        __typename
         author { ...${SimplifiedActorFragment.code} }
         authorAssociation
         body

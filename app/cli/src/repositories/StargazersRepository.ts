@@ -1,5 +1,5 @@
 import { Knex } from 'knex';
-import { cloneDeep } from 'lodash';
+import { cloneDeep, omit } from 'lodash';
 
 import { IResourceRepository } from '@gittrends/service';
 
@@ -33,7 +33,7 @@ export class StargazersRepository implements IResourceRepository<Stargazer> {
       .limit(opts?.limit || 1000)
       .offset(opts?.skip || 0);
 
-    return stars.map((star) => Entity.stargazer(star));
+    return stars.map((star) => Entity.stargazer({ __type: 'Stargazer', ...star }));
   }
 
   private async save(
@@ -51,7 +51,7 @@ export class StargazersRepository implements IResourceRepository<Stargazer> {
       asyncIterator(stars, (star) =>
         this.db
           .table('stargazers')
-          .insertEntity(star)
+          .insertEntity(omit(star, ['__type']))
           .onConflict(['repository', 'user', 'starred_at'])
           ?.[onConflict]()
           .transacting(transaction),

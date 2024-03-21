@@ -4,6 +4,7 @@ import { ActorSchema } from '../Actor';
 import { TimelineEventSchema } from '../TimelineEvent';
 
 export const CommentDeletedEventSchema = TimelineEventSchema.extend({
+  __type: z.literal('CommentDeletedEvent'),
   actor: z.union([z.string(), ActorSchema]).optional(),
   created_at: z.coerce.date(),
   deleted_comment_author: z.union([z.string(), ActorSchema]).optional(),

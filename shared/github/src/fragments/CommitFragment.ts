@@ -14,7 +14,7 @@ export class CommitFragment extends Fragment {
   toString(): string {
     return `
     fragment ${this.code} on Commit {
-      type:__typename
+      __typename
       additions
       author { date email name user { ...${SimplifiedActorFragment.code} } }
       authoredByCommitter

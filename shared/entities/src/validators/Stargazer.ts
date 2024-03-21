@@ -4,8 +4,10 @@
 import { z } from 'zod';
 
 import { UserSchema } from './Actor';
+import { GithubEntitySchema } from './GithubEntity';
 
-export const StargazerSchema = z.object({
+export const StargazerSchema = GithubEntitySchema.extend({
+  __type: z.literal('Stargazer'),
   repository: z.string(),
   user: z.union([z.string(), UserSchema]),
   starred_at: z.coerce.date(),

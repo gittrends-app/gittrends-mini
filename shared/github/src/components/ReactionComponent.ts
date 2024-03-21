@@ -36,7 +36,7 @@ export class ReactionComponent extends Component {
     return this.includes.reactions
       ? `
           ${this.alias}:node(id: "${this.id}") {
-            type:__typename
+            __typename
             ${this.includes.reactions.textFragment}
           }
         `

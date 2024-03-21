@@ -14,6 +14,7 @@ export class DeploymentFragment extends Fragment {
   toString(): string {
     return `
       fragment ${this.code} on Deployment {
+        __typename
         commit { id:oid }
         createdAt
         creator { ...${SimplifiedActorFragment.code} }

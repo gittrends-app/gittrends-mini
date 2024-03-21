@@ -1,4 +1,5 @@
 import { Knex } from 'knex';
+import { omit } from 'lodash';
 
 import { IResourceRepository } from '@gittrends/service';
 
@@ -30,7 +31,7 @@ export class DependenciesRepository implements IResourceRepository<Dependency> {
       .limit(opts?.limit || 1000)
       .offset(opts?.skip || 0);
 
-    return dependencies.map((dep) => Entity.dependency(dep));
+    return dependencies.map((dep) => Entity.dependency({ __type: 'Dependency', ...dep }));
   }
 
   private async save(
@@ -45,7 +46,7 @@ export class DependenciesRepository implements IResourceRepository<Dependency> {
     await asyncIterator(dependencies, (dep) =>
       this.db
         .table('dependencies')
-        .insertEntity(dep)
+        .insertEntity(omit(dep, ['__type']))
         .onConflict(['repository', 'manifest', 'package_name', 'requirements'])
         ?.[onConflict]()
         .transacting(transaction),

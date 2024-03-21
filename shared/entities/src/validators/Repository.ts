@@ -2,8 +2,10 @@
 import { z } from 'zod';
 
 import { ActorSchema } from './Actor';
+import { GithubEntitySchema } from './GithubEntity';
 
-export const RepositorySchema = z.object({
+export const RepositorySchema = GithubEntitySchema.extend({
+  __type: z.literal('Repository'),
   id: z.string(),
   assignable_users: z.number().optional(),
   code_of_conduct: z.string().optional(),

@@ -14,6 +14,7 @@ export class TagFragment extends Fragment {
   toString(): string {
     return `
     fragment ${this.code} on Tag {
+      __typename
       id
       message
       name

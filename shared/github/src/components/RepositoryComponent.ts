@@ -90,7 +90,7 @@ export class RepositoryComponent extends Component {
           pageInfo { hasNextPage endCursor }
           nodes {
             id name
-            target { type:__typename id oid ...${CommitFragment.code} ...${TagFragment.code} }
+            target { __typename id oid ...${CommitFragment.code} ...${TagFragment.code} }
           }
         }
       `,

@@ -26,17 +26,14 @@ type TMeta = { first: number; endCursor?: string; hasNextPage?: boolean };
 
 type Reactable = {
   id: string;
-  type: string;
+  __type: string;
   repository: string | Repository;
   reaction_groups: Record<string, number>;
   reactions: number | Reaction[];
 };
 
-function isntanceOfReactable(object: any): object is Reactable {
-  return (
-    typeof object === 'object' &&
-    ['id', 'repository', 'reaction_groups', 'reactions'].reduce((is, field) => is && field in object, true)
-  );
+function isReactable(object: any): object is Reactable {
+  return typeof object === 'object' && ['id', 'reaction_groups'].every((field) => field in object);
 }
 
 const logger = debug('issues-component-builder');
@@ -191,7 +188,7 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
           iMeta.timelineItems = iData.timeline_items;
 
           iMeta.issue = Entity[this.type === 'Issue' ? 'issue' : 'pull_request']({
-            type: this.type,
+            __type: this.type,
             suggested_reviewers: [],
             ...iData,
             repository: this.repositoryId,
@@ -232,7 +229,9 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
         if (this.issuesMeta.every((iMeta) => !iMeta.hasNextPage)) {
           const reactables = findReactables(
             flatten(compact(this.issuesMeta.map((iMeta) => iMeta.issue.timeline_items as TimelineEvent[]))),
-          ).map((reactable) => ({ ...reactable, reactions: [] }));
+          )
+            .concat(this.issuesMeta.map((im) => im.issue))
+            .map((reactable) => Object.assign(reactable, { reactions: [] }));
 
           this.reactablesMeta = reactables.map((reactable) => ({ reactable, first: 100, hasNextPage: true }));
           this.currentStage = Stages.GET_REACTIONS;
@@ -245,10 +244,11 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
         this.pendingReactables.forEach((pr, index) => {
           const nodes = get<any[]>(data, `reactable_${index}.reactions.nodes`, []).map((data) =>
             Entity.reaction({
+              __type: 'Reaction',
               ...data,
               repository: this.repositoryId,
               reactable: pr.reactable.id,
-              reactable_type: pr.reactable.type,
+              reactable_type: pr.reactable.__type,
             }),
           );
 
@@ -295,14 +295,10 @@ class GenericBuilder<T extends IssueOrPull> implements ComponentBuilder<Componen
 }
 
 function transformTimelineEvent(data: any, opts: { repository: string; issue: string }): any {
-  if (data.reaction_groups) {
-    data.reactions = Object.values(data.reaction_groups).reduce((sum: number, v: any) => sum + v, 0);
-  }
-
   if (
-    data.type === 'PullRequestCommitCommentThread' ||
-    data.type === 'PullRequestReview' ||
-    data.type === 'PullRequestReviewThread'
+    data.__type === 'PullRequestCommitCommentThread' ||
+    data.__type === 'PullRequestReview' ||
+    data.__type === 'PullRequestReviewThread'
   ) {
     data.comments = data.comments ? data.comments.nodes.map((comment: any) => ({ ...opts, ...comment })) : [];
   }
@@ -310,7 +306,7 @@ function transformTimelineEvent(data: any, opts: { repository: string; issue: st
   if (data.pull_request_commit && size(data.pull_request_commit) === 1)
     data.pull_request_commit = data.pull_request_commit.commit;
 
-  if (data.type === 'Deployment') {
+  if (data.__type === 'Deployment') {
     data.statuses = data.statuses?.nodes;
   }
 
@@ -320,8 +316,8 @@ function transformTimelineEvent(data: any, opts: { repository: string; issue: st
 function findReactables(data: any | any[]): Reactable[] {
   if (Array.isArray(data)) return flatten(data.map(findReactables));
   else if (isObjectLike(data))
-    return [...(isntanceOfReactable(data) ? [data] : []), ...flatten(Object.values(data).map(findReactables))];
-  else if (isntanceOfReactable(data)) return [data];
+    return [...(isReactable(data) ? [data] : []), ...flatten(Object.values(data).map(findReactables))];
+  else if (isReactable(data)) return [data];
   else return [];
 }
 

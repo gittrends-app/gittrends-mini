@@ -3,11 +3,12 @@
  */
 import { z } from 'zod';
 
-export const TimelineEventSchema = z.object({
+import { GithubEntitySchema } from './GithubEntity';
+
+export const TimelineEventSchema = GithubEntitySchema.extend({
   id: z.string(),
   repository: z.string(),
   issue: z.string(),
-  type: z.string(),
 });
 
 export type TimelineEvent = z.infer<typeof TimelineEventSchema>;

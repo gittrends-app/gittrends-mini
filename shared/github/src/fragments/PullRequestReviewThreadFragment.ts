@@ -15,6 +15,7 @@ export class PullRequestReviewThreadFragment extends Fragment {
   toString(): string {
     return `
       fragment ${this.code} on PullRequestReviewThread {
+        __typename
         diffSide
         isCollapsed
         isOutdated

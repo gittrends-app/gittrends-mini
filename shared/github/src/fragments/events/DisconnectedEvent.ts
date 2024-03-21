@@ -18,12 +18,12 @@ export class DisconnectedEvent extends Fragment {
         createdAt
         isCrossRepository
         source {
-          ... on Issue { id type:__typename }
-          ... on PullRequest { id type:__typename }
+          ... on Issue { id __typename }
+          ... on PullRequest { id __typename }
         }
         subject {
-          ... on Issue { id type:__typename }
-          ... on PullRequest { id type:__typename }
+          ... on Issue { id __typename }
+          ... on PullRequest { id __typename }
         }
       }
     `;

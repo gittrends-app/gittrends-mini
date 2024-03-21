@@ -38,7 +38,7 @@ export class TimelineEventsRepository implements IResourceRepository<TimelineEve
       .limit(opts?.limit || 1000)
       .offset(opts?.skip || 0);
 
-    return events.map((event) => Entity.timeline_event(event));
+    return events.map(({ type, ...rest }) => Entity.timeline_event({ __type: type, ...rest }));
   }
 
   private async save<T extends TimelineEvent>(
@@ -47,8 +47,8 @@ export class TimelineEventsRepository implements IResourceRepository<TimelineEve
     onConflict: 'ignore' | 'merge' = 'ignore',
   ): Promise<void> {
     const events = cloneDeep(Array.isArray(event) ? event : [event]).map((event) => {
-      const { id, repository, type, issue, ...payload } = event;
-      return { id, repository, type, issue, payload: size(payload) > 0 ? payload : undefined };
+      const { id, repository, __type, issue, ...payload } = event;
+      return { id, repository, type: __type, issue, payload: size(payload) > 0 ? payload : undefined };
     });
 
     const actors = extractActors(events);

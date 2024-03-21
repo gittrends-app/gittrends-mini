@@ -4,6 +4,7 @@ import { ActorSchema } from '../Actor';
 import { TimelineEventSchema } from '../TimelineEvent';
 
 export const ReferencedEventSchema = TimelineEventSchema.extend({
+  __type: z.literal('ReferencedEvent'),
   actor: z.union([z.string(), ActorSchema]).optional(),
   commit: z.string().optional(),
   commit_repository: z.string(),

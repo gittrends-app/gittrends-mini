@@ -1,5 +1,5 @@
 import { Knex } from 'knex';
-import { cloneDeep } from 'lodash';
+import { cloneDeep, omit } from 'lodash';
 
 import { IResourceRepository } from '@gittrends/service';
 
@@ -33,7 +33,7 @@ export class TagsRepository implements IResourceRepository<Tag> {
       .limit(opts?.limit || 1000)
       .offset(opts?.skip || 0);
 
-    return tags.map((tag) => Entity.tag(tag));
+    return tags.map((tag) => Entity.tag({ __type: 'Tag', ...tag }));
   }
 
   private async save(
@@ -49,7 +49,12 @@ export class TagsRepository implements IResourceRepository<Tag> {
     await Promise.all([
       this.actorsRepo.insert(actors, transaction),
       asyncIterator(tags, (tag) =>
-        this.db.table('tags').insertEntity(tag).onConflict(['id'])?.[onConflict]().transacting(transaction),
+        this.db
+          .table('tags')
+          .insertEntity(omit(tag, ['__type']))
+          .onConflict(['id'])
+          ?.[onConflict]()
+          .transacting(transaction),
       ),
     ])
       .then(async () => (!trx ? transaction.commit() : null))

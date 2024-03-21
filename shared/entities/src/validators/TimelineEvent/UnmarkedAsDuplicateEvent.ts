@@ -5,6 +5,7 @@ import { PullRequestSchema } from '../PullRequest';
 import { TimelineEventSchema } from '../TimelineEvent';
 
 export const UnmarkedAsDuplicateEventSchema = TimelineEventSchema.extend({
+  __type: z.literal('UnmarkedAsDuplicateEvent'),
   actor: z.string().optional(),
   canonical: z.union([z.string(), IssueSchema, PullRequestSchema]).optional(),
   created_at: z.coerce.date(),

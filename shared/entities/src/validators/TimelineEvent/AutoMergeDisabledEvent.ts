@@ -4,6 +4,7 @@ import { ActorSchema } from '../Actor';
 import { TimelineEventSchema } from '../TimelineEvent';
 
 export const AutoMergeDisabledEventSchema = TimelineEventSchema.extend({
+  __type: z.literal('AutoMergeDisabledEvent'),
   actor: z.union([z.string(), ActorSchema]).optional(),
   created_at: z.coerce.date(),
   disabler: z.union([z.string(), ActorSchema]).optional(),

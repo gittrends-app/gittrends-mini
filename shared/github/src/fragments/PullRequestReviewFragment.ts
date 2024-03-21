@@ -16,7 +16,7 @@ export class PullRequestReviewFragment extends Fragment {
   toString(): string {
     return `
       fragment ${this.code} on PullRequestReview {
-        type:__typename
+        __typename
         author { ...${SimplifiedActorFragment.code} }
         authorAssociation
         authorCanPushToRepository

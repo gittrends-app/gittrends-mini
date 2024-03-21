@@ -4,8 +4,10 @@
 import { z } from 'zod';
 
 import { ActorSchema } from './Actor';
+import { GithubEntitySchema } from './GithubEntity';
 
-export const ReactionSchema = z.object({
+export const ReactionSchema = GithubEntitySchema.extend({
+  __type: z.literal('Reaction'),
   id: z.string(),
   repository: z.string(),
   reactable: z.string(),

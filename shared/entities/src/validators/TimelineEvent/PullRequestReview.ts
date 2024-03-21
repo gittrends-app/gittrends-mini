@@ -6,6 +6,7 @@ import { TimelineEventSchema } from '../TimelineEvent';
 import { PullRequestReviewCommentSchema } from './PullRequestReviewComment';
 
 export const PullRequestReviewSchema = TimelineEventSchema.extend({
+  __type: z.literal('PullRequestReview'),
   author_association: z.string(),
   author_can_push_to_repository: z.boolean(),
   author: z.union([z.string(), ActorSchema]).optional(),

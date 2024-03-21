@@ -1,5 +1,5 @@
 import { Knex } from 'knex';
-import { cloneDeep } from 'lodash';
+import { cloneDeep, omit } from 'lodash';
 
 import { IResourceRepository } from '@gittrends/service';
 
@@ -32,7 +32,7 @@ export class WatchersRepository implements IResourceRepository<Watcher> {
       .limit(opts?.limit || 1000)
       .offset(opts?.skip || 0);
 
-    return watcher.map((watcher) => Entity.watcher(watcher));
+    return watcher.map((watcher) => Entity.watcher({ __type: 'Watcher', ...watcher }));
   }
 
   private async save(
@@ -50,7 +50,7 @@ export class WatchersRepository implements IResourceRepository<Watcher> {
       asyncIterator(watchers, (watcher) =>
         this.db
           .table('watchers')
-          .insertEntity(watcher)
+          .insertEntity(omit(watcher, ['__type']))
           .onConflict(['repository', 'user'])
           ?.[onConflict]()
           .transacting(transaction),

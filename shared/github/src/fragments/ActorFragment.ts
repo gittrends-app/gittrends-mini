@@ -18,7 +18,7 @@ export class Actor extends Fragment {
   toString(): string {
     return `
     fragment ${this.code} on Actor {
-      avatarUrl login type:__typename
+      avatarUrl login __typename
       ... on Node { id }
       ... on User {
         ${Fragment.include(this.full, 'bio')}

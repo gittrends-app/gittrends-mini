@@ -71,11 +71,10 @@ export class ReleasesComponentBuilder implements ComponentBuilder<RepositoryComp
     if (this.currentStage === Stages.GET_RELEASES) {
       this.releasesMeta = get<any[]>(data, 'repo.releases.nodes', []).map((node) => ({
         release: Entity.release({
-          reaction_groups: {},
-          reactions: [],
+          __type: 'Release',
           ...node,
+          reactions: [],
           repository: this.repositoryId,
-          author: node.author && Entity.actor(node.author),
         }),
         hasNextPage: true,
       }));
@@ -93,6 +92,7 @@ export class ReleasesComponentBuilder implements ComponentBuilder<RepositoryComp
         (meta.release.reactions as Reaction[]).push(
           ...get<any[]>(data, `reactable_${index}.reactions.nodes`, []).map((rd) =>
             Entity.reaction({
+              __type: 'Reaction',
               ...rd,
               repository: this.repositoryId,
               reactable: meta.release.id,

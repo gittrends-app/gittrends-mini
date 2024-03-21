@@ -11,6 +11,11 @@ import { ActorsRepository } from './ActorRepository';
 import { ReactionsRepository } from './ReactionsRepository';
 import { TimelineEventsRepository } from './TimelineEventsRepository';
 
+function transform<T extends IssueOrPull>(data: Record<string, any>): T {
+  const { type, ...rest } = data;
+  return { __type: type, ...rest } as T;
+}
+
 class IssueOrPullRepository<T extends IssueOrPull> implements IResourceRepository<T> {
   private actorsRepo: ActorsRepository;
   private reactionsRepo: ReactionsRepository;
@@ -39,18 +44,27 @@ class IssueOrPullRepository<T extends IssueOrPull> implements IResourceRepositor
       .select('*')
       .where('repository', repository)
       .limit(opts?.limit || 1000)
-      .offset(opts?.skip || 0);
+      .offset(opts?.skip || 0)
+      .then((data) => data.map((v) => transform<T>(v)));
   }
 
   private async save(issue: T | T[], trx?: Knex.Transaction): Promise<void> {
     const data = cloneDeep(Array.isArray(issue) ? issue : [issue]).map((issue) => {
-      const { reactions, timeline_items, ...otherFields } = issue;
+      const { __type, reactions, timeline_items, ...otherFields } = issue;
       const actors = extractActors(otherFields);
-      if (Array.isArray(issue.reactions)) issue.reactions = issue.reactions.length;
-      if (Array.isArray(issue.timeline_items)) issue.timeline_items = issue.timeline_items.length;
+
+      if (!reactions || Array.isArray(reactions)) {
+        Object.assign(otherFields, {
+          reactions: Object.entries(otherFields.reaction_groups).reduce((acc, [, value]) => acc + value, 0),
+        });
+      }
+
+      if (Array.isArray(timeline_items)) {
+        Object.assign(otherFields, { timeline_items: timeline_items.length });
+      }
 
       return {
-        issue: Object.assign(issue, otherFields),
+        issue: Object.assign({ type: __type }, otherFields),
         actors,
         reactions: Array.isArray(reactions) ? reactions : [],
         timeline_items: Array.isArray(timeline_items) ? timeline_items : [],

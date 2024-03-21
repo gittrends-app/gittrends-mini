@@ -3,16 +3,18 @@
  */
 import { z } from 'zod';
 
-export const ActorSchema = z.object({
+import { GithubEntitySchema } from './GithubEntity';
+
+export const ActorSchema = GithubEntitySchema.extend({
   id: z.string(),
-  type: z.enum(['User', 'Organization', 'Mannequin', 'Bot', 'EnterpriseUserAccount']),
   login: z.string(),
   avatar_url: z.string().optional(),
+  __type: z.enum(['User', 'Organization', 'Mannequin', 'Bot', 'EnterpriseUserAccount']),
   __updated_at: z.coerce.date().optional(),
 });
 
 export const UserSchema = ActorSchema.extend({
-  type: z.literal('User'),
+  __type: z.literal('User'),
   bio: z.string().optional(),
   company: z.string().optional(),
   created_at: z.coerce.date().optional(),
@@ -51,7 +53,7 @@ export const UserSchema = ActorSchema.extend({
 });
 
 export const OrganizationSchema = ActorSchema.extend({
-  type: z.literal('Organization'),
+  __type: z.literal('Organization'),
   created_at: z.coerce.date().optional(),
   database_id: z.number().optional(),
   description: z.string().optional(),
@@ -68,7 +70,7 @@ export const OrganizationSchema = ActorSchema.extend({
 });
 
 export const MannequinSchema = ActorSchema.extend({
-  type: z.literal('Mannequin'),
+  __type: z.literal('Mannequin'),
   created_at: z.coerce.date().optional(),
   database_id: z.number().optional(),
   email: z.string().optional(),
@@ -76,14 +78,14 @@ export const MannequinSchema = ActorSchema.extend({
 });
 
 export const BotSchema = ActorSchema.extend({
-  type: z.literal('Bot'),
+  __type: z.literal('Bot'),
   created_at: z.coerce.date().optional(),
   database_id: z.number().optional(),
   updated_at: z.coerce.date().optional(),
 });
 
 export const EnterpriseUserAccountSchema = ActorSchema.extend({
-  type: z.literal('EnterpriseUserAccount'),
+  __type: z.literal('EnterpriseUserAccount'),
   created_at: z.coerce.date().optional(),
   name: z.string().optional(),
   updated_at: z.coerce.date().optional(),

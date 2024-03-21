@@ -7,7 +7,7 @@ import { ActorSchema } from './Actor';
 import { IssueOrPullSchema } from './Issue';
 
 export const PullRequestSchema = IssueOrPullSchema.extend({
-  type: z.literal('PullRequest'),
+  __type: z.literal('PullRequest'),
   additions: z.number(),
   base_ref: z.object({ name: z.string(), target: z.string() }).optional(),
   base_ref_name: z.string(),

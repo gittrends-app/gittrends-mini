@@ -144,12 +144,23 @@ export async function redisQueue(opts: {
 
     worker.on(
       'message',
-      (progress: { event: 'started' | 'updated' | 'finished'; name: string; current: number; total?: number }) => {
+      (progress: {
+        event: 'started' | 'updated' | 'finished' | 'error';
+        name: string;
+        current: number;
+        total?: number;
+        error?: Error;
+      }) => {
         if (!opts.multibar || !progressBar) return;
         const name = `<thd${index + 1}> ${progress.name}`;
         switch (progress.event) {
           case 'started':
             progressBar.update(0, { resource: name });
+            break;
+          case 'error':
+            if (progress.error) {
+              errorLogger.error({ message: progress.error, meta: { repository: progress.name } });
+            }
             break;
           case 'updated':
             if (progress.total) totals[progress.name] = progress.total;

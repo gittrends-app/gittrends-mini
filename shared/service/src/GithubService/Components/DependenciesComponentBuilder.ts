@@ -96,6 +96,7 @@ export class DependenciesComponentBuilder implements ComponentBuilder<Component,
         pendingManifest.dependencies.push(
           ...get<any[]>(data, `repo_${index}.dependencies.nodes`, []).map((d) =>
             Entity.dependency({
+              __type: 'Dependency',
               ...d,
               repository: this.repositoryId,
               manifest: pendingManifest.manifest.id,

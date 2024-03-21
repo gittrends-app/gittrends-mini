@@ -4,6 +4,7 @@ import { ActorSchema } from '../Actor';
 import { TimelineEventSchema } from '../TimelineEvent';
 
 export const LockedEventSchema = TimelineEventSchema.extend({
+  __type: z.literal('LockedEvent'),
   actor: z.union([z.string(), ActorSchema]).optional(),
   created_at: z.coerce.date(),
   lock_reason: z.string().optional(),

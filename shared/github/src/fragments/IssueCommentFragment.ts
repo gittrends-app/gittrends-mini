@@ -15,6 +15,7 @@ export class IssueCommentFragment extends Fragment {
   toString(): string {
     return `
       fragment ${this.code} on IssueComment {
+        __typename
         ...${CommentFragment.code}
         lastEditedAt
         publishedAt

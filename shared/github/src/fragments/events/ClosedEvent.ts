@@ -16,7 +16,7 @@ export class ClosedEvent extends Fragment {
       fragment ${this.code} on ClosedEvent {
         actor { ...${SimplifiedActorFragment.code} }
         closer {
-          type:__typename
+          __typename
           ... on Node { id }
           ... on Commit { commit:oid }
         }

@@ -19,6 +19,11 @@ export default function normalize(object: any, compact = false): any {
   }
 
   if (isPlainObject(object)) {
+    if (object.__typename) {
+      object.__type = object.__typename;
+      delete object.__typename;
+    }
+
     const _object = reduce(
       object,
       (memo: Record<string, any>, value, key) => {
@@ -38,7 +43,7 @@ export default function normalize(object: any, compact = false): any {
       if (notNil(_object.total_count)) return _object.total_count;
     }
 
-    return mapValues(_object, (value, key) => {
+    const res = mapValues(_object, (value, key) => {
       if (key === 'reaction_groups' && value) {
         return value.reduce(
           (memo: Record<string, unknown>, v: { content: string; users: number }) =>
@@ -53,6 +58,15 @@ export default function normalize(object: any, compact = false): any {
 
       return value;
     });
+
+    if (res.reaction_groups && !res.reactions) {
+      res.reactions = Object.entries(res.reaction_groups as Record<string, number>).reduce(
+        (memo, [, value]) => memo + value,
+        0,
+      );
+    }
+
+    return res;
   }
 
   return object;

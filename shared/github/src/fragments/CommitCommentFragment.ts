@@ -15,7 +15,7 @@ export class CommitCommentFragment extends Fragment {
   toString(): string {
     return `
       fragment ${this.code} on CommitComment {
-        type:__typename
+        __typename
         id
         ... on Comment { ...${CommentFragment.code} }
         commit { id:oid }

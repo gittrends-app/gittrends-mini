@@ -18,8 +18,8 @@ export class CrossReferencedEvent extends Fragment {
         createdAt
         isCrossRepository
         referencedAt
-        source { type:__typename ... on Node { id } }
-        target { type:__typename ... on Node { id } }
+        source { __typename ... on Node { id } }
+        target { __typename ... on Node { id } }
         willCloseTarget
       }
     `;

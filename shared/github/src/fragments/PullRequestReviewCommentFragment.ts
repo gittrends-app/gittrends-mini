@@ -16,7 +16,7 @@ export class PullRequestReviewCommentFragment extends Fragment {
     return `
       fragment ${this.code} on PullRequestReviewComment {
         id
-        type:__typename
+        __typename
         ... on Comment { ...${CommentFragment.code} }
         commit { id:oid }
         databaseId

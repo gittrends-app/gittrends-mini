@@ -4,6 +4,7 @@ import { ActorSchema } from '../Actor';
 import { TimelineEventSchema } from '../TimelineEvent';
 
 export const DeployedEventSchema = TimelineEventSchema.extend({
+  __type: z.literal('DeployedEvent'),
   actor: z.union([z.string(), ActorSchema]).optional(),
   created_at: z.coerce.date(),
   deployment: z.string(),

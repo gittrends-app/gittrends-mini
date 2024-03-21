@@ -148,7 +148,7 @@ export class IssueComponent extends Component {
         ${alias}:timelineItems(${super.argsToString({ first, after })}) {
           pageInfo { hasNextPage endCursor }
           nodes {
-            type:__typename
+            __typename
             ... on Node { id }
             ... on AddedToProjectEvent { ...${AddedToProjectEvent.code} }
             ... on AssignedEvent { ...${AssignedEvent.code} }

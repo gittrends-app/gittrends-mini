@@ -20,6 +20,7 @@ export class Repository extends Fragment {
   toString(): string {
     return `
     fragment ${this.code} on Repository {
+      __typename
       ${Fragment.include(this.full, 'assignableUsers { totalCount }')}
       ${Fragment.include(this.full, 'codeOfConduct { name }')}
       createdAt

@@ -1,5 +1,5 @@
 import { Knex } from 'knex';
-import { cloneDeep } from 'lodash';
+import { cloneDeep, omit } from 'lodash';
 
 import { IRepositoriesRepository } from '@gittrends/service';
 
@@ -26,7 +26,7 @@ export class RepositoriesRepository implements IRepositoriesRepository {
         .first('*')
         .from('repositories')
         .where('id', id)
-        .then((result) => result && Entity.repository(result)),
+        .then((result) => result && Entity.repository({ __type: 'Repository', ...result })),
     );
 
     return Array.isArray(id) ? results : results[0];
@@ -37,7 +37,7 @@ export class RepositoriesRepository implements IRepositoriesRepository {
       .first('*')
       .from('repositories')
       .whereRaw('UPPER(name_with_owner) LIKE ?', name.toUpperCase())
-      .then((result) => result && Entity.repository(result));
+      .then((result) => result && Entity.repository({ __type: 'Repository', ...result }));
   }
 
   private async save(
@@ -55,7 +55,7 @@ export class RepositoriesRepository implements IRepositoriesRepository {
       asyncIterator(repos, (repo) =>
         this.db
           .table('repositories')
-          .insertEntity(repo)
+          .insertEntity(omit(repo, ['__type']))
           .onConflict('id')
           ?.[onConflict || 'merge']()
           .transacting(transaction),

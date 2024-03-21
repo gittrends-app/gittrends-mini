@@ -30,9 +30,10 @@ export class TagsComponentBuilder implements ComponentBuilder<RepositoryComponen
     this.first = Math.min(100, this.first * 2);
 
     const parsedData = get<any[]>(data, 'repo.tags.nodes', []).map((node) => {
-      if (node.target.type === 'Tag') {
+      if (node.target.__type === 'Tag') {
         const target = node.target;
         return Entity.tag({
+          __type: 'Tag',
           id: target.id,
           message: target.message,
           name: target.name,
@@ -46,6 +47,7 @@ export class TagsComponentBuilder implements ComponentBuilder<RepositoryComponen
         });
       } else {
         return Entity.tag({
+          __type: 'Tag',
           id: `commit_${node.target.id}`,
           message: node.target.message,
           name: node.name,
