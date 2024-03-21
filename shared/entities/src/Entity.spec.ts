@@ -4,12 +4,12 @@ import { Entity, EntityValidationError } from './Entity';
 
 describe('Entity', () => {
   it('should remove unknown fields', () => {
-    const user = Entity.actor({ id: '1', type: 'User', login: 'octocat', invalid_field: '' });
-    expect(user).toEqual({ id: '1', type: 'User', login: 'octocat' });
+    const user = Entity.actor({ id: '1', __type: 'User', login: 'octocat', invalid_field: '' });
+    expect(user).toEqual({ id: '1', __type: 'User', login: 'octocat' });
   });
 
   it('should throw an error when required field is not present', () => {
-    expect(() => Entity.actor({ type: 'User', login: 'octocat' })).toThrow(EntityValidationError);
+    expect(() => Entity.actor({ __type: 'User', login: 'octocat' })).toThrow(EntityValidationError);
   });
 
   it('should return undefined when type is not supported/recognized', () => {
