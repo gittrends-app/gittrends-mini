@@ -1,33 +1,10 @@
 import { SearchComponentQuery } from '@gittrends/github';
 
-import type {
-  Actor,
-  Dependency,
-  Issue,
-  IssueOrPull,
-  PullRequest,
-  Reaction,
-  Release,
-  Repository,
-  Stargazer,
-  Tag,
-  TimelineEvent,
-  Watcher,
-} from '@gittrends/entities';
+import type { Actor, Dependency, IssueOrPull, Release, Repository, Stargazer, Tag, Watcher } from '@gittrends/entities';
 
 export type Iterable<T> = AsyncIterableIterator<{ items: T[]; endCursor?: string; hasNextPage?: boolean }[]>;
 
-export type RepositoryResource =
-  | Dependency
-  | IssueOrPull
-  | Issue
-  | PullRequest
-  | Release
-  | Stargazer
-  | Tag
-  | Watcher
-  | Reaction
-  | TimelineEvent;
+export type RepositoryResource = Dependency | IssueOrPull | Release | Stargazer | Tag | Watcher;
 
 export type RepositoryResourceName =
   | 'dependencies'
