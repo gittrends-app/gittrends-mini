@@ -4,8 +4,8 @@ import { SearchComponentQuery } from '@gittrends/github';
 
 import type { Actor, Repository } from '@gittrends/entities';
 
+import { Iterable, RepositoryResource, RepositoryResourceName, Service } from '../Service';
 import { IActorsRepository, IMetadataRepository, IRepositoriesRepository, IResourceRepository } from './Repositories';
-import { Iterable, RepositoryResource, RepositoryResourceName, Service } from './Service';
 
 export type EntityRepositories = {
   get(entity: 'actors'): IActorsRepository;

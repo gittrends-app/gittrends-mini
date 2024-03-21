@@ -1,6 +1,6 @@
 import { Reaction, TimelineEvent } from '@gittrends/entities';
 
-import { RepositoryResource } from '../Service';
+import { RepositoryResource } from '../../Service';
 import { IEntityRepository } from './EntityRepository';
 
 type PersistableResource = RepositoryResource | Reaction | TimelineEvent;
