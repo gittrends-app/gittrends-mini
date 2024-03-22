@@ -46,6 +46,7 @@ describe('Normalize response received from GitHub API', () => {
       }),
     ).toStrictEqual({
       reaction_groups: { heart: 10, thumbs_up: 5 },
+      reactions: 15,
     });
   });
 });
