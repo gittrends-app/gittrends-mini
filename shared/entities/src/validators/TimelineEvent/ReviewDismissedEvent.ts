@@ -1,8 +1,8 @@
+import { isPlainObject } from 'lodash';
 import { z } from 'zod';
 
 import { ActorSchema } from '../Actor';
 import { TimelineEventSchema } from '../TimelineEvent';
-import { PullRequestCommitSchema } from './PullRequestCommit';
 import { PullRequestReviewSchema } from './PullRequestReview';
 
 export const ReviewDismissedEventSchema = TimelineEventSchema.extend({
@@ -11,7 +11,10 @@ export const ReviewDismissedEventSchema = TimelineEventSchema.extend({
   created_at: z.coerce.date(),
   dismissal_message: z.string().optional(),
   previous_review_state: z.string(),
-  pull_request_commit: z.union([z.string(), PullRequestCommitSchema]).optional(),
+  // PullRequestCommit - pega diretamente o hash do commit
+  pull_request_commit: z
+    .preprocess((data: any) => (isPlainObject(data) && data.commit ? data.commit : data), z.string())
+    .optional(),
   review: z.union([z.string(), PullRequestReviewSchema]).optional(),
 });
 

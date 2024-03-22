@@ -87,7 +87,7 @@ export class HttpClient {
         return { status, statusText, data, headers };
       })
       .catch((err: AxiosError) => {
-        logger(`request #${requestId}: request error: ${err.message}`);
+        logger(`request #${requestId}: request error: ${err.message} - ${JSON.stringify(data)}`);
         return Promise.reject(RequestError.create(err, { status: err.response?.status, data: err.response?.data }));
       });
   }
