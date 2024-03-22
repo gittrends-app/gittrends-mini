@@ -5,7 +5,7 @@
   "types": "dist",
   "license": "MIT",
   "scripts": {
-    "build": "yarn install && rm -rf dist tsconfig.tsbuildinfo && tsc",
+    "build": "yarn install && rm -rf dist tsconfig.tsbuildinfo && tsc --emitDeclarationOnly && node build.mjs",
     "eslint": "eslint --color"
   },
   "dependencies": {

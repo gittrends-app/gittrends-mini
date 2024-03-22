@@ -2,7 +2,6 @@
  *  Author: Hudson S. Borges
  */
 import { BaseError } from 'make-error-cause';
-import { extname } from 'path';
 import { ZodError, ZodType } from 'zod';
 
 import { Metadata, MetadataSchema } from './Metadata';
@@ -23,41 +22,40 @@ import { Repository, RepositorySchema } from './validators/Repository';
 import { Stargazer, StargazerSchema } from './validators/Stargazer';
 import { Tag, TagSchema } from './validators/Tag';
 import { TimelineEvent, TimelineEventSchema } from './validators/TimelineEvent';
+import * as TE from './validators/TimelineEvent/index';
 import { Watcher, WatcherSchema } from './validators/Watcher';
+
+const SchemaMap: Record<string, ZodType> = {
+  // Actors schemas
+  User: UserSchema,
+  Organization: OrganizationSchema,
+  Mannequin: MannequinSchema,
+  Bot: BotSchema,
+  EnterpriseUserAccount: EnterpriseUserAccountSchema,
+  // Other schemas
+  Metadata: MetadataSchema,
+  Repository: RepositorySchema,
+  Stargazer: StargazerSchema,
+  Watcher: WatcherSchema,
+  Tag: TagSchema,
+  Reaction: ReactionSchema,
+  Release: ReleaseSchema,
+  Dependency: DependencySchema,
+  TimelineEvent: TimelineEventSchema,
+  Issue: IssueSchema,
+  PullRequest: PullRequestSchema,
+  // Timeline Events
+  ...Object.entries(TE).reduce(
+    (acc, [key, value]) => ({ ...acc, [key.endsWith('Schema') ? key.slice(0, -6) : key]: value }),
+    {},
+  ),
+};
 
 export class Entity {
   protected constructor() {}
 
   public static getSchema(type: string): ZodType | undefined {
-    let validator: ZodType | undefined = undefined;
-
-    if (type === 'Metadata') validator = MetadataSchema;
-    else if (type === 'User') validator = UserSchema;
-    else if (type === 'Organization') validator = OrganizationSchema;
-    else if (type === 'Mannequin') validator = MannequinSchema;
-    else if (type === 'Bot') validator = BotSchema;
-    else if (type === 'EnterpriseUserAccount') validator = EnterpriseUserAccountSchema;
-    else if (type === 'Repository') validator = RepositorySchema;
-    else if (type === 'Stargazer') validator = StargazerSchema;
-    else if (type === 'Watcher') validator = WatcherSchema;
-    else if (type === 'Tag') validator = TagSchema;
-    else if (type === 'Reaction') validator = ReactionSchema;
-    else if (type === 'Release') validator = ReleaseSchema;
-    else if (type === 'Dependency') validator = DependencySchema;
-    else if (type === 'TimelineEvent') validator = TimelineEventSchema;
-    else if (type === 'Issue') validator = IssueSchema;
-    else if (type === 'PullRequest') validator = PullRequestSchema;
-    else {
-      try {
-        //eslint-disable-next-line @typescript-eslint/no-var-requires
-        const Content = require(`./validators/TimelineEvent/${type}${extname(__filename)}`);
-        if (Content && Content[type + 'Schema']) validator = Content[type + 'Schema'] as any;
-      } catch (e) {
-        // ignore
-      }
-    }
-
-    return validator;
+    return SchemaMap[type];
   }
 
   protected static validate<T>(object: { [k: string]: unknown }, type: string): T {
