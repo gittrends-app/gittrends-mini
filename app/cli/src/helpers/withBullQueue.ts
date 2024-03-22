@@ -47,12 +47,13 @@ export function withBullEvents(callback?: any): any {
 export function withBullWorker(
   worker: (job: Job<CliJobType>) => Promise<void>,
   concurrency: number,
+  autorun = true,
 ): Worker<CliJobType> {
   return new Worker<CliJobType>('@gittrends/cli', worker, {
     connection: { host: REDIS_HOST, port: REDIS_PORT, db: REDIS_DB },
     maxStalledCount: Number.MAX_SAFE_INTEGER,
     concurrency,
-    autorun: true,
+    autorun: autorun,
     lockDuration: 2 * 60 * 1000,
     stalledInterval: 30 * 1000,
   });

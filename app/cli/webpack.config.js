@@ -31,7 +31,7 @@ module.exports = {
     static: path.resolve(__dirname, 'assets'),
     compress: true,
     port: process.env.DEV_SERVER_PORT || 8081,
-    proxy: { '/api': process.env.BULL_BOARD_URL || 'http://localhost:8080' },
+    proxy: [{ context: ['/api'], target: process.env.BULL_BOARD_URL || 'http://localhost:8080' }],
     hot: true,
   },
 };

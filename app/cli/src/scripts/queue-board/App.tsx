@@ -52,7 +52,7 @@ function App() {
 
   const { data: jobs } = swr(
     ['/api/jobs', state],
-    async (url, state) => {
+    async ([url, state]) => {
       return globalThis
         .fetch(url + (state ? '?' + new URLSearchParams({ state }) : ''))
         .then((res) => res.json())
@@ -226,7 +226,6 @@ function App() {
       components={{
         Footer: GridFooterContainer,
         NoRowsOverlay: (props) => {
-          console.log('🚀 ~ file: App.tsx ~ line 213 ~ App ~ props', props);
           return (
             <Box sx={{ display: 'flex', flexGrow: 1, justifyContent: 'center', alignItems: 'center', height: '100%' }}>
               <span>No "{props.state}" jobs</span>

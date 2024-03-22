@@ -22,50 +22,61 @@ async function workerThread(): Promise<void> {
 
   const service = new CachedService(new GitHubService(new HttpClient(workerData.httpClientOpts)), withCache());
 
-  const worker = withBullWorker(async (job) => {
-    if (!job.data.name_with_owner) throw new Error('Invlaid job id!');
+  const worker = withBullWorker(
+    async (job) => {
+      if (!job.data.name_with_owner) throw new Error('Invlaid job id!');
 
-    parentPort?.postMessage({ event: 'started', name: job.data.name_with_owner });
+      parentPort?.postMessage({ event: 'started', name: job.data.name_with_owner });
 
-    const resources = compact(
-      job.data.__resources.filter((r) => (r === 'actors' ? workerData.updateActors : true)),
-    ) as Array<RepositoryResourceName | 'actors'>;
+      const resources = compact(
+        job.data.__resources.filter((r) => (r === 'actors' ? workerData.updateActors : true)),
+      ) as Array<RepositoryResourceName | 'actors'>;
 
-    return updater(job.data.name_with_owner, {
-      resources: resources,
-      service,
-      before: new Date(job.data.__updated_before),
-      force: job.data.__force,
-      iterationsToPersist: parseInt(`${cliEnvironment.CLI_UPDATER_ITERATIONS || 3}`),
-      onProgress: async (progress) => {
-        const [current, total] = Object.values(progress).reduce(
-          ([current, total], rp) =>
-            rp.total === Infinity ? [current, total] : [current + rp.current, total + rp.total],
-          [0, 0],
-        );
+      return updater(job.data.name_with_owner, {
+        resources: resources,
+        service,
+        before: new Date(job.data.__updated_before),
+        force: job.data.__force,
+        iterationsToPersist: parseInt(`${cliEnvironment.CLI_UPDATER_ITERATIONS || 3}`),
+        onProgress: async (progress) => {
+          const [current, total] = Object.values(progress).reduce(
+            ([current, total], rp) =>
+              rp.total === Infinity ? [current, total] : [current + rp.current, total + rp.total],
+            [0, 0],
+          );
 
-        parentPort?.postMessage({ event: 'updated', name: job.data.name_with_owner, current, total });
+          parentPort?.postMessage({ event: 'updated', name: job.data.name_with_owner, current, total });
 
-        await job.updateProgress(progress);
-      },
-    })
-      .catch((error: Error) => {
-        logger(`Error: ${error.message}`);
-        parentPort?.postMessage({ event: 'error', name: job.data.name_with_owner, error: error.message });
-        throw error;
+          await job.updateProgress(progress);
+        },
       })
-      .finally(() => {
-        if (globalThis.gc) globalThis.gc();
-        parentPort?.postMessage({ event: 'finished', name: job.data.name_with_owner });
-      });
-  }, workerData.concurrency);
+        .catch((error: Error) => {
+          logger(`Error: ${error.message}`);
+          parentPort?.postMessage({ event: 'error', name: job.data.name_with_owner, error: error.message });
+          throw error;
+        })
+        .finally(() => {
+          if (globalThis.gc) globalThis.gc();
+          parentPort?.postMessage({ event: 'finished', name: job.data.name_with_owner });
+        });
+    },
+    Math.max(workerData.concurrency, 1),
+    false,
+  );
+
+  if (workerData.concurrency > 0) worker.run();
 
   worker.on('closed', () => consola.info('Connection closed'));
   worker.on('error', consola.error);
 
   parentPort?.on('message', (data) => {
-    if (data.concurrency) worker.concurrency = data.concurrency;
-    else logger(`Unknown message: ${JSON.stringify(data)}`);
+    if (data.concurrency) {
+      if (data.concurrency === 0 && worker.isRunning()) worker.pause();
+      else if (data.concurrency > 0) {
+        worker.concurrency = data.concurrency;
+        worker.isRunning() ? worker.resume() : worker.run();
+      }
+    } else logger(`Unknown message: ${JSON.stringify(data)}`);
   });
 }
 

@@ -48,7 +48,7 @@ export async function cli(args: string[], from: 'user' | 'node' = 'node'): Promi
 
       const queue = withBullQueue();
       const events = withBullEvents();
-      const monitor = withBullWorker(() => Promise.reject('monitor'), 0);
+      const monitor = withBullWorker(() => Promise.reject('monitor'), 1, false);
 
       const apiCacheMiddleware = apicache.middleware('2 seconds');
 

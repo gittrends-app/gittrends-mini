@@ -13,8 +13,10 @@ export function UpdaterAccordion() {
   const [Icon, setIcon] = useState<any>(undefined);
   const [params, setParams] = useState({ threads: 0, workers: 0 });
 
-  const { data } = useSWR(['/api/updater', disabled], (url) =>
-    fetch(url).then<{ id: number; concurrency: number }[]>((response) => response.json()),
+  const { data } = useSWR(
+    ['/api/updater', disabled],
+    ([url]) => fetch(url).then<{ id: number; concurrency: number }[]>((response) => response.json()),
+    {},
   );
 
   useEffect(() => {

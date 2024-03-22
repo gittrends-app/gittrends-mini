@@ -10,7 +10,7 @@ export function SchedulerAccordion() {
   const [running, setRunning] = useState<boolean>(false);
   const [disabled, setDisabled] = useState<boolean>(false);
 
-  const { data } = useSWR(['/api/scheduler', disabled], (url) => fetch(url).then((response) => response.json()), {
+  const { data } = useSWR(['/api/scheduler', disabled], ([url]) => fetch(url).then((response) => response.json()), {
     refreshInterval(latestData) {
       if (latestData && latestData.done === true) return 0;
       return 1000;
