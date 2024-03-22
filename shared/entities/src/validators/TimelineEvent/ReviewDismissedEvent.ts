@@ -1,4 +1,3 @@
-import { isPlainObject } from 'lodash';
 import { z } from 'zod';
 
 import { ActorSchema } from '../Actor';
@@ -13,7 +12,7 @@ export const ReviewDismissedEventSchema = TimelineEventSchema.extend({
   previous_review_state: z.string(),
   // PullRequestCommit - pega diretamente o hash do commit
   pull_request_commit: z
-    .preprocess((data: any) => (isPlainObject(data) && data.commit ? data.commit : data), z.string())
+    .preprocess((data: any) => (typeof data === 'object' && data.commit ? data.commit : data), z.string())
     .optional(),
   review: z.union([z.string(), PullRequestReviewSchema]).optional(),
 });

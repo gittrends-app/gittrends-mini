@@ -9,12 +9,7 @@
     "eslint": "eslint --color"
   },
   "dependencies": {
-    "joi": "^17.6.2",
-    "lodash": "^4.17.21",
     "make-error-cause": "^2.3.0",
-    "pluralize": "^8.0.0"
-  },
-  "devDependencies": {
-    "@types/pluralize": "^0.0.33"
+    "zod": "^3.22.4"
   }
 }

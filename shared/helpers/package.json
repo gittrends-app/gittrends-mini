@@ -8,12 +8,10 @@
     "build": "yarn install && rm -rf dist tsconfig.tsbuildinfo && tsc && node build.mjs"
   },
   "dependencies": {
-    "@types/debug": "^4.1.7",
     "debug": "^4.3.4",
-    "lodash": "^4.17.21",
-    "make-error-cause": "^2.3.0"
+    "lodash": "^4.17.21"
   },
   "devDependencies": {
-    "@types/jest": "^29.4.0"
+    "@types/debug": "^4.1.12"
   }
 }
