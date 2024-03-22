@@ -6,8 +6,8 @@ import { IRepositoriesRepository } from '@gittrends/service';
 import { Entity, Repository } from '@gittrends/entities';
 
 import { asyncIterator } from '../config/knex.config';
+import { extractActors } from '../helpers/extract';
 import { ActorsRepository } from './ActorRepository';
-import { extractActors } from 'src/helpers/extract';
 
 export class RepositoriesRepository implements IRepositoriesRepository {
   private readonly actorRepo: ActorsRepository;
