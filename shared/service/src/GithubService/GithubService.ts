@@ -76,10 +76,7 @@ async function request(
       )
       .catch(async (error) => {
         logger(`error: ${error.message || error}`);
-        if (builders.length === 1) {
-          if (!previousError) return _request(builders, error as Error);
-          throw error;
-        }
+        if (builders.length === 1) return _request(builders, error as Error);
         return flatten(await mapSeries(builders, (builder) => _request([builder])));
       })
       .finally(() => components.map((ca) => ca.map((comp) => comp.setAlias(comp.alias.replace(/__\d+_\d+$/i, '')))));
