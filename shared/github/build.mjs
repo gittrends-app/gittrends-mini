@@ -2,10 +2,10 @@ import * as esbuild from 'esbuild';
 import { polyfillNode } from 'esbuild-plugin-polyfill-node';
 
 await esbuild.build({
-  entryPoints: ['src/index.ts'],
+  entryPoints: ['dist/index.js'],
   bundle: true,
   minify: true,
-  outdir: 'dist',
+  outfile: 'dist/index.bundle.js',
   plugins: [
     polyfillNode({
       polyfills: { util: true },

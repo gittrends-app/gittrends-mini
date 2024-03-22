@@ -1,5 +1,5 @@
-import debug from 'debug';
+import { default as deb } from 'debug';
 
-export default function (namespace: string) {
-  return debug(`gittrends:${namespace}`);
+export function debug(namespace: string) {
+  return deb(`gittrends:${namespace}`);
 }
